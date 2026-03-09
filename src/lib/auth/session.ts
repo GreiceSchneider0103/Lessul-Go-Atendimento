@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, Usuario } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { ForbiddenError, ServiceUnavailableError, UnauthorizedError } from "@/lib/errors";
 import { createSupabaseRouteClient, createSupabaseServerClient } from "@/lib/supabase/server";
@@ -18,7 +18,7 @@ function mapDatabaseAuthError(error: unknown): never {
   throw error;
 }
 
-async function getAppUserByAuthId(authUserId: string) {
+async function getAppUserByAuthId(authUserId: string): Promise<Usuario> {
   try {
     const appUser = await prisma.usuario.findUnique({ where: { authUserId } });
     if (!appUser) throw new ForbiddenError("Usuário não provisionado no sistema");
