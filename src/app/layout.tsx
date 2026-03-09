@@ -4,14 +4,8 @@ import { LogoutButton } from "@/components/auth/logout-button";
 import { SidebarNav } from "@/components/ui/sidebar-nav";
 import { getCurrentUser } from "@/lib/auth/session";
 
-const navItems = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/tickets", label: "Tickets" },
-  { href: "/tickets/kanban", label: "Kanban" },
-  { href: "/reports", label: "Relatórios" },
-  { href: "/users", label: "Usuários" },
-  { href: "/admin", label: "Administração" }
-];
+export const dynamic = "force-dynamic";
+
 
 function getInitials(name?: string) {
   if (!name) return "VS";
@@ -41,7 +35,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
               <div className="brand-icon">⌘</div>
               <span className="brand">TicketSystem</span>
             </div>
-            <SidebarNav items={navItems} />
+            <SidebarNav />
             <div className="sidebar-footer">Sistema de Tickets v1.0</div>
           </aside>
 
