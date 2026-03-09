@@ -15,7 +15,29 @@ export default async function TicketDetail({ params }: { params: Promise<{ id: s
         <h1>Detalhe do ticket</h1>
         <Link href={`/tickets/${id}/edit`}>Editar</Link>
       </div>
+<<<<<<< HEAD
+
+      <article className="card">
+        <h2>Cliente e pedido</h2>
+        <p><strong>Cliente:</strong> {ticket.nomeCliente}</p>
+        <p><strong>Venda:</strong> {ticket.numeroVenda}</p>
+        <p><strong>Marketplace:</strong> {ticket.canalMarketplace}</p>
+        <p><strong>Empresa:</strong> {ticket.empresa}</p>
+        <p><strong>Status:</strong> {ticket.statusTicket}</p>
+        <p><strong>Custos totais:</strong> {Number(ticket.custosTotais).toFixed(2)}</p>
+      </article>
+
+      <article className="card">
+        <h2>Histórico de auditoria</h2>
+        <ul>
+          {ticket.auditoria?.map((item: any) => (
+            <li key={item.id}>{item.dataHora} — {item.acao} — {item.campo}</li>
+          ))}
+        </ul>
+      </article>
+=======
       <article className="card"><pre>{JSON.stringify(ticket, null, 2)}</pre></article>
+>>>>>>> origin/main
     </section>
   );
 }

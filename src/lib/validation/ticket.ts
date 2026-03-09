@@ -1,5 +1,9 @@
 import { z } from "zod";
+<<<<<<< HEAD
+import { EMPRESAS, MOTIVOS, RESOLUCOES, STATUS_RECLAMACAO, STATUS_TICKET } from "@/config/domains";
+=======
 import { EMPRESAS, MOTIVOS, STATUS_RECLAMACAO, STATUS_TICKET } from "@/config/domains";
+>>>>>>> origin/main
 
 export const ticketSchema = z.object({
   nomeCliente: z.string().min(3),
@@ -18,6 +22,34 @@ export const ticketSchema = z.object({
   dataReclamacao: z.string().datetime(),
   motivo: z.enum(MOTIVOS),
   detalhesCliente: z.string().optional(),
+<<<<<<< HEAD
+  resolucao: z.enum(RESOLUCOES).optional().nullable(),
+  valorReembolso: z.coerce.number().min(0).default(0),
+  valorColeta: z.coerce.number().min(0).default(0),
+  statusTicket: z.enum(STATUS_TICKET),
+  prazoConclusao: z.string().datetime().optional().nullable(),
+  responsavelId: z.string().uuid().optional().nullable()
+});
+
+export const ticketFiltersSchema = z.object({
+  search: z.string().optional(),
+  empresa: z.enum(EMPRESAS).optional(),
+  canalMarketplace: z.string().optional(),
+  statusTicket: z.enum(STATUS_TICKET).optional(),
+  statusReclamacao: z.enum(STATUS_RECLAMACAO).optional(),
+  motivo: z.enum(MOTIVOS).optional(),
+  responsavelId: z.string().uuid().optional(),
+  startDate: z.string().datetime().optional(),
+  endDate: z.string().datetime().optional(),
+  page: z.coerce.number().int().positive().default(1),
+  pageSize: z.coerce.number().int().positive().max(200).default(20),
+  orderBy: z.enum(["dataReclamacao", "criadoEm", "custosTotais", "prazoConclusao"]).default("criadoEm"),
+  orderDir: z.enum(["asc", "desc"]).default("desc")
+});
+
+export type TicketInput = z.infer<typeof ticketSchema>;
+export type TicketFiltersInput = z.infer<typeof ticketFiltersSchema>;
+=======
   valorReembolso: z.coerce.number().min(0).default(0),
   valorColeta: z.coerce.number().min(0).default(0),
   statusTicket: z.enum(STATUS_TICKET),
@@ -25,3 +57,4 @@ export const ticketSchema = z.object({
 });
 
 export type TicketInput = z.infer<typeof ticketSchema>;
+>>>>>>> origin/main
