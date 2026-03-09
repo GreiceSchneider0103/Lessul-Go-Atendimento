@@ -6,7 +6,6 @@ import { getCurrentUser } from "@/lib/auth/session";
 
 export const dynamic = "force-dynamic";
 
-
 function getInitials(name?: string) {
   if (!name) return "VS";
   return name
@@ -26,6 +25,16 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     currentUser = null;
   }
 
+  if (!currentUser) {
+    return (
+      <html lang="pt-BR">
+        <body>
+          <main style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: 24 }}>{children}</main>
+        </body>
+      </html>
+    );
+  }
+
   return (
     <html lang="pt-BR">
       <body>
@@ -33,10 +42,10 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           <aside className="app-sidebar">
             <div className="brand-row">
               <div className="brand-icon">⌘</div>
-              <span className="brand">TicketSystem</span>
+              <span className="brand">GO Atendimento</span>
             </div>
             <SidebarNav />
-            <div className="sidebar-footer">Sistema de Tickets v1.0</div>
+            <div className="sidebar-footer">GO Atendimento v1.0</div>
           </aside>
 
           <div className="app-content">
@@ -50,12 +59,12 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
                 <button className="icon-btn" aria-label="Notificações">◔</button>
                 <div className="user-chip">
                   <div>
-                    <div className="user-name">{currentUser?.nome ?? "Visitante"}</div>
-                    <div className="user-role">{currentUser?.perfil?.toLowerCase() ?? "sessão"}</div>
+                    <div className="user-name">{currentUser.nome}</div>
+                    <div className="user-role">{currentUser.perfil.toLowerCase()}</div>
                   </div>
-                  <span className="avatar">{getInitials(currentUser?.nome)}</span>
+                  <span className="avatar">{getInitials(currentUser.nome)}</span>
                 </div>
-                {currentUser ? <LogoutButton /> : null}
+                <LogoutButton />
               </div>
             </header>
 
