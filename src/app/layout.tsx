@@ -1,7 +1,7 @@
 import "./globals.css";
-import Link from "next/link";
 import { ReactNode } from "react";
 import { LogoutButton } from "@/components/auth/logout-button";
+import { SidebarNav } from "@/components/ui/sidebar-nav";
 import { getCurrentUser } from "@/lib/auth/session";
 
 const navItems = [
@@ -28,11 +28,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <div className="app-shell">
           <aside className="app-sidebar">
             <div className="brand">Lessul Atendimento</div>
-            <nav className="nav-list">
-              {navItems.map((item) => (
-                <Link key={item.href} href={item.href} className="nav-item">{item.label}</Link>
-              ))}
-            </nav>
+            <SidebarNav items={navItems} />
           </aside>
 
           <div className="app-content">

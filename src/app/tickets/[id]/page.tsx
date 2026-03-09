@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { StatusBadge } from "@/components/ui/status-badge";
 
 async function getTicket(id: string) {
   const response = await fetch(`${process.env.APP_BASE_URL ?? "http://localhost:3000"}/api/tickets/${id}`, { cache: "no-store" });
@@ -35,14 +36,14 @@ export default async function TicketDetail({ params }: { params: Promise<{ id: s
             <p><strong>Venda:</strong> {ticket.numeroVenda}</p>
             <p><strong>Marketplace:</strong> {ticket.canalMarketplace}</p>
             <p><strong>Empresa:</strong> {ticket.empresa}</p>
-            <p><strong>Status:</strong> {ticket.statusTicket}</p>
-            <p><strong>SLA:</strong> {ticket.slaStatus}</p>
+            <p><strong>Status:</strong> <StatusBadge value={ticket.statusTicket} /></p>
+            <p><strong>SLA:</strong> <StatusBadge value={ticket.slaStatus} /></p>
             <p><strong>Custos totais:</strong> {Number(ticket.custosTotais).toFixed(2)}</p>
           </article>
 
           <article className="card">
             <h2>Backup Google Sheets</h2>
-            <p><strong>Status:</strong> {ticket.backupSyncStatus ?? "PENDING"}</p>
+            <p><strong>Status:</strong> <StatusBadge value={ticket.backupSyncStatus ?? "PENDING"} /></p>
             <p><strong>Linha:</strong> {ticket.backupSheetRowNumber ?? "-"}</p>
             <p><strong>Última sincronização:</strong> {ticket.backupLastSyncedAt ?? "-"}</p>
             {ticket.backupSyncError ? <p><strong>Erro:</strong> {ticket.backupSyncError}</p> : null}

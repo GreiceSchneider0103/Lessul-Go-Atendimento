@@ -207,3 +207,21 @@ button {
   .app-header { flex-direction: column; align-items: flex-start; gap: 10px; }
   .grid-4, .cols-4 { grid-template-columns: 1fr; }
 }
+
+
+.nav-item.active {
+  background: linear-gradient(135deg, #2563eb, #4f46e5);
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.35);
+}
+
+.page-header {
+  display: grid;
+  gap: 6px;
+}
+
+.metric-value {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 8px 0 0;
+}

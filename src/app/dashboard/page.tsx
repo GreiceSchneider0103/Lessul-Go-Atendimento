@@ -40,7 +40,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         {Object.entries(data.cards).map(([key, value]) => (
           <article key={key} className="card">
             <strong>{key}</strong>
-            <p>{String(value)}</p>
+            <p className="metric-value">{String(value)}</p>
           </article>
         ))}
       </div>

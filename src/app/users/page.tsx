@@ -1,4 +1,5 @@
 import { getCurrentUser } from "@/lib/auth/session";
+import { StatusBadge } from "@/components/ui/status-badge";
 
 export default async function UsersPage() {
   const user = await getCurrentUser();
@@ -13,7 +14,7 @@ export default async function UsersPage() {
       <div className="grid grid-4">
         <article className="card"><strong>Nome</strong><p>{user.nome}</p></article>
         <article className="card"><strong>Email</strong><p>{user.email}</p></article>
-        <article className="card"><strong>Perfil</strong><p><span className="badge badge-info">{user.perfil}</span></p></article>
+        <article className="card"><strong>Perfil</strong><p><StatusBadge value={user.perfil} /></p></article>
         <article className="card"><strong>Ativo</strong><p>{user.ativo ? "Sim" : "Não"}</p></article>
       </div>
     </section>

@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
+import { StatusBadge } from "@/components/ui/status-badge";
 
 type AdminUser = {
   id: string;
@@ -100,7 +101,7 @@ export function UsersAdmin({ initialUsers, initialError }: { initialUsers: unkno
                 <tr key={user.id}>
                   <td>{user.nome}</td>
                   <td>{user.email}</td>
-                  <td><span className="badge badge-info">{user.perfil}</span></td>
+                  <td><StatusBadge value={user.perfil} /></td>
                   <td>{user.ativo ? "Sim" : "Não"}</td>
                   <td>
                     <button className="btn btn-secondary" onClick={() => toggleAtivo(user.id, user.ativo)}>

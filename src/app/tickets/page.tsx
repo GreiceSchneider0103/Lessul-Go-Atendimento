@@ -1,10 +1,5 @@
 import Link from "next/link";
-
-function getBadgeClass(value: string) {
-  if (value === "CONCLUIDO" || value === "NO_PRAZO") return "badge badge-success";
-  if (value === "ATRASADO") return "badge badge-danger";
-  return "badge badge-warning";
-}
+import { StatusBadge } from "@/components/ui/status-badge";
 
 async function getTickets(query: Record<string, string | undefined>) {
   const params = new URLSearchParams();
@@ -66,12 +61,12 @@ export default async function TicketsPage({ searchParams }: { searchParams: Prom
               {result.data.map((item: any) => (
                 <tr key={item.id}>
                   <td><Link href={`/tickets/${item.id}`}>{item.nomeCliente}</Link></td>
-                  <td><span className="badge badge-info">{item.canalMarketplace}</span></td>
-                  <td><span className="badge badge-warning">{item.empresa}</span></td>
-                  <td><span className={getBadgeClass(item.statusTicket)}>{item.statusTicket}</span></td>
-                  <td><span className={getBadgeClass(item.slaStatus)}>{item.slaStatus}</span></td>
+                  <td><StatusBadge value={item.canalMarketplace} /></td>
+                  <td><StatusBadge value={item.empresa} /></td>
+                  <td><StatusBadge value={item.statusTicket} /></td>
+                  <td><StatusBadge value={item.slaStatus} /></td>
                   <td>{Number(item.custosTotais).toFixed(2)}</td>
-                  <td><span className={getBadgeClass(item.backupSyncStatus ?? "PENDING")}>{item.backupSyncStatus ?? "PENDING"}</span></td>
+                  <td><StatusBadge value={item.backupSyncStatus ?? "PENDING"} /></td>
                 </tr>
               ))}
             </tbody>
