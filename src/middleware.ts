@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { createServerClient } from "@supabase/ssr";
+import { createServerClient } from "@/lib/supabase/ssr";
 
 const publicRoutes = ["/login", "/auth/callback", "/api/health", "/indisponivel"];
 
