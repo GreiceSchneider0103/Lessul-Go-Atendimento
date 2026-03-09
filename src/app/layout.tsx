@@ -13,6 +13,16 @@ const navItems = [
   { href: "/admin", label: "Administração" }
 ];
 
+function getInitials(name?: string) {
+  if (!name) return "VS";
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((item) => item[0]?.toUpperCase() ?? "")
+    .join("");
+}
+
 export default async function RootLayout({ children }: { children: ReactNode }) {
   let currentUser: Awaited<ReturnType<typeof getCurrentUser>> | null = null;
 
@@ -27,18 +37,30 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       <body>
         <div className="app-shell">
           <aside className="app-sidebar">
-            <div className="brand">Lessul Atendimento</div>
+            <div className="brand-row">
+              <div className="brand-icon">⌘</div>
+              <span className="brand">TicketSystem</span>
+            </div>
             <SidebarNav items={navItems} />
+            <div className="sidebar-footer">Sistema de Tickets v1.0</div>
           </aside>
 
           <div className="app-content">
             <header className="app-header">
-              <div>
-                <h2>Painel interno</h2>
-                <p className="muted">Operação de tickets para marketplace</p>
-              </div>
-              <div className="header-actions">
-                <span className="badge badge-info">{currentUser?.nome ?? "Visitante"}</span>
+              <div className="header-left"><h2>Painel interno</h2></div>
+              <div className="header-right">
+                <div className="search-box">
+                  <span>⌕</span>
+                  <input placeholder="Buscar..." />
+                </div>
+                <button className="icon-btn" aria-label="Notificações">◔</button>
+                <div className="user-chip">
+                  <div>
+                    <div className="user-name">{currentUser?.nome ?? "Visitante"}</div>
+                    <div className="user-role">{currentUser?.perfil?.toLowerCase() ?? "sessão"}</div>
+                  </div>
+                  <span className="avatar">{getInitials(currentUser?.nome)}</span>
+                </div>
                 {currentUser ? <LogoutButton /> : null}
               </div>
             </header>
