@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireCurrentUser } from "@/lib/auth/require-user";
-import { EMPRESAS } from "@/config/domains";
+import { CANAIS_MARKETPLACE, EMPRESAS } from "@/config/domains";
 import { ReportsResponse } from "@/lib/contracts";
 import { assertPermission } from "@/lib/rbac/permissions";
 import { ticketFiltersSchema } from "@/lib/validation/ticket";
@@ -61,7 +61,10 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
       <form className="panel form-grid cols-4">
         <input name="startDate" type="date" defaultValue={query.startDate} />
         <input name="endDate" type="date" defaultValue={query.endDate} />
-        <input name="canalMarketplace" placeholder="Marketplace" defaultValue={query.canalMarketplace} />
+        <select name="canalMarketplace" defaultValue={query.canalMarketplace ?? ""}>
+          <option value="">Todos os marketplaces</option>
+          {CANAIS_MARKETPLACE.map((item) => <option key={item} value={item}>{item.replaceAll("_", " ")}</option>)}
+        </select>
         <select name="empresa" defaultValue={query.empresa ?? ""}>
           <option value="">Todas as empresas</option>
           {EMPRESAS.map((item) => <option key={item} value={item}>{item}</option>)}

@@ -3,6 +3,7 @@ import { TicketForm } from "@/components/forms/ticket-form";
 import { hasPermission } from "@/lib/rbac/permissions";
 import { getTicketById } from "@/lib/services/tickets-service";
 import { TicketFormInput } from "@/lib/validation/ticket";
+import { prisma } from "@/lib/db/prisma";
 
 async function getTicket(id: string, user: Awaited<ReturnType<typeof requireCurrentUser>>): Promise<{ ok: true; payload: Awaited<ReturnType<typeof getTicketById>> } | { ok: false; message: string }> {
   try {
@@ -22,7 +23,7 @@ function toFormValues(payload: Awaited<ReturnType<typeof getTicketById>>): Parti
     linkPedido: payload.linkPedido ?? "",
     uf: payload.uf,
     cpf: payload.cpf,
-    canalMarketplace: payload.canalMarketplace,
+    canalMarketplace: (payload.canalMarketplace as TicketFormInput["canalMarketplace"]) ?? "OUTRO",
     empresa: payload.empresa,
     produto: payload.produto,
     sku: payload.sku,
@@ -45,6 +46,11 @@ export default async function EditTicketPage({ params }: { params: Promise<{ id:
   const user = await requireCurrentUser();
   const { id } = await params;
   const result = await getTicket(id, user);
+  const assignableUsers = await prisma.usuario.findMany({
+    where: { ativo: true },
+    orderBy: { nome: "asc" },
+    select: { id: true, nome: true }
+  });
 
   return (
     <section className="page">
@@ -60,6 +66,7 @@ export default async function EditTicketPage({ params }: { params: Promise<{ id:
             ticketId={id}
             initialValues={toFormValues(result.payload)}
             canEditSensitive={hasPermission(user.perfil, "ticket.update_sensitive")}
+            assignableUsers={assignableUsers}
           />
 
           <aside className="panel" style={{ alignSelf: "start" }}>

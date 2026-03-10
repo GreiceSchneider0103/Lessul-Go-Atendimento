@@ -1,7 +1,7 @@
 import { requireCurrentUser } from "@/lib/auth/require-user";
 import Link from "next/link";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { EMPRESAS, MOTIVOS, STATUS_RECLAMACAO, STATUS_TICKET } from "@/config/domains";
+import { CANAIS_MARKETPLACE, EMPRESAS, MOTIVOS, STATUS_RECLAMACAO, STATUS_TICKET } from "@/config/domains";
 import { TicketListResponse } from "@/lib/contracts";
 import { listTickets } from "@/lib/services/tickets-service";
 import { ticketFiltersSchema } from "@/lib/validation/ticket";
@@ -42,7 +42,10 @@ export default async function TicketsPage({ searchParams }: { searchParams: Prom
 
       <form className="panel form-grid cols-4">
         <input name="search" placeholder="Busca por cliente, venda, produto" defaultValue={query.search} />
-        <input name="canalMarketplace" placeholder="Marketplace" defaultValue={query.canalMarketplace} />
+        <select name="canalMarketplace" defaultValue={query.canalMarketplace ?? ""}>
+          <option value="">Todos os marketplaces</option>
+          {CANAIS_MARKETPLACE.map((item) => <option key={item} value={item}>{item.replaceAll("_", " ")}</option>)}
+        </select>
         <select name="empresa" defaultValue={query.empresa ?? ""}>
           <option value="">Todas as empresas</option>
           {EMPRESAS.map((item) => <option key={item} value={item}>{item}</option>)}

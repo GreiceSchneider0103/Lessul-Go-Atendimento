@@ -1,6 +1,6 @@
 import { requireCurrentUser } from "@/lib/auth/require-user";
 import { DashboardCharts } from "@/components/dashboard/dashboard-charts";
-import { EMPRESAS } from "@/config/domains";
+import { CANAIS_MARKETPLACE, EMPRESAS } from "@/config/domains";
 import { ticketFiltersSchema } from "@/lib/validation/ticket";
 import { getDashboardData } from "@/lib/services/dashboard-service";
 
@@ -36,7 +36,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       </div>
 
       <form className="panel form-grid cols-4">
-        <input name="canalMarketplace" placeholder="Marketplace" defaultValue={query.canalMarketplace} />
+        <select name="canalMarketplace" defaultValue={query.canalMarketplace ?? ""}>
+          <option value="">Todos os marketplaces</option>
+          {CANAIS_MARKETPLACE.map((item) => <option key={item} value={item}>{item.replaceAll("_", " ")}</option>)}
+        </select>
         <select name="empresa" defaultValue={query.empresa ?? ""}>
           <option value="">Todas as empresas</option>
           {EMPRESAS.map((item) => <option key={item} value={item}>{item}</option>)}

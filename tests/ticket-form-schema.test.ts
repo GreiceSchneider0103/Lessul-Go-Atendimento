@@ -8,7 +8,7 @@ const basePayload = {
   linkPedido: "",
   uf: "RS",
   cpf: "12345678901",
-  canalMarketplace: "Mercado Livre",
+  canalMarketplace: "MERCADO_LIVRE",
   empresa: "LESSUL",
   produto: "Produto",
   sku: "SKU-1",
