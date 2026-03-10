@@ -2,9 +2,34 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@/lib/supabase/ssr";
 
 const publicRoutes = ["/login", "/auth/callback", "/api/health", "/indisponivel"];
+const AUTH_TIMEOUT_MS = Number(process.env.AUTH_TIMEOUT_MS ?? 8000);
 
 function hasSupabaseEnv() {
   return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timeoutId = setTimeout(() => reject(new Error("AUTH_TIMEOUT")), ms);
+
+    promise
+      .then((result) => {
+        clearTimeout(timeoutId);
+        resolve(result);
+      })
+      .catch((error) => {
+        clearTimeout(timeoutId);
+        reject(error);
+      });
+  });
+}
+
+function authUnavailableResponse(request: NextRequest) {
+  if (request.nextUrl.pathname.startsWith("/api")) {
+    return NextResponse.json({ message: "Autenticação temporariamente indisponível" }, { status: 503 });
+  }
+
+  return NextResponse.redirect(new URL("/indisponivel", request.url));
 }
 
 export async function middleware(request: NextRequest) {
@@ -40,19 +65,23 @@ export async function middleware(request: NextRequest) {
     }
   });
 
-  const {
-    data: { session }
-  } = await supabase.auth.getSession();
+  try {
+    const {
+      data: { session }
+    } = await withTimeout(supabase.auth.getSession(), AUTH_TIMEOUT_MS);
 
-  if (!session && request.nextUrl.pathname.startsWith("/api")) {
-    return NextResponse.json({ message: "Não autenticado" }, { status: 401 });
+    if (!session && request.nextUrl.pathname.startsWith("/api")) {
+      return NextResponse.json({ message: "Não autenticado" }, { status: 401 });
+    }
+
+    if (!session) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+
+    return response;
+  } catch {
+    return authUnavailableResponse(request);
   }
-
-  if (!session) {
-    return NextResponse.redirect(new URL("/login", request.url));
-  }
-
-  return response;
 }
 
 export const config = {
