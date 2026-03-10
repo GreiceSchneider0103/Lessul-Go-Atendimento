@@ -21,6 +21,8 @@ model Usuario {
   ticketsCriados     Ticket[]          @relation("tickets_criados")
   ticketsResponsavel Ticket[]          @relation("tickets_responsavel")
   auditorias         TicketAuditoria[]
+  auditoriasComoAlvo UsuarioAuditoria[]  @relation("usuario_auditoria_alvo")
+  auditoriasComoAtor UsuarioAuditoria[]  @relation("usuario_auditoria_ator")
 }
 
 model Ticket {
@@ -41,6 +43,7 @@ model Ticket {
   dataReclamacao   DateTime
   motivo           Motivo
   detalhesCliente  String?
+  comentarioInterno String?
   resolucao        Resolucao?
   valorReembolso   Decimal           @default(0) @db.Decimal(12, 2)
   valorColeta      Decimal           @default(0) @db.Decimal(12, 2)
@@ -87,6 +90,23 @@ model TicketAuditoria {
 
   @@index([ticketId, dataHora], map: "TicketAuditoria_ticket_data_idx")
   @@index([usuarioId], map: "TicketAuditoria_usuario_idx")
+}
+
+
+model UsuarioAuditoria {
+  id              String                @id @default(uuid())
+  usuarioId       String
+  atorId          String
+  acao            AcaoUsuarioAuditoria
+  campo           String
+  valorAntigo     String?
+  valorNovo       String?
+  dataHora        DateTime              @default(now())
+  usuario         Usuario               @relation("usuario_auditoria_alvo", fields: [usuarioId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ator            Usuario               @relation("usuario_auditoria_ator", fields: [atorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([usuarioId, dataHora], map: "UsuarioAuditoria_usuario_data_idx")
+  @@index([atorId], map: "UsuarioAuditoria_ator_idx")
 }
 
 enum Perfil {
@@ -138,6 +158,13 @@ enum BackupSyncStatus {
   PENDING
   SYNCED
   FAILED
+}
+
+enum AcaoUsuarioAuditoria {
+  CREATE
+  UPDATE
+  STATUS_CHANGE
+  PROFILE_CHANGE
 }
 
 enum AcaoAuditoria {

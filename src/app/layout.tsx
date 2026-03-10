@@ -1,5 +1,7 @@
 import "./globals.css";
+import type { Metadata } from "next";
 import { ReactNode } from "react";
+import { headers } from "next/headers";
 import Link from "next/link";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { SidebarNav } from "@/components/ui/sidebar-nav";
@@ -7,6 +9,12 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { ServiceUnavailableError, UnauthorizedError } from "@/lib/errors";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  icons: {
+    icon: "/icon.svg"
+  }
+};
 
 
 function hasSupabaseEnv() {
@@ -26,9 +34,11 @@ function getInitials(name?: string) {
 export default async function RootLayout({ children }: { children: ReactNode }) {
   let currentUser: Awaited<ReturnType<typeof getCurrentUser>> | null = null;
   let infraUnavailable = false;
+  const requestHeaders = await headers();
+  const isPublicRoute = requestHeaders.get("x-route-access") === "public";
 
   try {
-    if (hasSupabaseEnv()) {
+    if (hasSupabaseEnv() && !isPublicRoute) {
       currentUser = await getCurrentUser();
     }
   } catch (error) {
@@ -41,7 +51,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     }
   }
 
-  if (infraUnavailable) {
+  if (infraUnavailable && !isPublicRoute) {
     return (
       <html lang="pt-BR">
         <body>
