@@ -1,4 +1,5 @@
 import "./globals.css";
+import type { Metadata } from "next";
 import { ReactNode } from "react";
 import { headers } from "next/headers";
 import Link from "next/link";
@@ -8,6 +9,12 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { ServiceUnavailableError, UnauthorizedError } from "@/lib/errors";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  icons: {
+    icon: "/icon.svg"
+  }
+};
 
 
 function hasSupabaseEnv() {

@@ -2,6 +2,8 @@ import { requireCurrentUser } from "@/lib/auth/require-user";
 import Link from "next/link";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { getTicketById } from "@/lib/services/tickets-service";
+import { hasPermission } from "@/lib/rbac/permissions";
+import { TicketDeleteButton } from "@/components/tickets/ticket-delete-button";
 import { formatCurrencyBR, formatDateBR, formatDateTimeBR, formatEnumLabel } from "@/lib/formatters/display";
 
 async function getTicket(id: string, user: Awaited<ReturnType<typeof requireCurrentUser>>) {
@@ -26,7 +28,12 @@ export default async function TicketDetail({ params }: { params: Promise<{ id: s
           <h1>Detalhe do ticket</h1>
           <p className="muted">Informações completas e histórico de auditoria.</p>
         </div>
-        <Link className="btn btn-primary" href={`/tickets/${id}/edit`} style={{ whiteSpace: "nowrap" }}>Editar ticket</Link>
+        {!error && ticket ? (
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <Link className="btn btn-primary" href={`/tickets/${id}/edit`} style={{ whiteSpace: "nowrap" }}>Editar ticket</Link>
+            {hasPermission(user.perfil, "ticket.soft_delete") ? <TicketDeleteButton ticketId={id} /> : null}
+          </div>
+        ) : null}
       </div>
 
       {error || !ticket ? (

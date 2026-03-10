@@ -6,6 +6,7 @@ import { TicketFormInput } from "@/lib/validation/ticket";
 import { prisma } from "@/lib/db/prisma";
 import { normalizeCanalMarketplace } from "@/config/domains";
 import { formatDateTimeBR, formatEnumLabel } from "@/lib/formatters/display";
+import { TicketDeleteButton } from "@/components/tickets/ticket-delete-button";
 
 async function getTicket(id: string, user: Awaited<ReturnType<typeof requireCurrentUser>>): Promise<{ ok: true; payload: Awaited<ReturnType<typeof getTicketById>> } | { ok: false; message: string }> {
   try {
@@ -57,9 +58,12 @@ export default async function EditTicketPage({ params }: { params: Promise<{ id:
 
   return (
     <section className="page">
-      <div className="page-header">
-        <h1>Editar ticket</h1>
-        <p className="muted">Atualize informações operacionais e status da reclamação.</p>
+      <div className="page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+        <div>
+          <h1>Editar ticket</h1>
+          <p className="muted">Atualize informações operacionais e status da reclamação.</p>
+        </div>
+        {hasPermission(user.perfil, "ticket.soft_delete") ? <TicketDeleteButton ticketId={id} /> : null}
       </div>
       {!result.ok ? (
         <div className="alert alert-error">{result.message ?? "Falha ao carregar ticket"}</div>

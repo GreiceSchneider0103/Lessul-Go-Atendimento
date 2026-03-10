@@ -9,11 +9,11 @@ input, select, textarea {
 }
 button { border: 0; border-radius: 10px; padding: 10px 14px; cursor: pointer; }
 
-.app-shell { display: grid; grid-template-columns: 250px 1fr; min-height: 100vh; }
+.app-shell { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
 .app-sidebar { background: #fff; border-right: 1px solid #dbe1ea; display: grid; grid-template-rows: auto 1fr auto; min-height: 100vh; }
-.brand-row { height: 70px; padding: 0 20px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #e2e8f0; }
-.brand-icon { width: 32px; height: 32px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; background: #2563eb; color: #fff; }
-.brand { font-size: 26px; font-weight: 700; }
+.brand-row { height: 64px; padding: 0 16px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #e2e8f0; min-width: 0; }
+.brand-icon { width: 28px; height: 28px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; background: #2563eb; color: #fff; font-size: 14px; flex: 0 0 auto; }
+.brand { font-size: 16px; line-height: 1; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .nav-list { padding: 16px 8px; display: grid; gap: 4px; align-content: start; }
 .nav-item { display: flex; align-items: center; gap: 12px; padding: 11px 14px; color: #1e293b; border-radius: 10px; font-size: 14px; font-weight: 600; }
@@ -62,6 +62,8 @@ button { border: 0; border-radius: 10px; padding: 10px 14px; cursor: pointer; }
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
 .btn-primary { background: #2563eb; color: #fff; }
 .btn-secondary { background: #f1f5f9; color: #0f172a; border: 1px solid #dbe1ea; }
+.btn-danger { background: #ef4444; color: #fff; }
+.btn-danger:hover { background: #dc2626; }
 
 .alert { border-radius: 10px; padding: 12px; }
 .alert-error { background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; }
