@@ -50,6 +50,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   const byMarketplace = groupBy(data.items, "canalMarketplace");
   const byEmpresa = groupBy(data.items, "empresa");
   const byMotivo = groupBy(data.items, "motivo");
+  const bySku = groupBy(data.items, "sku");
 
   return (
     <section className="page">
@@ -69,6 +70,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
           <option value="">Todas as empresas</option>
           {EMPRESAS.map((item) => <option key={item} value={item}>{item}</option>)}
         </select>
+        <input name="sku" placeholder="SKU" defaultValue={query.sku} />
         <button type="submit" className="btn btn-secondary">Filtrar</button>
       </form>
 
@@ -113,6 +115,13 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         <h3>Resumo por Motivo</h3>
         <table className="table"><thead><tr><th>Motivo</th><th>Tickets</th><th>Custo Total</th></tr></thead><tbody>
           {byMotivo.map((row) => <tr key={row.name}><td>{row.name}</td><td>{row.tickets}</td><td>R$ {row.custo.toFixed(2)}</td></tr>)}
+        </tbody></table>
+      </div>
+
+      <div className="panel table-wrap">
+        <h3>Resumo por SKU</h3>
+        <table className="table"><thead><tr><th>SKU</th><th>Tickets</th><th>Custo Total</th></tr></thead><tbody>
+          {bySku.map((row) => <tr key={row.name}><td>{row.name}</td><td>{row.tickets}</td><td>R$ {row.custo.toFixed(2)}</td></tr>)}
         </tbody></table>
       </div>
     </section>

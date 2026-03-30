@@ -46,6 +46,7 @@ export const ticketFormSchema = ticketSchema.extend({
 
 export const ticketFiltersSchema = z.object({
   search: z.string().optional(),
+  sku: z.string().optional(),
   empresa: z.enum(EMPRESAS).optional(),
   canalMarketplace: z.enum(CANAIS_MARKETPLACE).optional(),
   statusTicket: z.enum(STATUS_TICKET).optional(),
@@ -58,7 +59,12 @@ export const ticketFiltersSchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   pageSize: z.coerce.number().int().positive().max(200).default(20),
   orderBy: z.enum(["dataReclamacao", "criadoEm", "custosTotais", "prazoConclusao"]).default("criadoEm"),
-  orderDir: z.enum(["asc", "desc"]).default("desc")
+  orderDir: z.enum(["asc", "desc"]).default("desc"),
+  includeConcluidos: z
+    .union([z.boolean(), z.string()])
+    .optional()
+    .transform((value) => value === true || value === "true" || value === "1")
+    .default(false)
 });
 
 export type TicketInput = z.infer<typeof ticketSchema>;

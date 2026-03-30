@@ -6,7 +6,7 @@ async function getTickets(user: Awaited<ReturnType<typeof requireCurrentUser>>) 
   const pageSize = 200;
 
   try {
-    const payload = await listTickets({ page: 1, pageSize, orderBy: "criadoEm", orderDir: "desc" }, user);
+    const payload = await listTickets({ page: 1, pageSize, orderBy: "criadoEm", orderDir: "desc", includeConcluidos: true }, user);
     return {
       data: payload.data,
       error: null,
