@@ -159,17 +159,17 @@ export default async function TicketsPage({ searchParams }: { searchParams: Prom
       <div className="card" style={{ display: "flex", gap: 8, justifyContent: "space-between", flexWrap: "wrap", alignItems: "center" }}>
         <strong>Paginação:</strong> página {result.pagination.page} de {totalPages} • total {result.pagination.total}
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          <Link className="btn btn-secondary" aria-disabled={currentPage <= 1} href={buildTicketHref(normalizedQuery, Math.max(currentPage - 1, 1))}>Anterior</Link>
+          <a className="btn btn-secondary" aria-disabled={currentPage <= 1} href={buildTicketHref(normalizedQuery, Math.max(currentPage - 1, 1))}>Anterior</a>
           {pagesWindow.map((pageNumber) => (
-            <Link
+            <a
               key={pageNumber}
               className={`btn ${pageNumber === currentPage ? "btn-primary" : "btn-secondary"}`}
               href={buildTicketHref(normalizedQuery, pageNumber)}
             >
               {pageNumber}
-            </Link>
+            </a>
           ))}
-          <Link className="btn btn-secondary" aria-disabled={currentPage >= totalPages} href={buildTicketHref(normalizedQuery, Math.min(currentPage + 1, totalPages))}>Próxima</Link>
+          <a className="btn btn-secondary" aria-disabled={currentPage >= totalPages} href={buildTicketHref(normalizedQuery, Math.min(currentPage + 1, totalPages))}>Próxima</a>
         </div>
       </div>
     </section>
