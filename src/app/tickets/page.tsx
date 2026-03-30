@@ -144,11 +144,11 @@ export default async function TicketsPage({ searchParams }: { searchParams: Prom
                 <tr key={item.id}>
                   <td><Link href={`/tickets/${item.id}`}>{item.nomeCliente}</Link></td>
                   <td>{item.sku}</td>
-                  <td><StatusBadge value={item.canalMarketplace} /></td>
-                  <td><StatusBadge value={item.empresa} /></td>
-                  <td><StatusBadge value={item.motivo} /></td>
+                  <td><StatusBadge value={item.canalMarketplace} context="marketplace" /></td>
+                  <td><StatusBadge value={item.empresa} context="empresa" /></td>
+                  <td><StatusBadge value={item.motivo} context="motivo" /></td>
                   <td><StatusBadge value={item.statusTicket} /></td>
-                  <td><StatusBadge value={item.statusReclamacao} /></td>
+                  <td><StatusBadge value={item.statusReclamacao} context="statusReclamacao" /></td>
                   <td>{formatDateBR(item.prazoConclusao as unknown as string)}</td>
                   <td><StatusBadge value={item.slaStatus} /></td>
                   <td>{Number(item.custosTotais).toFixed(2)}</td>

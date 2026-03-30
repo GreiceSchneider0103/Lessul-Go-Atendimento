@@ -68,8 +68,8 @@ export default async function TicketDetail({ params }: { params: Promise<{ id: s
             <article className="card">
               <h2>Reclamação e prazo</h2>
               <p><strong>Status do ticket:</strong> <StatusBadge value={ticket.statusTicket} /></p>
-              <p><strong>Status da reclamação:</strong> <StatusBadge value={ticket.statusReclamacao} /></p>
-              <p><strong>Motivo:</strong> <StatusBadge value={ticket.motivo} /></p>
+              <p><strong>Status da reclamação:</strong> <StatusBadge value={ticket.statusReclamacao} context="statusReclamacao" /></p>
+              <p><strong>Motivo:</strong> <StatusBadge value={ticket.motivo} context="motivo" /></p>
               <p><strong>Resolução:</strong> {ticket.resolucao ? formatEnumLabel(ticket.resolucao) : "-"}</p>
               <p><strong>Data da reclamação:</strong> {formatDateBR(ticket.dataReclamacao)}</p>
               <p><strong>Prazo de conclusão:</strong> {formatDateBR(ticket.prazoConclusao)}</p>
