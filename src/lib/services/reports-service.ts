@@ -3,7 +3,7 @@ import { prisma } from "@/lib/db/prisma";
 import { getTicketScopeWhere } from "@/lib/rbac/permissions";
 import { type TicketFiltersInput } from "@/lib/validation/ticket";
 
-type ReportFilters = Partial<Pick<TicketFiltersInput, "empresa" | "canalMarketplace" | "statusTicket" | "statusReclamacao" | "motivo" | "responsavelId" | "startDate" | "endDate">>;
+type ReportFilters = Partial<Pick<TicketFiltersInput, "empresa" | "canalMarketplace" | "statusTicket" | "statusReclamacao" | "motivo" | "responsavelId" | "sku" | "startDate" | "endDate">>;
 
 function getDateRange(startDate?: string, endDate?: string) {
   if (!startDate && !endDate) return undefined;
@@ -23,6 +23,7 @@ export async function getReportsData(filters: ReportFilters, user: { id: string;
     ...(filters.statusReclamacao ? { statusReclamacao: filters.statusReclamacao } : {}),
     ...(filters.motivo ? { motivo: filters.motivo } : {}),
     ...(filters.responsavelId ? { responsavelId: filters.responsavelId } : {}),
+    ...(filters.sku ? { sku: { contains: filters.sku, mode: "insensitive" } } : {}),
     ...(getDateRange(filters.startDate, filters.endDate) ? { dataReclamacao: getDateRange(filters.startDate, filters.endDate) } : {})
   };
 

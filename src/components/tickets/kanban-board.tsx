@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { STATUS_TICKET } from "@/config/domains";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Ticket } from "@prisma/client";
-import { formatCurrencyBR, formatEnumLabel } from "@/lib/formatters/display";
+import { formatEnumLabel } from "@/lib/formatters/display";
 
 const toneByStatus: Record<string, string> = {
   ABERTO: "#3b82f6",
@@ -19,6 +19,15 @@ const toneByStatus: Record<string, string> = {
 export function KanbanBoard({ initialItems }: { initialItems: Ticket[] }) {
   const [items, setItems] = useState(Array.isArray(initialItems) ? initialItems : []);
   const [error, setError] = useState<string | null>(null);
+  const [activeDragId, setActiveDragId] = useState<string | null>(null);
+
+  const grouped = useMemo(
+    () => STATUS_TICKET.reduce<Record<string, Ticket[]>>((acc, status) => {
+      acc[status] = items.filter((ticket) => ticket.statusTicket === status);
+      return acc;
+    }, {}),
+    [items]
+  );
 
   async function move(ticketId: string, statusTicket: string) {
     setError(null);
@@ -37,33 +46,50 @@ export function KanbanBoard({ initialItems }: { initialItems: Ticket[] }) {
     setItems((prev) => prev.map((item) => (item.id === ticketId ? { ...item, statusTicket: statusTicket as Ticket["statusTicket"] } : item)));
   }
 
+  async function onDropColumn(status: string) {
+    if (!activeDragId) return;
+    const dragged = items.find((item) => item.id === activeDragId);
+    setActiveDragId(null);
+    if (!dragged || dragged.statusTicket === status) return;
+    await move(dragged.id, status);
+  }
+
   return (
-    <div className="grid">
+    <div className="kanban-root">
       {error ? <div className="alert alert-error">{error}</div> : null}
-      <div style={{ overflowX: "auto", paddingBottom: 8 }}>
-        <div style={{ display: "flex", gap: 16, minWidth: 1560, alignItems: "flex-start" }}>
+      <div className="kanban-scroll">
+        <div className="kanban-columns">
           {STATUS_TICKET.map((status) => {
-            const columnItems = items.filter((ticket) => ticket.statusTicket === status);
+            const columnItems = grouped[status] ?? [];
             return (
-              <div key={status} style={{ width: 360, background: "#f8fafc", borderRadius: 12, border: "1px solid #e2e8f0" }}>
-                <div style={{ background: toneByStatus[status] ?? "#64748b", color: "#fff", padding: 12, borderTopLeftRadius: 12, borderTopRightRadius: 12 }}>
+              <div
+                key={status}
+                className="kanban-column"
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={() => onDropColumn(status)}
+              >
+                <div className="kanban-column-head" style={{ background: toneByStatus[status] ?? "#64748b" }}>
                   <strong>{formatEnumLabel(status)}</strong>
                   <div style={{ opacity: 0.9, marginTop: 4 }}>{columnItems.length} tickets</div>
                 </div>
 
-                <div style={{ padding: 12, minHeight: 480, display: "grid", gap: 10 }}>
-                  {columnItems.length === 0 ? <div className="empty-state">Nenhum ticket nesta coluna</div> : null}
+                <div className="kanban-column-body">
+                  {columnItems.length === 0 ? <div className="empty-state">Arraste tickets para esta coluna</div> : null}
                   {columnItems.map((ticket) => (
-                    <article key={ticket.id} className="card" style={{ margin: 0 }}>
+                    <article
+                      key={ticket.id}
+                      className="card kanban-card"
+                      draggable
+                      onDragStart={() => setActiveDragId(ticket.id)}
+                      onDragEnd={() => setActiveDragId(null)}
+                    >
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <strong>{ticket.id.slice(0, 8)}</strong>
+                        <strong>{ticket.nomeCliente}</strong>
                         <Link href={`/tickets/${ticket.id}`}>Ver</Link>
                       </div>
-                      <p style={{ margin: "8px 0", fontWeight: 600 }}>{ticket.nomeCliente}</p>
-                      <p className="muted">{formatEnumLabel(ticket.canalMarketplace)}</p>
-                      <p className="muted">{formatEnumLabel(ticket.empresa)}</p>
-                      <p style={{ marginTop: 8 }}><StatusBadge value={ticket.slaStatus ?? "NO_PRAZO"} /></p>
-                      <p style={{ marginTop: 8, fontWeight: 700 }}>{formatCurrencyBR(ticket.custosTotais as unknown as number)}</p>
+                      <p className="muted">SKU: {ticket.sku}</p>
+                      <p className="muted">{formatEnumLabel(ticket.canalMarketplace)} • {formatEnumLabel(ticket.empresa)}</p>
+                      <p style={{ margin: "8px 0 0" }}><StatusBadge value={ticket.slaStatus ?? "NO_PRAZO"} /></p>
                       <select defaultValue={ticket.statusTicket} onChange={(e) => move(ticket.id, e.target.value)}>
                         {STATUS_TICKET.map((item) => <option key={item} value={item}>{formatEnumLabel(item)}</option>)}
                       </select>
