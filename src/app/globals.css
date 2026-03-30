@@ -57,6 +57,8 @@ button { border: 0; border-radius: 10px; padding: 10px 14px; cursor: pointer; }
 
 .kanban-root { display: grid; gap: 10px; }
 .kanban-scroll { overflow: auto; padding-bottom: 8px; }
+.kanban-scroll-top { padding-bottom: 0; margin-bottom: -4px; }
+.kanban-scroll-spacer { height: 10px; width: max(2400px, 100%); }
 .kanban-columns { display: flex; gap: 16px; align-items: flex-start; min-height: 70vh; min-width: max-content; }
 .kanban-column { width: 380px; max-width: 85vw; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; }
 .kanban-column-head { color: #fff; padding: 12px; border-top-left-radius: 12px; border-top-right-radius: 12px; position: sticky; top: 0; }
@@ -77,6 +79,7 @@ button { border: 0; border-radius: 10px; padding: 10px 14px; cursor: pointer; }
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
 .btn-primary { background: #2563eb; color: #fff; }
 .btn-secondary { background: #f1f5f9; color: #0f172a; border: 1px solid #dbe1ea; }
+.btn-create-ticket { padding: 10px 16px; border-radius: 999px; box-shadow: 0 8px 18px rgba(37, 99, 235, 0.25); font-weight: 700; }
 .btn-danger { background: #ef4444; color: #fff; }
 .btn-danger:hover { background: #dc2626; }
 

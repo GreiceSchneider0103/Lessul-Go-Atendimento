@@ -5,6 +5,13 @@ import { ticketFiltersSchema } from "@/lib/validation/ticket";
 import { getDashboardData } from "@/lib/services/dashboard-service";
 import { formatCurrencyBR, formatEnumLabel } from "@/lib/formatters/display";
 
+function getCurrentMonthRange() {
+  const now = new Date();
+  const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0));
+  return { startDate: start.toISOString().slice(0, 10), endDate: end.toISOString().slice(0, 10) };
+}
+
 async function getDashboard(query: Record<string, string | undefined>, user: Awaited<ReturnType<typeof requireCurrentUser>>) {
   const parsed = ticketFiltersSchema.partial().safeParse(query);
   if (!parsed.success) {
@@ -27,7 +34,13 @@ const cardConfig: Record<string, { label: string; tone: string; icon: string; mo
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const user = await requireCurrentUser();
   const query = await searchParams;
-  const data = await getDashboard(query, user);
+  const monthRange = getCurrentMonthRange();
+  const normalizedQuery: Record<string, string | undefined> = {
+    ...query,
+    startDate: query.startDate || monthRange.startDate,
+    endDate: query.endDate || monthRange.endDate
+  };
+  const data = await getDashboard(normalizedQuery, user);
 
   return (
     <section className="page">
@@ -36,18 +49,18 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         <p className="muted">Indicadores consolidados da operação de atendimento.</p>
       </div>
 
-      <form className="panel form-grid cols-4">
-        <select name="canalMarketplace" defaultValue={query.canalMarketplace ?? ""}>
+      <form className="panel form-grid cols-4" method="GET">
+        <select name="canalMarketplace" defaultValue={normalizedQuery.canalMarketplace ?? ""}>
           <option value="">Todos os marketplaces</option>
           {CANAIS_MARKETPLACE.map((item) => <option key={item} value={item}>{formatEnumLabel(item)}</option>)}
         </select>
-        <select name="empresa" defaultValue={query.empresa ?? ""}>
+        <select name="empresa" defaultValue={normalizedQuery.empresa ?? ""}>
           <option value="">Todas as empresas</option>
           {EMPRESAS.map((item) => <option key={item} value={item}>{formatEnumLabel(item)}</option>)}
         </select>
-        <input name="startDate" type="date" defaultValue={query.startDate} />
-        <input name="endDate" type="date" defaultValue={query.endDate} />
-        <input name="sku" placeholder="SKU" defaultValue={query.sku} />
+        <input name="startDate" type="date" defaultValue={normalizedQuery.startDate} />
+        <input name="endDate" type="date" defaultValue={normalizedQuery.endDate} />
+        <input name="sku" placeholder="SKU" defaultValue={normalizedQuery.sku} />
         <button type="submit" className="btn btn-secondary">Filtrar</button>
       </form>
 

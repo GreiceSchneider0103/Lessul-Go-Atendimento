@@ -4,6 +4,12 @@ import { CANAIS_MARKETPLACE, EMPRESAS, MOTIVOS, normalizeCanalMarketplace, RESOL
 const isoDateOrDateString = z.string().refine((value) => !Number.isNaN(Date.parse(value)), {
   message: "Data inválida"
 });
+const emptyToUndefined = <T extends z.ZodTypeAny>(schema: T) =>
+  z.preprocess((value) => {
+    if (typeof value !== "string") return value;
+    const trimmed = value.trim();
+    return trimmed === "" ? undefined : trimmed;
+  }, schema.optional());
 
 export const ticketSchema = z.object({
   nomeCliente: z.string().min(3),
@@ -45,21 +51,21 @@ export const ticketFormSchema = ticketSchema.extend({
 });
 
 export const ticketFiltersSchema = z.object({
-  search: z.string().optional(),
-  sku: z.string().optional(),
-  empresa: z.enum(EMPRESAS).optional(),
-  canalMarketplace: z.enum(CANAIS_MARKETPLACE).optional(),
-  statusTicket: z.enum(STATUS_TICKET).optional(),
-  statusReclamacao: z.enum(STATUS_RECLAMACAO).optional(),
-  motivo: z.enum(MOTIVOS).optional(),
-  responsavelId: z.string().uuid().optional(),
-  criadoPorId: z.string().uuid().optional(),
-  startDate: z.string().optional(),
-  endDate: z.string().optional(),
+  search: emptyToUndefined(z.string()),
+  sku: emptyToUndefined(z.string()),
+  empresa: emptyToUndefined(z.enum(EMPRESAS)),
+  canalMarketplace: emptyToUndefined(z.enum(CANAIS_MARKETPLACE)),
+  statusTicket: emptyToUndefined(z.enum(STATUS_TICKET)),
+  statusReclamacao: emptyToUndefined(z.enum(STATUS_RECLAMACAO)),
+  motivo: emptyToUndefined(z.enum(MOTIVOS)),
+  responsavelId: emptyToUndefined(z.string().uuid()),
+  criadoPorId: emptyToUndefined(z.string().uuid()),
+  startDate: emptyToUndefined(z.string()),
+  endDate: emptyToUndefined(z.string()),
   page: z.coerce.number().int().positive().default(1),
   pageSize: z.coerce.number().int().positive().max(200).default(20),
-  orderBy: z.enum(["dataReclamacao", "criadoEm", "custosTotais", "prazoConclusao"]).default("criadoEm"),
-  orderDir: z.enum(["asc", "desc"]).default("desc"),
+  orderBy: emptyToUndefined(z.enum(["dataReclamacao", "criadoEm", "custosTotais", "prazoConclusao"])).default("criadoEm"),
+  orderDir: emptyToUndefined(z.enum(["asc", "desc"])).default("desc"),
   includeConcluidos: z
     .union([z.boolean(), z.string()])
     .optional()

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { STATUS_TICKET } from "@/config/domains";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Ticket } from "@prisma/client";
@@ -16,17 +16,29 @@ const toneByStatus: Record<string, string> = {
   CONCLUIDO: "#16a34a"
 };
 
+const DEFAULT_VISIBLE_CARDS = 10;
+
+function getKanbanStatuses() {
+  return [...STATUS_TICKET.filter((status) => status !== "CONCLUIDO"), "CONCLUIDO"];
+}
+
 export function KanbanBoard({ initialItems }: { initialItems: Ticket[] }) {
   const [items, setItems] = useState(Array.isArray(initialItems) ? initialItems : []);
   const [error, setError] = useState<string | null>(null);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
+  const [expandedByStatus, setExpandedByStatus] = useState<Record<string, boolean>>({});
+  const topScrollRef = useRef<HTMLDivElement | null>(null);
+  const bottomScrollRef = useRef<HTMLDivElement | null>(null);
+  const syncingRef = useRef(false);
+
+  const statuses = useMemo(() => getKanbanStatuses(), []);
 
   const grouped = useMemo(
-    () => STATUS_TICKET.reduce<Record<string, Ticket[]>>((acc, status) => {
+    () => statuses.reduce<Record<string, Ticket[]>>((acc, status) => {
       acc[status] = items.filter((ticket) => ticket.statusTicket === status);
       return acc;
     }, {}),
-    [items]
+    [items, statuses]
   );
 
   async function move(ticketId: string, statusTicket: string) {
@@ -54,13 +66,38 @@ export function KanbanBoard({ initialItems }: { initialItems: Ticket[] }) {
     await move(dragged.id, status);
   }
 
+  function syncScroll(source: "top" | "bottom") {
+    if (syncingRef.current) return;
+    syncingRef.current = true;
+
+    if (source === "top" && topScrollRef.current && bottomScrollRef.current) {
+      bottomScrollRef.current.scrollLeft = topScrollRef.current.scrollLeft;
+    }
+
+    if (source === "bottom" && topScrollRef.current && bottomScrollRef.current) {
+      topScrollRef.current.scrollLeft = bottomScrollRef.current.scrollLeft;
+    }
+
+    requestAnimationFrame(() => {
+      syncingRef.current = false;
+    });
+  }
+
   return (
     <div className="kanban-root">
       {error ? <div className="alert alert-error">{error}</div> : null}
-      <div className="kanban-scroll">
+
+      <div className="kanban-scroll kanban-scroll-top" ref={topScrollRef} onScroll={() => syncScroll("top")}>
+        <div className="kanban-scroll-spacer" />
+      </div>
+
+      <div className="kanban-scroll" ref={bottomScrollRef} onScroll={() => syncScroll("bottom")}>
         <div className="kanban-columns">
-          {STATUS_TICKET.map((status) => {
+          {statuses.map((status) => {
             const columnItems = grouped[status] ?? [];
+            const expanded = Boolean(expandedByStatus[status]);
+            const visibleItems = expanded ? columnItems : columnItems.slice(0, DEFAULT_VISIBLE_CARDS);
+
             return (
               <div
                 key={status}
@@ -75,7 +112,7 @@ export function KanbanBoard({ initialItems }: { initialItems: Ticket[] }) {
 
                 <div className="kanban-column-body">
                   {columnItems.length === 0 ? <div className="empty-state">Arraste tickets para esta coluna</div> : null}
-                  {columnItems.map((ticket) => (
+                  {visibleItems.map((ticket) => (
                     <article
                       key={ticket.id}
                       className="card kanban-card"
@@ -91,10 +128,20 @@ export function KanbanBoard({ initialItems }: { initialItems: Ticket[] }) {
                       <p className="muted">{formatEnumLabel(ticket.canalMarketplace)} • {formatEnumLabel(ticket.empresa)}</p>
                       <p style={{ margin: "8px 0 0" }}><StatusBadge value={ticket.slaStatus ?? "NO_PRAZO"} /></p>
                       <select defaultValue={ticket.statusTicket} onChange={(e) => move(ticket.id, e.target.value)}>
-                        {STATUS_TICKET.map((item) => <option key={item} value={item}>{formatEnumLabel(item)}</option>)}
+                        {statuses.map((item) => <option key={item} value={item}>{formatEnumLabel(item)}</option>)}
                       </select>
                     </article>
                   ))}
+
+                  {columnItems.length > DEFAULT_VISIBLE_CARDS ? (
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => setExpandedByStatus((prev) => ({ ...prev, [status]: !expanded }))}
+                    >
+                      {expanded ? "Ver menos" : `Ver mais (${columnItems.length - DEFAULT_VISIBLE_CARDS})`}
+                    </button>
+                  ) : null}
                 </div>
               </div>
             );

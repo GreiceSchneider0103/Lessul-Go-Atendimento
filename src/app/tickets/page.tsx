@@ -63,7 +63,10 @@ export default async function TicketsPage({ searchParams }: { searchParams: Prom
           <h1>Lista de tickets</h1>
           <p className="muted">Visualização operacional com filtros, paginação e status de SLA.</p>
         </div>
-        <Link href="/tickets/new" className="btn btn-primary" style={{ whiteSpace: "nowrap" }}>Criar ticket</Link>
+        <Link href="/tickets/new" className="btn btn-primary btn-create-ticket" style={{ whiteSpace: "nowrap" }}>
+          <span aria-hidden>＋</span>
+          Criar ticket
+        </Link>
       </div>
 
       <form className="panel form-grid cols-4" method="GET">
