@@ -8,11 +8,11 @@ import { formatCurrencyBR, formatEnumLabel } from "@/lib/formatters/display";
 async function getDashboard(query: Record<string, string | undefined>, user: Awaited<ReturnType<typeof requireCurrentUser>>) {
   const parsed = ticketFiltersSchema.partial().safeParse(query);
   if (!parsed.success) {
-    return { cards: {}, charts: {} as Record<string, Array<{ name: string; value: number }>>, error: "Filtros inválidos para dashboard" };
+    return { cards: {}, charts: {} as Record<string, Array<{ name: string; value: number }>>, skuMetrics: [] as Array<Record<string, unknown>>, error: "Filtros inválidos para dashboard" };
   }
 
   const payload = await getDashboardData(parsed.data, user);
-  return { cards: payload.cards, charts: payload.charts, error: null };
+  return { cards: payload.cards, charts: payload.charts, skuMetrics: payload.skuMetrics ?? [], error: null };
 }
 
 const cardConfig: Record<string, { label: string; tone: string; icon: string; money?: boolean }> = {
@@ -47,6 +47,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         </select>
         <input name="startDate" type="date" defaultValue={query.startDate} />
         <input name="endDate" type="date" defaultValue={query.endDate} />
+        <input name="sku" placeholder="SKU" defaultValue={query.sku} />
         <button type="submit" className="btn btn-secondary">Filtrar</button>
       </form>
 
@@ -68,6 +69,40 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       </div>
 
       <DashboardCharts charts={data.charts} />
+
+      <div className="panel table-wrap">
+        <h3>Indicadores por SKU</h3>
+        <table className="table">
+          <thead>
+            <tr>
+              <th>SKU</th>
+              <th>Tickets</th>
+              <th>Incidência</th>
+              <th>Custo</th>
+              <th>Abertos</th>
+              <th>Concluídos</th>
+              <th>Atrasados</th>
+              <th>Motivo recorrente</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.skuMetrics.length === 0 ? (
+              <tr><td colSpan={8} className="muted">Sem dados para os filtros atuais.</td></tr>
+            ) : data.skuMetrics.map((row: any) => (
+              <tr key={row.name}>
+                <td>{row.name}</td>
+                <td>{row.tickets}</td>
+                <td>{row.incidencia}%</td>
+                <td>{formatCurrencyBR(row.custo)}</td>
+                <td>{row.abertos}</td>
+                <td>{row.concluidos}</td>
+                <td>{row.atrasados}</td>
+                <td>{formatEnumLabel(row.motivoTop)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </section>
   );
 }
