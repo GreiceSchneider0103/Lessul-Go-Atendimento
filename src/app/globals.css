@@ -35,7 +35,7 @@ button { border: 0; border-radius: 10px; padding: 10px 14px; cursor: pointer; }
 .user-role { color: #64748b; font-size: 12px; text-align: right; }
 .avatar { width: 36px; height: 36px; border-radius: 999px; background: #2563eb; color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; }
 
-.app-main { padding: 24px; width: min(1280px, 100%); }
+.app-main { padding: 24px; width: min(1680px, 100%); }
 .page { display: grid; gap: 16px; }
 .page-header { display: grid; gap: 6px; }
 .page-header h1 { margin: 0; font-size: 30px; }
@@ -48,6 +48,23 @@ button { border: 0; border-radius: 10px; padding: 10px 14px; cursor: pointer; }
 
 .form-grid { display: grid; gap: 10px; }
 .cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.ticket-form { display: grid; gap: 16px; }
+.ticket-form-section { display: grid; gap: 12px; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; }
+.ticket-form-section h3 { margin: 0; }
+.ticket-form-grid { display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.ticket-form-actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+.field-error { color: #b91c1c; font-size: 12px; margin-top: 4px; }
+
+.kanban-root { display: grid; gap: 10px; }
+.kanban-scroll { overflow: auto; padding-bottom: 8px; }
+.kanban-scroll-top { padding-bottom: 0; margin-bottom: -4px; }
+.kanban-scroll-spacer { height: 10px; width: max(2400px, 100%); }
+.kanban-columns { display: flex; gap: 16px; align-items: flex-start; min-height: 70vh; min-width: max-content; }
+.kanban-column { width: 380px; max-width: 85vw; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; }
+.kanban-column-head { color: #fff; padding: 12px; border-top-left-radius: 12px; border-top-right-radius: 12px; position: sticky; top: 0; }
+.kanban-column-body { padding: 12px; min-height: calc(70vh - 80px); display: grid; gap: 10px; align-content: start; }
+.kanban-card { margin: 0; cursor: grab; }
+.kanban-card:active { cursor: grabbing; }
 .table-wrap { overflow-x: auto; }
 .table { width: 100%; border-collapse: collapse; }
 .table th, .table td { border-bottom: 1px solid #e2e8f0; text-align: left; padding: 12px 10px; }
@@ -62,6 +79,7 @@ button { border: 0; border-radius: 10px; padding: 10px 14px; cursor: pointer; }
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
 .btn-primary { background: #2563eb; color: #fff; }
 .btn-secondary { background: #f1f5f9; color: #0f172a; border: 1px solid #dbe1ea; }
+.btn-create-ticket { padding: 10px 16px; border-radius: 999px; box-shadow: 0 8px 18px rgba(37, 99, 235, 0.25); font-weight: 700; }
 .btn-danger { background: #ef4444; color: #fff; }
 .btn-danger:hover { background: #dc2626; }
 
@@ -80,4 +98,5 @@ button { border: 0; border-radius: 10px; padding: 10px 14px; cursor: pointer; }
   .header-right { width: 100%; flex-wrap: wrap; justify-content: flex-start; }
   .search-box { width: 100%; }
   .grid-4, .cols-4 { grid-template-columns: 1fr; }
+  .ticket-form-grid { grid-template-columns: 1fr; }
 }

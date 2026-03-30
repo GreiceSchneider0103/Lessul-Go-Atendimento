@@ -23,10 +23,6 @@ function toDateInput(value?: string | null) {
   return value.slice(0, 10);
 }
 
-function fieldError(errors: Record<string, { message?: string }>, key: string) {
-  return errors[key]?.message;
-}
-
 export function TicketForm({ ticketId, initialValues, canEditSensitive = true, assignableUsers = [], cancelHref }: TicketFormProps) {
   const router = useRouter();
   const [requestError, setRequestError] = useState<string | null>(null);
@@ -105,146 +101,134 @@ export function TicketForm({ ticketId, initialValues, canEditSensitive = true, a
     router.refresh();
   }
 
-  const typedErrors = errors as unknown as Record<string, { message?: string }>;
+  function errorFor(field: keyof TicketFormInput) {
+    return errors[field]?.message;
+  }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="panel form-grid" style={{ gridTemplateColumns: "repeat(2,minmax(0,1fr))" }}>
-      <label>
-        Nome do cliente
-        <input {...register("nomeCliente")} placeholder="Nome do cliente" />
-      </label>
+    <form onSubmit={handleSubmit(onSubmit)} className="panel ticket-form">
+      <section className="ticket-form-section">
+        <h3>Dados principais</h3>
+        <div className="ticket-form-grid">
+          <label>
+            Nome do cliente
+            <input {...register("nomeCliente")} placeholder="Nome do cliente" />
+            {errorFor("nomeCliente") ? <small className="field-error">{errorFor("nomeCliente")}</small> : null}
+          </label>
+          <label>
+            Número da venda
+            <input {...register("numeroVenda")} placeholder="Número da venda" />
+            {errorFor("numeroVenda") ? <small className="field-error">{errorFor("numeroVenda")}</small> : null}
+          </label>
+          <label>
+            Data da compra
+            <input {...register("dataCompra")} type="date" />
+          </label>
+          <label>
+            Data da reclamação
+            <input {...register("dataReclamacao")} type="date" />
+          </label>
+          <label>
+            Prazo de conclusão
+            <input {...register("prazoConclusao")} type="date" disabled={!canEditSensitive} />
+          </label>
+          <label>
+            Link do pedido
+            <input {...register("linkPedido")} placeholder="https://..." />
+          </label>
+        </div>
+      </section>
 
-      <label>
-        Número da venda
-        <input {...register("numeroVenda")} placeholder="Número da venda" />
-      </label>
+      <section className="ticket-form-section">
+        <h3>Classificação e responsáveis</h3>
+        <div className="ticket-form-grid">
+          <label>
+            Canal / Marketplace
+            <select {...register("canalMarketplace")}>{CANAIS_MARKETPLACE.map((item) => <option key={item} value={item}>{formatEnumLabel(item)}</option>)}</select>
+          </label>
+          <label>
+            Empresa
+            <select {...register("empresa")}>{EMPRESAS.map((item) => <option key={item} value={item}>{formatEnumLabel(item)}</option>)}</select>
+          </label>
+          <label>
+            Produto
+            <input {...register("produto")} placeholder="Produto" />
+          </label>
+          <label>
+            SKU
+            <input {...register("sku")} placeholder="SKU" />
+          </label>
+          <label>
+            Status da reclamação
+            <select {...register("statusReclamacao")}>{STATUS_RECLAMACAO.map((item) => <option key={item} value={item}>{formatEnumLabel(item)}</option>)}</select>
+          </label>
+          <label>
+            Motivo
+            <select {...register("motivo")}>{MOTIVOS.map((item) => <option key={item} value={item}>{formatEnumLabel(item)}</option>)}</select>
+          </label>
+          <label>
+            Status do ticket
+            <select {...register("statusTicket")}>{STATUS_TICKET.map((item) => <option key={item} value={item}>{formatEnumLabel(item)}</option>)}</select>
+          </label>
+          <label>
+            Responsável
+            <select {...register("responsavelId")}>
+              <option value="">Não atribuído</option>
+              {assignableUsers.map((user) => <option key={user.id} value={user.id}>{user.nome}</option>)}
+            </select>
+          </label>
+        </div>
+      </section>
 
-      <label>
-        Data da compra
-        <input {...register("dataCompra")} type="date" />
-      </label>
+      <section className="ticket-form-section">
+        <h3>Dados complementares</h3>
+        <div className="ticket-form-grid">
+          <label>
+            UF
+            <input {...register("uf")} placeholder="UF" maxLength={2} />
+          </label>
+          <label>
+            CPF
+            <input {...register("cpf")} placeholder="CPF" />
+          </label>
+          <label>
+            Fabricante
+            <input {...register("fabricante")} placeholder="Fabricante" />
+          </label>
+          <label>
+            Transportadora
+            <input {...register("transportadora")} placeholder="Transportadora" />
+          </label>
+          <label>
+            Resolução
+            <select {...register("resolucao")} disabled={!canEditSensitive}>
+              <option value="">Sem resolução</option>
+              {RESOLUCOES.map((item) => <option key={item} value={item}>{formatEnumLabel(item)}</option>)}
+            </select>
+          </label>
+          <label>
+            Valor de reembolso
+            <input {...register("valorReembolso", { valueAsNumber: true })} type="number" step="0.01" placeholder="Valor reembolso" disabled={!canEditSensitive} />
+          </label>
+          <label>
+            Valor de coleta, envio ou peças
+            <input {...register("valorColeta", { valueAsNumber: true })} type="number" step="0.01" placeholder="Valor coleta, envio ou peças" disabled={!canEditSensitive} />
+          </label>
+        </div>
+        <label>
+          Detalhes do cliente
+          <textarea {...register("detalhesCliente")} placeholder="Detalhes do cliente" rows={4} />
+        </label>
+        <label>
+          Comentário interno
+          <textarea {...register("comentarioInterno")} placeholder="Observações internas para acompanhamento do ticket" rows={4} />
+        </label>
+      </section>
 
-      <label>
-        Data da reclamação
-        <input {...register("dataReclamacao")} type="date" />
-      </label>
+      {!canEditSensitive ? <p className="muted">Seu perfil não pode editar campos sensíveis (reembolso, coleta, prazo e resolução).</p> : null}
+      {requestError ? <p className="field-error">{requestError}</p> : null}
 
-      <label>
-        Prazo de conclusão
-        <input {...register("prazoConclusao")} type="date" disabled={!canEditSensitive} />
-      </label>
-
-      <label>
-        UF
-        <input {...register("uf")} placeholder="UF" maxLength={2} />
-      </label>
-
-      <label>
-        CPF
-        <input {...register("cpf")} placeholder="CPF" />
-      </label>
-
-      <label>
-        Canal / Marketplace
-        <select {...register("canalMarketplace")}>
-          {CANAIS_MARKETPLACE.map((item) => <option key={item} value={item}>{formatEnumLabel(item)}</option>)}
-        </select>
-      </label>
-
-      <label>
-        Empresa
-        <select {...register("empresa")}>{EMPRESAS.map((item) => <option key={item} value={item}>{formatEnumLabel(item)}</option>)}</select>
-      </label>
-
-      <label>
-        Produto
-        <input {...register("produto")} placeholder="Produto" />
-      </label>
-
-      <label>
-        SKU
-        <input {...register("sku")} placeholder="SKU" />
-      </label>
-
-      <label>
-        Fabricante
-        <input {...register("fabricante")} placeholder="Fabricante" />
-      </label>
-
-      <label>
-        Transportadora
-        <input {...register("transportadora")} placeholder="Transportadora" />
-      </label>
-
-      <label>
-        Link do pedido
-        <input {...register("linkPedido")} placeholder="https://..." />
-      </label>
-
-      <label>
-        Responsável
-        <select {...register("responsavelId")}>
-          <option value="">Não atribuído</option>
-          {assignableUsers.map((user) => <option key={user.id} value={user.id}>{user.nome}</option>)}
-        </select>
-      </label>
-
-      <label>
-        Status da reclamação
-        <select {...register("statusReclamacao")}>{STATUS_RECLAMACAO.map((item) => <option key={item} value={item}>{formatEnumLabel(item)}</option>)}</select>
-      </label>
-
-      <label>
-        Motivo
-        <select {...register("motivo")}>{MOTIVOS.map((item) => <option key={item} value={item}>{formatEnumLabel(item)}</option>)}</select>
-      </label>
-
-      <label>
-        Resolução
-        <select {...register("resolucao")} disabled={!canEditSensitive}>
-          <option value="">Sem resolução</option>
-          {RESOLUCOES.map((item) => <option key={item} value={item}>{formatEnumLabel(item)}</option>)}
-        </select>
-      </label>
-
-      <label>
-        Status do ticket
-        <select {...register("statusTicket")}>{STATUS_TICKET.map((item) => <option key={item} value={item}>{formatEnumLabel(item)}</option>)}</select>
-      </label>
-
-      <label style={{ gridColumn: "1 / -1" }}>
-        Detalhes do cliente
-        <textarea {...register("detalhesCliente")} placeholder="Detalhes do cliente" />
-      </label>
-
-      <label style={{ gridColumn: "1 / -1" }}>
-        Comentário interno
-        <textarea {...register("comentarioInterno")} placeholder="Observações internas para acompanhamento do ticket" />
-      </label>
-
-      <label>
-        Valor de reembolso
-        <input {...register("valorReembolso", { valueAsNumber: true })} type="number" step="0.01" placeholder="Valor reembolso" disabled={!canEditSensitive} />
-      </label>
-
-      <label>
-        Valor de coleta, envio ou peças
-        <input {...register("valorColeta", { valueAsNumber: true })} type="number" step="0.01" placeholder="Valor coleta, envio ou peças" disabled={!canEditSensitive} />
-      </label>
-
-      {!canEditSensitive ? <p className="muted" style={{ gridColumn: "1 / -1" }}>Seu perfil não pode editar campos sensíveis (reembolso, coleta, prazo e resolução).</p> : null}
-
-      {Object.keys(errors).length > 0 ? (
-        <p style={{ color: "#b91c1c", gridColumn: "1 / -1" }}>
-          {Object.keys(typedErrors).map((key) => fieldError(typedErrors, key)).filter(Boolean).join(" | ")}
-        </p>
-      ) : null}
-
-      {requestError ? (
-        <p style={{ color: "#b91c1c", gridColumn: "1 / -1" }}>{requestError}</p>
-      ) : null}
-
-      <div style={{ gridColumn: "1 / -1", display: "flex", gap: 8, justifyContent: "flex-end", flexWrap: "wrap" }}>
+      <div className="ticket-form-actions">
         {cancelHref ? <button type="button" className="btn btn-secondary" onClick={() => router.push(cancelHref)}>Cancelar</button> : null}
         <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
           {isSubmitting ? "Salvando..." : "Salvar"}

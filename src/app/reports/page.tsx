@@ -6,6 +6,13 @@ import { assertPermission } from "@/lib/rbac/permissions";
 import { ticketFiltersSchema } from "@/lib/validation/ticket";
 import { getReportsData } from "@/lib/services/reports-service";
 
+function getCurrentMonthRange() {
+  const now = new Date();
+  const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0));
+  return { startDate: start.toISOString().slice(0, 10), endDate: end.toISOString().slice(0, 10) };
+}
+
 async function getReport(query: Record<string, string | undefined>, user: Awaited<ReturnType<typeof requireCurrentUser>>): Promise<{ totals: ReportsResponse["totals"]; items: ReportsResponse["items"]; meta: ReportsResponse["meta"] | null; error: string | null }> {
   const parsed = ticketFiltersSchema.partial().safeParse(query);
   if (!parsed.success) {
@@ -43,13 +50,20 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   assertPermission(user.perfil, "reports.full");
 
   const query = await searchParams;
-  const data = await getReport(query, user);
+  const monthRange = getCurrentMonthRange();
+  const normalizedQuery: Record<string, string | undefined> = {
+    ...query,
+    startDate: query.startDate || monthRange.startDate,
+    endDate: query.endDate || monthRange.endDate
+  };
+  const data = await getReport(normalizedQuery, user);
   const params = new URLSearchParams();
-  Object.entries(query).forEach(([k, v]) => v && params.set(k, v));
+  Object.entries(normalizedQuery).forEach(([k, v]) => v && params.set(k, v));
 
   const byMarketplace = groupBy(data.items, "canalMarketplace");
   const byEmpresa = groupBy(data.items, "empresa");
   const byMotivo = groupBy(data.items, "motivo");
+  const bySku = groupBy(data.items, "sku");
 
   return (
     <section className="page">
@@ -58,17 +72,18 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         <p className="muted">Visualize estatísticas e exporte dados para análise.</p>
       </div>
 
-      <form className="panel form-grid cols-4">
-        <input name="startDate" type="date" defaultValue={query.startDate} />
-        <input name="endDate" type="date" defaultValue={query.endDate} />
-        <select name="canalMarketplace" defaultValue={query.canalMarketplace ?? ""}>
+      <form className="panel form-grid cols-4" method="GET">
+        <input name="startDate" type="date" defaultValue={normalizedQuery.startDate} />
+        <input name="endDate" type="date" defaultValue={normalizedQuery.endDate} />
+        <select name="canalMarketplace" defaultValue={normalizedQuery.canalMarketplace ?? ""}>
           <option value="">Todos os marketplaces</option>
           {CANAIS_MARKETPLACE.map((item) => <option key={item} value={item}>{item.replaceAll("_", " ")}</option>)}
         </select>
-        <select name="empresa" defaultValue={query.empresa ?? ""}>
+        <select name="empresa" defaultValue={normalizedQuery.empresa ?? ""}>
           <option value="">Todas as empresas</option>
           {EMPRESAS.map((item) => <option key={item} value={item}>{item}</option>)}
         </select>
+        <input name="sku" placeholder="SKU" defaultValue={normalizedQuery.sku} />
         <button type="submit" className="btn btn-secondary">Filtrar</button>
       </form>
 
@@ -113,6 +128,13 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         <h3>Resumo por Motivo</h3>
         <table className="table"><thead><tr><th>Motivo</th><th>Tickets</th><th>Custo Total</th></tr></thead><tbody>
           {byMotivo.map((row) => <tr key={row.name}><td>{row.name}</td><td>{row.tickets}</td><td>R$ {row.custo.toFixed(2)}</td></tr>)}
+        </tbody></table>
+      </div>
+
+      <div className="panel table-wrap">
+        <h3>Resumo por SKU</h3>
+        <table className="table"><thead><tr><th>SKU</th><th>Tickets</th><th>Custo Total</th></tr></thead><tbody>
+          {bySku.map((row) => <tr key={row.name}><td>{row.name}</td><td>{row.tickets}</td><td>R$ {row.custo.toFixed(2)}</td></tr>)}
         </tbody></table>
       </div>
     </section>

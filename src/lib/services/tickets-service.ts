@@ -152,9 +152,12 @@ export async function listTickets(
           ]
         }
       : {}),
+    ...(query.sku ? { sku: { contains: query.sku, mode: "insensitive" } } : {}),
     ...(query.empresa ? { empresa: query.empresa } : {}),
     ...(query.canalMarketplace ? { canalMarketplace: query.canalMarketplace } : {}),
-    ...(query.statusTicket ? { statusTicket: query.statusTicket } : {}),
+    ...(query.statusTicket
+      ? { statusTicket: query.statusTicket }
+      : (!query.includeConcluidos ? { statusTicket: { not: "CONCLUIDO" } } : {})),
     ...(query.statusReclamacao ? { statusReclamacao: query.statusReclamacao } : {}),
     ...(query.motivo ? { motivo: query.motivo } : {}),
     ...(query.responsavelId ? { responsavelId: query.responsavelId } : {}),

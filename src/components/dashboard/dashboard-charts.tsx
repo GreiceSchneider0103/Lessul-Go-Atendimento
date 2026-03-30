@@ -24,6 +24,7 @@ export function DashboardCharts({ charts }: { charts: Record<string, Array<{ nam
   const porStatus = formatChartData(charts.porStatus ?? []);
   const porMotivo = formatChartData(charts.porMotivo ?? []);
   const porMarketplace = formatChartData(charts.porMarketplace ?? []);
+  const porSku = formatChartData(charts.ticketsPorSku ?? []).slice(0, 10);
 
   return (
     <div className="grid" style={{ gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 16 }}>
@@ -94,6 +95,18 @@ export function DashboardCharts({ charts }: { charts: Record<string, Array<{ nam
             <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: "#475569" }} />
             <Tooltip formatter={(value: number) => [value, "Tickets"]} />
             <Bar dataKey="value" fill="#8b5cf6" radius={[8, 8, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </ChartCard>
+
+      <ChartCard title="Top SKUs por tickets">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={porSku} margin={{ top: 8, right: 8, left: -14, bottom: 28 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+            <XAxis dataKey="label" tick={{ fontSize: 12, fill: "#475569" }} interval={0} angle={-12} height={44} />
+            <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: "#475569" }} />
+            <Tooltip formatter={(value: number) => [value, "Tickets"]} />
+            <Bar dataKey="value" fill="#0f766e" radius={[8, 8, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </ChartCard>
