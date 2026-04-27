@@ -1,11 +1,11 @@
 import { requireCurrentUser } from "@/lib/auth/require-user";
 import Link from "next/link";
-import { StatusBadge } from "@/components/ui/status-badge";
 import { CANAIS_MARKETPLACE, EMPRESAS, MOTIVOS, STATUS_RECLAMACAO, STATUS_TICKET } from "@/config/domains";
 import { TicketListResponse } from "@/lib/contracts";
 import { listTickets } from "@/lib/services/tickets-service";
 import { ticketFiltersSchema } from "@/lib/validation/ticket";
-import { formatDateBR, formatEnumLabel } from "@/lib/formatters/display";
+import { formatEnumLabel } from "@/lib/formatters/display";
+import { TicketListTable } from "@/components/tickets/ticket-list-table";
 import { prisma } from "@/lib/db/prisma";
 
 async function getTickets(query: Record<string, string | undefined>, user: Awaited<ReturnType<typeof requireCurrentUser>>): Promise<{ data: TicketListResponse["data"]; pagination: TicketListResponse["pagination"]; error: string | null }> {
@@ -121,42 +121,7 @@ export default async function TicketsPage({ searchParams }: { searchParams: Prom
       {result.error ? <div className="alert alert-error">{result.error}</div> : null}
 
       <div className="panel table-wrap">
-        {!result.data.length ? (
-          <div className="empty-state">Nenhum ticket encontrado para os filtros atuais.</div>
-        ) : (
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Nome do cliente</th>
-                <th>SKU</th>
-                <th>Marketplace</th>
-                <th>Empresa</th>
-                <th>Motivo</th>
-                <th>Status ticket</th>
-                <th>Status reclamação</th>
-                <th>Prazo</th>
-                <th>SLA</th>
-                <th>Custos totais</th>
-              </tr>
-            </thead>
-            <tbody>
-              {result.data.map((item) => (
-                <tr key={item.id}>
-                  <td><Link href={`/tickets/${item.id}`}>{item.nomeCliente}</Link></td>
-                  <td>{item.sku}</td>
-                  <td><StatusBadge value={item.canalMarketplace} context="marketplace" /></td>
-                  <td><StatusBadge value={item.empresa} context="empresa" /></td>
-                  <td><StatusBadge value={item.motivo} context="motivo" /></td>
-                  <td><StatusBadge value={item.statusTicket} /></td>
-                  <td><StatusBadge value={item.statusReclamacao} context="statusReclamacao" /></td>
-                  <td>{formatDateBR(item.prazoConclusao as unknown as string)}</td>
-                  <td><StatusBadge value={item.slaStatus} /></td>
-                  <td>{Number(item.custosTotais).toFixed(2)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+        <TicketListTable initialItems={result.data} />
       </div>
 
       <div className="card" style={{ display: "flex", gap: 8, justifyContent: "space-between", flexWrap: "wrap", alignItems: "center" }}>
