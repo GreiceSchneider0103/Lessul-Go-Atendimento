@@ -2,10 +2,22 @@ import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db/prisma";
-import { formatDateBR, formatDateTimeBR, formatEnumLabel } from "@/lib/formatters/display";
-import { Empresa } from "@prisma/client";
+import { formatEnumLabel } from "@/lib/formatters/display";
+import { Empresa, Perfil } from "@prisma/client";
+import { OperationalRequestsPanel } from "@/components/loja/operational-requests-panel";
 
 type PageProps = { searchParams: Promise<{ empresa?: string }> };
+
+const statusLabel: Record<string, string> = {
+  aberto: "Em aberto",
+  assistenciaCaminho: "Assistência a caminho",
+  assistenciaEntregue: "Assistência entregue",
+  coletaSolicitada: "Coleta solicitada",
+  coletaFeita: "Coleta feita",
+  reembolsoRealizado: "Reembolso realizado",
+  concluidas: "Concluídas",
+  atrasadas: "Atrasadas"
+};
 
 export default async function LojaSolicitacoesPage({ searchParams }: PageProps) {
   const user = await getCurrentUser();
@@ -18,7 +30,7 @@ export default async function LojaSolicitacoesPage({ searchParams }: PageProps) 
     ? { empresa: user.empresaVinculada ?? undefined }
     : (empresaFiltro ? { empresa: empresaFiltro } : {});
 
-  const data = await prisma.operationalRequest.findMany({ where, include: { ticket: true, anexos: true }, orderBy: { updatedAt: "desc" } });
+  const data = await prisma.operationalRequest.findMany({ where, include: { ticket: true, anexos: { orderBy: { uploadedAt: "desc" }, take: 1 } }, orderBy: { updatedAt: "desc" } });
   const stats = {
     aberto: data.filter((d) => d.status === "EM_ABERTO").length,
     assistenciaCaminho: data.filter((d) => d.status === "ASSISTENCIA_A_CAMINHO").length,
@@ -31,6 +43,26 @@ export default async function LojaSolicitacoesPage({ searchParams }: PageProps) 
   };
 
   return <section className="page"><h1>Solicitações da Loja</h1>
-    {user.perfil === "ADMIN" ? <div className="panel" style={{ marginBottom: 12 }}><strong>Filtro por empresa:</strong><div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}><Link className="btn btn-secondary" href="/loja/solicitacoes">Todas</Link>{Object.values(Empresa).map((emp) => <Link key={emp} className="btn btn-secondary" href={`/loja/solicitacoes?empresa=${emp}`}>{formatEnumLabel(emp)}</Link>)}</div></div> : null}
-    <div className="grid" style={{gridTemplateColumns:"repeat(4,minmax(0,1fr))"}}>{Object.entries(stats).map(([k,v])=><article className="card" key={k}><strong>{k}</strong><div style={{fontSize:24}}>{v}</div></article>)}</div><div className="panel table-wrap"><table className="table"><thead><tr><th>ID</th><th>Empresa</th><th>Ticket</th><th>Cliente</th><th>Pedido</th><th>Produto/SKU</th><th>Ação</th><th>Status</th><th>Prazo</th><th>Atualizado</th></tr></thead><tbody>{data.map((row)=><tr key={row.id}><td>{row.id.slice(0,8)}</td><td>{formatEnumLabel(row.empresa)}</td><td>{row.ticketId}</td><td>{row.ticket.nomeCliente}</td><td>{row.ticket.numeroVenda}</td><td>{row.ticket.produto} / {row.ticket.sku}</td><td>{formatEnumLabel(row.tipoAcao)}</td><td>{formatEnumLabel(row.status)}</td><td>{formatDateBR(row.prazoOperacional)}</td><td>{formatDateTimeBR(row.updatedAt)}</td></tr>)}</tbody></table></div></section>;
+    {user.perfil === Perfil.ADMIN ? <div className="panel" style={{ marginBottom: 12 }}><strong>Filtro por empresa:</strong><div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}><Link className="btn btn-secondary" href="/loja/solicitacoes">Todas</Link>{Object.values(Empresa).map((emp) => <Link key={emp} className="btn btn-secondary" href={`/loja/solicitacoes?empresa=${emp}`}>{formatEnumLabel(emp)}</Link>)}</div></div> : null}
+    <div className="grid" style={{ gridTemplateColumns: "repeat(4,minmax(0,1fr))" }}>{Object.entries(stats).map(([k, v]) => <article className="card" key={k}><strong>{statusLabel[k] ?? k}</strong><div style={{ fontSize: 24 }}>{v}</div></article>)}</div>
+    <OperationalRequestsPanel
+      perfil={user.perfil}
+      data={data.map((row) => ({
+        id: row.id,
+        empresa: row.empresa,
+        ticketId: row.ticketId,
+        tipoAcao: row.tipoAcao,
+        status: row.status,
+        prazoOperacional: row.prazoOperacional?.toISOString() ?? null,
+        updatedAt: row.updatedAt.toISOString(),
+        comentarioLoja: row.comentarioLoja,
+        comentarioAtendente: row.comentarioAtendente,
+        codigoRastreio: row.codigoRastreio,
+        valorReembolso: Number(row.valorReembolso),
+        valorColetaEnvioPecas: Number(row.valorColetaEnvioPecas),
+        ticket: { nomeCliente: row.ticket.nomeCliente, numeroVenda: row.ticket.numeroVenda, linkPedido: row.ticket.linkPedido },
+        anexo: row.anexos[0] ? { fileUrl: row.anexos[0].fileUrl } : undefined
+      }))}
+    />
+  </section>;
 }

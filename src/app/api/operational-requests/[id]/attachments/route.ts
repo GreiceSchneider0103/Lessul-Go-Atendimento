@@ -1,6 +1,6 @@
 import { getCurrentApiUser } from "@/lib/auth/session";
 import { withApiHandler } from "@/lib/http";
-import { listAttachments, uploadAttachment } from "@/lib/services/operational-requests-service";
+import { deleteAttachment, listAttachments, uploadAttachment } from "@/lib/services/operational-requests-service";
 import { TipoAnexoOperacional } from "@prisma/client";
 
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -20,5 +20,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const tipoAnexo = String(form.get("tipoAnexo") ?? "OUTRO") as TipoAnexoOperacional;
     if (!(file instanceof File)) throw new Error("Arquivo é obrigatório");
     return { data: await uploadAttachment(id, file, tipoAnexo, user) };
+  });
+}
+
+export async function DELETE(_: Request, { params }: { params: Promise<{ id: string }> }) {
+  return withApiHandler(async () => {
+    const user = await getCurrentApiUser();
+    const { id } = await params;
+    return { data: await deleteAttachment(id, user) };
   });
 }
