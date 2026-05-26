@@ -1,23 +1,15 @@
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-
 import { hasSupabaseClientEnv } from "@/lib/supabase/config";
-
-function hasSupabaseSessionCookie(cookieNames: string[]) {
-  return cookieNames.some((name) => name.includes("-auth-token"));
-}
+import { getCurrentUser } from "@/lib/auth/session";
 
 export default async function Home() {
-  if (!hasSupabaseClientEnv()) {
+  if (!hasSupabaseClientEnv()) redirect("/login");
+
+  try {
+    const user = await getCurrentUser();
+    if (user.perfil === "LOJA") redirect("/loja/solicitacoes");
+    redirect("/dashboard");
+  } catch {
     redirect("/login");
   }
-
-  const cookieStore = await cookies();
-  const cookieNames = cookieStore.getAll().map((cookie) => cookie.name);
-
-  if (hasSupabaseSessionCookie(cookieNames)) {
-    redirect("/dashboard");
-  }
-
-  redirect("/login");
 }

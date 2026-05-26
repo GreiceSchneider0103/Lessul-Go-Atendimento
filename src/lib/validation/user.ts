@@ -32,4 +32,9 @@ export const updateUserSchema = z
   })
   .refine((payload) => Object.keys(payload).length > 0, {
     message: "Informe ao menos um campo para atualização"
+  })
+  .superRefine((payload, ctx) => {
+    if (payload.perfil === "LOJA" && !payload.empresaVinculada) {
+      ctx.addIssue({ code: "custom", message: "Empresa vinculada é obrigatória para perfil LOJA", path: ["empresaVinculada"] });
+    }
   });

@@ -10,7 +10,7 @@ const matrix: Record<Perfil, Permission[]> = {
   ATENDENTE: ["ticket.create", "ticket.update", "operational.view"],
   SUPERVISOR: ["ticket.create", "ticket.update", "ticket.update_sensitive", "reports.full", "reports.export", "operational.view"],
   ADMIN: ["ticket.create", "ticket.update", "ticket.update_sensitive", "ticket.soft_delete", "user.manage", "reports.full", "reports.export", "audit.read", "operational.view", "operational.update"],
-  LOJA: ["operational.view", "operational.update"]
+  LOJA: ["operational.view", "operational.update", "ticket.create"]
 };
 
 export const hasPermission = (perfil: Perfil, permission: Permission) => matrix[perfil].includes(permission);
