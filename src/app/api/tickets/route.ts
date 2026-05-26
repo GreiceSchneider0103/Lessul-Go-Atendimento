@@ -4,10 +4,12 @@ import { assertPermission } from "@/lib/rbac/permissions";
 import { createTicket, listTickets } from "@/lib/services/tickets-service";
 import { ticketFiltersSchema, ticketSchema } from "@/lib/validation/ticket";
 import { withApiHandler } from "@/lib/http";
+import { ForbiddenError } from "@/lib/errors";
 
 export async function GET(request: NextRequest) {
   return withApiHandler(async () => {
     const user = await getCurrentApiUser();
+    if (user.perfil === "LOJA") throw new ForbiddenError("Perfil loja não acessa tickets gerais");
     const filters = ticketFiltersSchema.parse(Object.fromEntries(request.nextUrl.searchParams.entries()));
     return listTickets(filters, user);
   });
@@ -16,6 +18,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   return withApiHandler(async () => {
     const user = await getCurrentApiUser();
+    if (user.perfil === "LOJA") throw new ForbiddenError("Perfil loja não acessa tickets gerais");
     assertPermission(user.perfil, "ticket.create");
     const payload = ticketSchema.parse(await request.json());
     return createTicket(payload, user.id);

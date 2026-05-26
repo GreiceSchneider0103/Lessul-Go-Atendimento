@@ -11,7 +11,12 @@ export async function requireCurrentUser() {
     }
 
     if (error instanceof ServiceUnavailableError) {
-      redirect("/indisponivel");
+      console.warn("[requireCurrentUser] redirect -> /login", {
+        pathname: "server-component",
+        reason: "service_unavailable_auth_or_session",
+        message: error.message
+      });
+      redirect("/login");
     }
 
     throw error;
