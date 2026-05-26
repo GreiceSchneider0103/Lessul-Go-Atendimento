@@ -1,25 +1,15 @@
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-
-function hasSupabaseEnv() {
-  return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
-}
-
-function hasSupabaseSessionCookie(cookieNames: string[]) {
-  return cookieNames.some((name) => name.includes("-auth-token"));
-}
+import { hasSupabaseClientEnv } from "@/lib/supabase/config";
+import { getCurrentUser } from "@/lib/auth/session";
 
 export default async function Home() {
-  if (!hasSupabaseEnv()) {
+  if (!hasSupabaseClientEnv()) redirect("/login");
+
+  try {
+    const user = await getCurrentUser();
+    if (user.perfil === "LOJA") redirect("/loja/solicitacoes");
+    redirect("/dashboard");
+  } catch {
     redirect("/login");
   }
-
-  const cookieStore = await cookies();
-  const cookieNames = cookieStore.getAll().map((cookie) => cookie.name);
-
-  if (hasSupabaseSessionCookie(cookieNames)) {
-    redirect("/dashboard");
-  }
-
-  redirect("/login");
 }

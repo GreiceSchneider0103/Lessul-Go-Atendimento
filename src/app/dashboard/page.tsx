@@ -4,6 +4,7 @@ import { CANAIS_MARKETPLACE, EMPRESAS } from "@/config/domains";
 import { ticketFiltersSchema } from "@/lib/validation/ticket";
 import { getDashboardData } from "@/lib/services/dashboard-service";
 import { formatCurrencyBR, formatEnumLabel } from "@/lib/formatters/display";
+import { redirect } from "next/navigation";
 
 function getCurrentMonthRange() {
   const now = new Date();
@@ -33,6 +34,7 @@ const cardConfig: Record<string, { label: string; tone: string; icon: string; mo
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const user = await requireCurrentUser();
+  if (user.perfil === "LOJA") redirect("/loja/solicitacoes");
   const query = await searchParams;
   const monthRange = getCurrentMonthRange();
   const normalizedQuery: Record<string, string | undefined> = {
