@@ -68,6 +68,13 @@ model Ticket {
   backupLastSyncedAt            DateTime?
   backupSyncError               String?
   acaoOperacionalLoja           AcaoOperacionalLoja            @default(NENHUMA)
+  anexoUrl                      String?
+  anexoPath                     String?
+  anexoNome                     String?
+  anexoMimeType                 String?
+  anexoSizeBytes                BigInt?
+  anexoUploadedAt               DateTime?
+  anexoUploadedBy               String?
   atualizadoPor                 Usuario                        @relation("tickets_atualizados", fields: [atualizadoPorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   criadoPor                     Usuario                        @relation("tickets_criados", fields: [criadoPorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   responsavel                   Usuario?                       @relation("tickets_responsavel", fields: [responsavelId], references: [id])
