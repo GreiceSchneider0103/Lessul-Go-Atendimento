@@ -1,0 +1,4 @@
+CREATE TYPE "AcaoOperacionalLoja" AS ENUM ('NENHUMA', 'ASSISTENCIA', 'COLETA', 'DEVOLUCAO', 'REEMBOLSO');
+
+ALTER TABLE "Ticket"
+ADD COLUMN "acaoOperacionalLoja" "AcaoOperacionalLoja" NOT NULL DEFAULT 'NENHUMA';
