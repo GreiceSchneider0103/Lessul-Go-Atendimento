@@ -98,12 +98,7 @@ export function UsersAdmin({ initialUsers, initialError }: { initialUsers: unkno
   }
 
   async function toggleAtivo(userId: string, ativo: boolean) {
-    const response = await fetch(`/api/users/${userId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ativo: !ativo })
-    });
-
+    const response = await fetch(`/api/users/${userId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ativo: !ativo }) });
     const body = await response.json().catch(() => ({}));
     if (!response.ok) {
       setError(body.message ?? "Erro ao atualizar usuário");
