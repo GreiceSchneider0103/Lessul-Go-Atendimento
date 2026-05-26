@@ -56,7 +56,8 @@ export function TicketForm({ ticketId, initialValues, canEditSensitive = true, a
       valorColeta: Number(initialValues?.valorColeta ?? 0),
       statusTicket: initialValues?.statusTicket ?? "ABERTO",
       prazoConclusao: toDateInput(initialValues?.prazoConclusao),
-      responsavelId: initialValues?.responsavelId ?? null
+      responsavelId: initialValues?.responsavelId ?? null,
+      acaoOperacionalLoja: (initialValues as any)?.acaoOperacionalLoja ?? "NENHUMA"
     }
   });
 
@@ -97,6 +98,15 @@ export function TicketForm({ ticketId, initialValues, canEditSensitive = true, a
       return;
     }
 
+
+
+    if (response.ok && payload.acaoOperacionalLoja !== "NENHUMA" && ticketId) {
+      await fetch("/api/operational-requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ticketId, tipoAcao: payload.acaoOperacionalLoja })
+      });
+    }
     router.push("/tickets");
     router.refresh();
   }
@@ -209,6 +219,12 @@ export function TicketForm({ ticketId, initialValues, canEditSensitive = true, a
           <label>
             Valor de reembolso
             <input {...register("valorReembolso", { valueAsNumber: true })} type="number" step="0.01" placeholder="Valor reembolso" disabled={!canEditSensitive} />
+          </label>
+          <label>
+            Ação operacional da loja
+            <select {...register("acaoOperacionalLoja")}>
+              <option value="NENHUMA">Nenhuma</option><option value="ASSISTENCIA">Enviar assistência</option><option value="COLETA">Solicitar coleta</option><option value="DEVOLUCAO">Realizar devolução</option><option value="REEMBOLSO">Realizar reembolso</option>
+            </select>
           </label>
           <label>
             Valor de coleta, envio ou peças

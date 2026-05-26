@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
+import { getSupabasePublicKey, getSupabaseUrl } from "@/lib/supabase/config";
 import { logError } from "@/lib/logger";
 
 function hasRuntimeEnv() {
-  return Boolean(process.env.DATABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+  return Boolean(process.env.DATABASE_URL && getSupabaseUrl() && getSupabasePublicKey());
 }
 
 export async function GET() {

@@ -34,7 +34,8 @@ export const ticketSchema = z.object({
   valorColeta: z.coerce.number().min(0).default(0),
   statusTicket: z.enum(STATUS_TICKET),
   prazoConclusao: isoDateOrDateString.optional().nullable(),
-  responsavelId: z.string().uuid().optional().nullable()
+  responsavelId: z.string().uuid().optional().nullable(),
+  acaoOperacionalLoja: z.enum(["NENHUMA","ASSISTENCIA","COLETA","DEVOLUCAO","REEMBOLSO"]).default("NENHUMA")
 });
 
 export const ticketFormSchema = ticketSchema.extend({
@@ -47,7 +48,8 @@ export const ticketFormSchema = ticketSchema.extend({
   detalhesCliente: z.string().optional(),
   comentarioInterno: z.string().optional(),
   resolucao: z.enum(RESOLUCOES).or(z.literal("")).optional().nullable(),
-  responsavelId: z.string().uuid("Responsável inválido").or(z.literal("")).optional().nullable()
+  responsavelId: z.string().uuid("Responsável inválido").or(z.literal("")).optional().nullable(),
+  acaoOperacionalLoja: z.enum(["NENHUMA","ASSISTENCIA","COLETA","DEVOLUCAO","REEMBOLSO"]).default("NENHUMA")
 });
 
 export const ticketFiltersSchema = z.object({
