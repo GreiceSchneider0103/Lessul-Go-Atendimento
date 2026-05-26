@@ -30,6 +30,12 @@ export async function POST(request: NextRequest) {
 
     const raw = await request.json();
 
+    const acaoRecebida = typeof raw?.acaoOperacionalLoja === "string" ? raw.acaoOperacionalLoja : "NENHUMA";
+    const acoesPermitidas = new Set(["NENHUMA", "ASSISTENCIA", "COLETA", "DEVOLUCAO", "REEMBOLSO"]);
+    if (!acoesPermitidas.has(acaoRecebida)) {
+      throw new AppError("Ação operacional inválida", 400, "INVALID_OPERATIONAL_ACTION");
+    }
+
     if (isLoja && !user.empresaVinculada) {
       throw new AppError("Usuário LOJA sem empresa vinculada", 400, "LOJA_EMPRESA_REQUIRED");
     }
@@ -47,6 +53,8 @@ export async function POST(request: NextRequest) {
         route: "POST /api/tickets",
         perfil,
         userId: user.id,
+        empresa: isLoja ? user.empresaVinculada : (raw?.empresa ?? null),
+        acaoOperacionalLoja: raw?.acaoOperacionalLoja ?? null,
         message: error instanceof Error ? error.message : String(error)
       });
       throw error;
