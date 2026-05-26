@@ -1,10 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@/lib/supabase/ssr";
-import {
-  getSupabasePublicKey,
-  getSupabaseUrl,
-  hasSupabaseClientEnv
-} from "@/lib/supabase/config";
+import { getSupabasePublicKey, getSupabaseUrl, hasSupabaseClientEnv } from "@/lib/supabase/config";
 
 const publicRoutes = ["/", "/login", "/auth/callback", "/api/health", "/indisponivel"];
 const AUTH_TIMEOUT_MS = Number(process.env.AUTH_TIMEOUT_MS ?? 8000);
@@ -35,7 +31,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const hasEnv = hasSupabaseClientEnv();
-  const hasAuthCookie = request.cookies.getAll().some((cookie) => cookie.name.includes("auth-token"));
+  const hasAuthCookie = request.cookies.getAll().some((c) => c.name.includes("auth-token"));
 
   if (isPublicRoute(pathname)) {
     const requestHeaders = new Headers(request.headers);
@@ -49,20 +45,9 @@ export async function middleware(request: NextRequest) {
   }
 
   if (!hasEnv) {
-    console.warn("[middleware-auth]", {
-      pathname,
-      hasSupabaseEnv: hasEnv,
-      hasAuthCookie,
-      hasSession: false,
-      userId: null,
-      reason: "missing_supabase_env"
-    });
-
+    console.warn("[middleware-auth]", { pathname, hasSupabaseEnv: hasEnv, hasAuthCookie, hasSession: false, userId: null, reason: "session_lookup_failed" });
     if (pathname.startsWith("/api")) {
-      return NextResponse.json(
-        { message: "Autenticação não configurada no ambiente" },
-        { status: 503 }
-      );
+      return NextResponse.json({ message: "Autenticação não configurada no ambiente" }, { status: 503 });
     }
 
     return NextResponse.redirect(new URL("/login", request.url));
@@ -77,20 +62,19 @@ export async function middleware(request: NextRequest) {
     }
   });
 
-  const supabase = createServerClient(
-    getSupabaseUrl(),
-    getSupabasePublicKey(),
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            request.cookies.set(name, value);
-            response.cookies.set(name, value, options);
-          });
-        }
+  const supabaseUrl = getSupabaseUrl();
+  const supabasePublicKey = getSupabasePublicKey();
+
+  const supabase = createServerClient(supabaseUrl, supabasePublicKey, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
+      },
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value, options }) => {
+          request.cookies.set(name, value);
+          response.cookies.set(name, value, options);
+        });
       }
     }
   );
@@ -100,13 +84,7 @@ export async function middleware(request: NextRequest) {
       data: { session }
     } = await withTimeout(supabase.auth.getSession(), AUTH_TIMEOUT_MS);
 
-    console.log("[middleware-auth]", {
-      pathname,
-      hasSupabaseEnv: hasEnv,
-      hasAuthCookie,
-      hasSession: Boolean(session),
-      userId: session?.user?.id ? session.user.id.slice(0, 8) : null
-    });
+    console.log("[middleware-auth]", { pathname, hasSupabaseEnv: hasEnv, hasAuthCookie, hasSession: Boolean(session), userId: session?.user?.id ? session.user.id.slice(0,8) : null });
 
     if (!session && pathname.startsWith("/api")) {
       return NextResponse.json({ message: "Não autenticado" }, { status: 401 });
@@ -118,20 +96,9 @@ export async function middleware(request: NextRequest) {
 
     return response;
   } catch {
-    console.warn("[middleware-auth]", {
-      pathname,
-      hasSupabaseEnv: hasEnv,
-      hasAuthCookie,
-      hasSession: false,
-      userId: null,
-      reason: "session_lookup_failed"
-    });
-
+    console.warn("[middleware-auth]", { pathname, hasSupabaseEnv: hasEnv, hasAuthCookie, hasSession: false, userId: null, reason: "session_lookup_failed" });
     if (pathname.startsWith("/api")) {
-      return NextResponse.json(
-        { message: "Autenticação temporariamente indisponível" },
-        { status: 503 }
-      );
+      return NextResponse.json({ message: "Autenticação temporariamente indisponível" }, { status: 503 });
     }
 
     return NextResponse.redirect(new URL("/login", request.url));

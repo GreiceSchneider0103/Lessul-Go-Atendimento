@@ -6,7 +6,16 @@ import type { Route } from "next";
 type NavItem = { label: string; href: Route };
 
 const navByPerfil: Record<string, NavItem[]> = {
-  LOJA: [{ label: "Solicitações Loja", href: "/loja/solicitacoes" }],
+  LOJA: [{ label: "Operacional Loja", href: "/loja/solicitacoes" }],
+  ADMIN: [
+    { label: "Dashboard", href: "/dashboard" },
+    { label: "Tickets", href: "/tickets" },
+    { label: "Kanban", href: "/tickets/kanban" },
+    { label: "Relatórios", href: "/reports" },
+    { label: "Usuários", href: "/users" },
+    { label: "Administração", href: "/admin" },
+    { label: "Operacional Loja", href: "/loja/solicitacoes" }
+  ],
   DEFAULT: [
     { label: "Dashboard", href: "/dashboard" },
     { label: "Tickets", href: "/tickets" },
