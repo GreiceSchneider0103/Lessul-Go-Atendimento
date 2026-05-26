@@ -67,6 +67,7 @@ model Ticket {
   backupSyncStatus              BackupSyncStatus               @default(PENDING)
   backupLastSyncedAt            DateTime?
   backupSyncError               String?
+  acaoOperacionalLoja           AcaoOperacionalLoja            @default(NENHUMA)
   atualizadoPor                 Usuario                        @relation("tickets_atualizados", fields: [atualizadoPorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   criadoPor                     Usuario                        @relation("tickets_criados", fields: [criadoPorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   responsavel                   Usuario?                       @relation("tickets_responsavel", fields: [responsavelId], references: [id])
@@ -158,6 +159,14 @@ enum StatusTicket {
   AGUARDANDO_DEVOLUCAO
   AGUARDANDO_ASSISTENCIA
   AGUARDANDO_MARKETPLACE
+}
+
+enum AcaoOperacionalLoja {
+  NENHUMA
+  ASSISTENCIA
+  COLETA
+  DEVOLUCAO
+  REEMBOLSO
 }
 
 enum TipoAcaoOperacional {
