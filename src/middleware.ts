@@ -1,19 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@/lib/supabase/ssr";
-import { prisma } from "@/lib/db/prisma";
+import { getSupabasePublicKey, getSupabaseUrl, hasSupabaseClientEnv } from "@/lib/supabase/config";
 
 const publicRoutes = ["/", "/login", "/auth/callback", "/api/health", "/indisponivel"];
 const AUTH_TIMEOUT_MS = Number(process.env.AUTH_TIMEOUT_MS ?? 8000);
-
-const lojaAllowedPrefixes = ["/loja/solicitacoes", "/api/operational-requests", "/auth/callback"];
-function isLojaAllowed(pathname: string) {
-  return lojaAllowedPrefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
-}
-
-
-function hasSupabaseEnv() {
-  return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
-}
 
 function isPublicRoute(pathname: string) {
   return publicRoutes.some((route) => {
@@ -40,7 +30,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
-  const hasEnv = hasSupabaseEnv();
+  const hasEnv = hasSupabaseClientEnv();
   const hasAuthCookie = request.cookies.getAll().some((c) => c.name.includes("auth-token"));
 
   if (isPublicRoute(pathname)) {
@@ -72,7 +62,10 @@ export async function middleware(request: NextRequest) {
     }
   });
 
-  const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+  const supabaseUrl = getSupabaseUrl();
+  const supabasePublicKey = getSupabasePublicKey();
+
+  const supabase = createServerClient(supabaseUrl, supabasePublicKey, {
     cookies: {
       getAll() {
         return request.cookies.getAll();
@@ -91,7 +84,7 @@ export async function middleware(request: NextRequest) {
       data: { session }
     } = await withTimeout(supabase.auth.getSession(), AUTH_TIMEOUT_MS);
 
-    console.log("[middleware-auth]", { pathname, hasSupabaseEnv: hasEnv, hasAuthCookie, hasSession: Boolean(session), userId: session?.user?.id ?? null });
+    console.log("[middleware-auth]", { pathname, hasSupabaseEnv: hasEnv, hasAuthCookie, hasSession: Boolean(session), userId: session?.user?.id ? session.user.id.slice(0,8) : null });
 
     if (!session && pathname.startsWith("/api")) {
       return NextResponse.json({ message: "Não autenticado" }, { status: 401 });

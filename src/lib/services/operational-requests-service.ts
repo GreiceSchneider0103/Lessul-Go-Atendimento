@@ -5,6 +5,7 @@ import { registerTicketAudit } from "@/lib/audit/ticket-audit";
 import { sendEmail } from "@/lib/services/email-service";
 import { createSupabaseRouteClient } from "@/lib/supabase/server";
 import { logError } from "@/lib/logger";
+import { getAppBaseUrl } from "@/lib/supabase/config";
 
 type AppUser = { id: string; perfil: Perfil; empresaVinculada: import("@prisma/client").Empresa | null; email?: string; nome?: string };
 
@@ -25,7 +26,7 @@ export async function createFromTicket(ticketId: string, tipoAcao: TipoAcaoOpera
   await registerTicketAudit({ ticketId: ticket.id, user: actor as any, action: "UPDATE", before: { operationalRequest: null } as any, after: { operationalRequest: created.id, tipoAcao } as any });
 
   const lojaUsers = await prisma.usuario.findMany({ where: { perfil: "LOJA", ativo: true, empresaVinculada: ticket.empresa }, select: { email: true } });
-  const link = `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/loja/solicitacoes`;
+  const link = `${getAppBaseUrl()}/loja/solicitacoes`;
   const body = `Olá,\n\nUma nova tarefa operacional foi criada para sua loja.\n\nTicket: ${ticket.id}\nCliente: ${ticket.nomeCliente}\nPedido: ${ticket.numeroVenda}\nEmpresa: ${ticket.empresa}\nAção solicitada: ${tipoAcao}\nPrazo: ${ticket.prazoConclusao?.toISOString().slice(0,10) ?? "-"}\n\nAcesse o painel da loja para atualizar o andamento:\n${link}`;
 
   for (const loja of lojaUsers) {

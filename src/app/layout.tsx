@@ -6,6 +6,7 @@ import { LogoutButton } from "@/components/auth/logout-button";
 import { SidebarNav } from "@/components/ui/sidebar-nav";
 import { getCurrentUser } from "@/lib/auth/session";
 import { ServiceUnavailableError, UnauthorizedError } from "@/lib/errors";
+import { hasSupabaseClientEnv } from "@/lib/supabase/config";
 
 export const dynamic = "force-dynamic";
 
@@ -15,10 +16,6 @@ export const metadata: Metadata = {
   }
 };
 
-
-function hasSupabaseEnv() {
-  return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
-}
 
 function getInitials(name?: string) {
   if (!name) return "VS";
@@ -36,7 +33,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const isPublicRoute = requestHeaders.get("x-route-access") === "public";
 
   try {
-    if (hasSupabaseEnv() && !isPublicRoute) {
+    if (hasSupabaseClientEnv() && !isPublicRoute) {
       currentUser = await getCurrentUser();
     }
   } catch (error) {
