@@ -61,7 +61,7 @@ export default async function LojaSolicitacoesPage({ searchParams }: PageProps) 
         valorReembolso: Number(row.valorReembolso),
         valorColetaEnvioPecas: Number(row.valorColetaEnvioPecas),
         ticket: { nomeCliente: row.ticket.nomeCliente, numeroVenda: row.ticket.numeroVenda, linkPedido: row.ticket.linkPedido },
-        anexo: row.anexos[0] ? { fileUrl: row.anexos[0].fileUrl } : undefined
+        anexo: row.ticket.anexoUrl ? { fileUrl: row.ticket.anexoUrl, fileName: (row.ticket as any).anexoNome ?? "Anexo" } : undefined
       }))}
     />
   </section>;

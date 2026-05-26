@@ -235,7 +235,7 @@ export async function createTicket(input: TicketInput, userId: string) {
 export async function getTicketById(id: string, user: Usuario) {
   const ticket = await prisma.ticket.findFirst({
     where: { id, ativo: true, ...getTicketScopeWhere(user) },
-    include: { auditoria: { orderBy: { dataHora: "desc" }, take: 100 }, responsavel: { select: { id: true, nome: true } } }
+    include: { auditoria: { orderBy: { dataHora: "desc" }, take: 100 }, responsavel: { select: { id: true, nome: true } }, comentariosOperacionais: { orderBy: { criadoEm: "desc" } } }
   });
 
   if (!ticket) throw new ForbiddenError("Ticket não encontrado ou sem acesso");

@@ -9,6 +9,22 @@ import { getAppBaseUrl } from "@/lib/supabase/config";
 
 type AppUser = { id: string; perfil: Perfil; empresaVinculada: import("@prisma/client").Empresa | null; email?: string; nome?: string };
 
+
+
+async function appendComentarioOperacional(ticketId: string, actor: AppUser, comentario?: string | null) {
+  const texto = (comentario ?? "").trim();
+  if (!texto) return;
+  await prisma.ticketComentarioOperacional.create({
+    data: {
+      ticketId,
+      autorId: actor.id,
+      autorNome: actor.nome ?? actor.email ?? "Usuário",
+      autorPerfil: actor.perfil,
+      comentario: texto
+    }
+  });
+}
+
 const LOJA_ALLOWED_STATUS: StatusOperacional[] = [
   "ASSISTENCIA_A_CAMINHO",
   "ASSISTENCIA_ENTREGUE",
@@ -90,6 +106,8 @@ export async function updateOperationalRequest(id: string, actor: AppUser, paylo
       atualizadoPorId: actor.id
     }
   });
+
+  await appendComentarioOperacional(current.ticketId, actor, payload.comentarioLoja ?? payload.comentarioAtendente);
 
   await registerTicketAudit({ ticketId: current.ticketId, user: actor as any, action: "UPDATE", before: { operational: current } as any, after: { operational: updated } as any });
   return updated;

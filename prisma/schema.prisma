@@ -86,6 +86,7 @@ model Ticket {
   auditoria                     TicketAuditoria[]
   operationalRequests           OperationalRequest[]
   operationalRequestAttachments OperationalRequestAttachment[]
+  comentariosOperacionais       TicketComentarioOperacional[]
 
   @@index([dataReclamacao])
   @@index([canalMarketplace, empresa], map: "Ticket_marketplace_empresa_idx")
@@ -267,6 +268,20 @@ model OperationalRequestAttachment {
   operationalRequest   OperationalRequest   @relation(fields: [operationalRequestId], references: [id], onDelete: Cascade)
   ticket               Ticket               @relation(fields: [ticketId], references: [id])
   uploader             Usuario?             @relation("anexos_operacionais_usuario", fields: [uploadedBy], references: [id])
+}
+
+
+model TicketComentarioOperacional {
+  id         String   @id @default(uuid())
+  ticketId    String
+  autorId     String?
+  autorNome   String?
+  autorPerfil Perfil?
+  comentario  String
+  criadoEm    DateTime @default(now())
+  ticket      Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId, criadoEm], map: "TicketComentarioOperacional_ticketId_criadoEm_idx")
 }
 
 enum BackupSyncStatus {
