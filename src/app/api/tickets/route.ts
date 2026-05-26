@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   return withApiHandler(async () => {
     const user = await getCurrentApiUser();
+    if (user.perfil === "LOJA") throw new ForbiddenError("Perfil loja não acessa tickets gerais");
     assertPermission(user.perfil, "ticket.create");
     const raw = await request.json();
     const payload = ticketSchema.parse(user.perfil === "LOJA" ? { ...raw, empresa: user.empresaVinculada ?? raw.empresa } : raw);
