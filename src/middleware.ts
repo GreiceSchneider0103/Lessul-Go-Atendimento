@@ -31,14 +31,6 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   });
 }
 
-function authUnavailableResponse(request: NextRequest) {
-  if (request.nextUrl.pathname.startsWith("/api")) {
-    return NextResponse.json({ message: "Autenticação temporariamente indisponível" }, { status: 503 });
-  }
-
-  return NextResponse.redirect(new URL("/indisponivel", request.url));
-}
-
 export async function middleware(request: NextRequest) {
   if (isPublicRoute(request.nextUrl.pathname)) {
     const requestHeaders = new Headers(request.headers);
@@ -97,7 +89,11 @@ export async function middleware(request: NextRequest) {
 
     return response;
   } catch {
-    return authUnavailableResponse(request);
+    if (request.nextUrl.pathname.startsWith("/api")) {
+      return NextResponse.json({ message: "Autenticação temporariamente indisponível" }, { status: 503 });
+    }
+
+    return NextResponse.redirect(new URL("/login", request.url));
   }
 }
 
