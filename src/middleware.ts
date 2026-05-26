@@ -77,7 +77,7 @@ export async function middleware(request: NextRequest) {
         });
       }
     }
-  });
+  );
 
   try {
     const {
