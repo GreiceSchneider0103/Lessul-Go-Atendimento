@@ -23,6 +23,10 @@ model Usuario {
   auditorias         TicketAuditoria[]
   auditoriasComoAlvo UsuarioAuditoria[]  @relation("usuario_auditoria_alvo")
   auditoriasComoAtor UsuarioAuditoria[]  @relation("usuario_auditoria_ator")
+  empresaVinculada   Empresa?
+  operacionaisCriadas OperationalRequest[] @relation("operacionais_criadas")
+  operacionaisAtualizadas OperationalRequest[] @relation("operacionais_atualizadas")
+  anexosOperacionais OperationalRequestAttachment[] @relation("anexos_operacionais_usuario")
 }
 
 model Ticket {
@@ -67,6 +71,8 @@ model Ticket {
   criadoPor        Usuario           @relation("tickets_criados", fields: [criadoPorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   responsavel      Usuario?          @relation("tickets_responsavel", fields: [responsavelId], references: [id])
   auditoria        TicketAuditoria[]
+  operationalRequests OperationalRequest[]
+  operationalAttachments OperationalRequestAttachment[]
 
   @@index([dataReclamacao])
   @@index([canalMarketplace, empresa], map: "Ticket_marketplace_empresa_idx")
@@ -113,6 +119,7 @@ enum Perfil {
   ATENDENTE
   SUPERVISOR
   ADMIN
+  LOJA
 }
 
 enum Empresa {
@@ -152,6 +159,79 @@ enum StatusTicket {
   AGUARDANDO_DEVOLUCAO
   AGUARDANDO_ASSISTENCIA
   AGUARDANDO_MARKETPLACE
+}
+
+enum TipoAcaoOperacional {
+  ASSISTENCIA
+  COLETA
+  DEVOLUCAO
+  REEMBOLSO
+}
+
+enum StatusOperacional {
+  EM_ABERTO
+  ASSISTENCIA_A_CAMINHO
+  ASSISTENCIA_ENTREGUE
+  COLETA_SOLICITADA
+  COLETA_FEITA
+  DEVOLUCAO_SOLICITADA
+  DEVOLUCAO_REALIZADA
+  REEMBOLSO_PENDENTE
+  REEMBOLSO_REALIZADO
+  AGUARDANDO_ATENDENTE
+  CONCLUIDA
+}
+
+enum TipoAnexoOperacional {
+  IMAGEM_PECA
+  CTE
+  COMPROVANTE_REEMBOLSO
+  OUTRO
+}
+
+
+model OperationalRequest {
+  id                    String                        @id @default(uuid())
+  ticketId              String
+  empresa               Empresa
+  tipoAcao              TipoAcaoOperacional
+  status                StatusOperacional             @default(EM_ABERTO)
+  prazoOperacional      DateTime?
+  comentarioAtendente   String?
+  comentarioLoja        String?
+  valorReembolso        Decimal                       @default(0) @db.Decimal(12, 2)
+  valorCte              Decimal                       @default(0) @db.Decimal(12, 2)
+  valorColetaEnvioPecas Decimal                       @default(0) @db.Decimal(12, 2)
+  codigoRastreio        String?
+  createdBy             String?
+  updatedBy             String?
+  completedAt           DateTime?
+  createdAt             DateTime                      @default(now())
+  updatedAt             DateTime                      @updatedAt
+  ticket                Ticket                        @relation(fields: [ticketId], references: [id])
+  criador               Usuario?                      @relation("operacionais_criadas", fields: [createdBy], references: [id])
+  atualizador           Usuario?                      @relation("operacionais_atualizadas", fields: [updatedBy], references: [id])
+  anexos                OperationalRequestAttachment[]
+
+  @@index([empresa, status])
+}
+
+model OperationalRequestAttachment {
+  id                   String             @id @default(uuid())
+  operationalRequestId String
+  ticketId             String
+  empresa              Empresa
+  tipoAnexo            TipoAnexoOperacional
+  fileUrl              String?
+  storagePath          String?
+  fileName             String
+  mimeType             String?
+  sizeBytes            BigInt?
+  uploadedBy           String?
+  uploadedAt           DateTime           @default(now())
+  operationalRequest   OperationalRequest @relation(fields: [operationalRequestId], references: [id], onDelete: Cascade)
+  ticket               Ticket             @relation(fields: [ticketId], references: [id])
+  uploader             Usuario?           @relation("anexos_operacionais_usuario", fields: [uploadedBy], references: [id])
 }
 
 enum BackupSyncStatus {
