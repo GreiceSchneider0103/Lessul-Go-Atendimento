@@ -2,11 +2,11 @@ import "./globals.css";
 import type { Metadata } from "next";
 import { ReactNode } from "react";
 import { headers } from "next/headers";
-import Link from "next/link";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { SidebarNav } from "@/components/ui/sidebar-nav";
 import { getCurrentUser } from "@/lib/auth/session";
 import { ServiceUnavailableError, UnauthorizedError } from "@/lib/errors";
+import { hasSupabaseClientEnv } from "@/lib/supabase/config";
 
 export const dynamic = "force-dynamic";
 
@@ -16,10 +16,6 @@ export const metadata: Metadata = {
   }
 };
 
-
-function hasSupabaseEnv() {
-  return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
-}
 
 function getInitials(name?: string) {
   if (!name) return "VS";
@@ -33,41 +29,26 @@ function getInitials(name?: string) {
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   let currentUser: Awaited<ReturnType<typeof getCurrentUser>> | null = null;
-  let infraUnavailable = false;
   const requestHeaders = await headers();
   const isPublicRoute = requestHeaders.get("x-route-access") === "public";
 
   try {
-    if (hasSupabaseEnv() && !isPublicRoute) {
+    if (hasSupabaseClientEnv() && !isPublicRoute) {
       currentUser = await getCurrentUser();
     }
   } catch (error) {
     if (error instanceof UnauthorizedError) {
       currentUser = null;
     } else if (error instanceof ServiceUnavailableError) {
-      infraUnavailable = true;
+      console.warn("[RootLayout] fallback user null due to auth/session unavailable", {
+        pathname: "layout",
+        reason: "service_unavailable_auth_or_session",
+        message: error.message
+      });
+      currentUser = null;
     } else {
       throw error;
     }
-  }
-
-  if (infraUnavailable && !isPublicRoute) {
-    return (
-      <html lang="pt-BR">
-        <body>
-          <main style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: 24 }}>
-            <section className="card" style={{ maxWidth: 680 }}>
-              <h1>Serviço temporariamente indisponível</h1>
-              <p className="muted">Não foi possível conectar ao banco de dados agora. Tente novamente em instantes.</p>
-              <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-                <Link href="/indisponivel" className="btn btn-primary">Ver status</Link>
-                <Link href="/api/health" className="btn btn-secondary">Health check</Link>
-              </div>
-            </section>
-          </main>
-        </body>
-      </html>
-    );
   }
 
   if (!currentUser) {
@@ -89,7 +70,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
               <div className="brand-icon">⌘</div>
               <span className="brand">GO Atendimento</span>
             </div>
-            <SidebarNav />
+            <SidebarNav perfil={currentUser.perfil} />
             <div className="sidebar-footer">GO Atendimento v1.0</div>
           </aside>
 

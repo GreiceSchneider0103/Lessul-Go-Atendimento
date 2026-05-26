@@ -1,9 +1,10 @@
 import { cookies } from "next/headers";
 import { createServerClient } from "@/lib/supabase/ssr";
+import { getSupabasePublicKey, getSupabaseUrl } from "@/lib/supabase/config";
 
 function getSupabaseConfig() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const url = getSupabaseUrl();
+  const anonKey = getSupabasePublicKey();
 
   if (!url || !anonKey) {
     throw new Error("Supabase não configurado no ambiente");
