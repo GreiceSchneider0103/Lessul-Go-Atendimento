@@ -94,6 +94,14 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL("/login", request.url));
     }
 
+    const appUser = await prisma.usuario.findUnique({ where: { authUserId: session.user.id }, select: { perfil: true } });
+    if (appUser?.perfil === "LOJA" && !isLojaAllowed(request.nextUrl.pathname)) {
+      if (request.nextUrl.pathname.startsWith("/api")) {
+        return NextResponse.json({ message: "Acesso negado para perfil loja" }, { status: 403 });
+      }
+      return NextResponse.redirect(new URL("/loja/solicitacoes", request.url));
+    }
+
     return response;
   } catch {
     console.warn("[middleware-auth]", { pathname, hasSupabaseEnv: hasEnv, hasAuthCookie, hasSession: false, userId: null, reason: "session_lookup_failed" });
