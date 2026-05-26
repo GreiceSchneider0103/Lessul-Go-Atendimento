@@ -39,7 +39,11 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 }
 
 export async function middleware(request: NextRequest) {
-  if (isPublicRoute(request.nextUrl.pathname)) {
+  const pathname = request.nextUrl.pathname;
+  const hasEnv = hasSupabaseEnv();
+  const hasAuthCookie = request.cookies.getAll().some((c) => c.name.includes("auth-token"));
+
+  if (isPublicRoute(pathname)) {
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set("x-route-access", "public");
 
@@ -50,8 +54,9 @@ export async function middleware(request: NextRequest) {
     });
   }
 
-  if (!hasSupabaseEnv()) {
-    if (request.nextUrl.pathname.startsWith("/api")) {
+  if (!hasEnv) {
+    console.warn("[middleware-auth]", { pathname, hasSupabaseEnv: hasEnv, hasAuthCookie, hasSession: false, userId: null, reason: "session_lookup_failed" });
+    if (pathname.startsWith("/api")) {
       return NextResponse.json({ message: "Autenticação não configurada no ambiente" }, { status: 503 });
     }
 
@@ -86,7 +91,9 @@ export async function middleware(request: NextRequest) {
       data: { session }
     } = await withTimeout(supabase.auth.getSession(), AUTH_TIMEOUT_MS);
 
-    if (!session && request.nextUrl.pathname.startsWith("/api")) {
+    console.log("[middleware-auth]", { pathname, hasSupabaseEnv: hasEnv, hasAuthCookie, hasSession: Boolean(session), userId: session?.user?.id ?? null });
+
+    if (!session && pathname.startsWith("/api")) {
       return NextResponse.json({ message: "Não autenticado" }, { status: 401 });
     }
 
@@ -104,7 +111,8 @@ export async function middleware(request: NextRequest) {
 
     return response;
   } catch {
-    if (request.nextUrl.pathname.startsWith("/api")) {
+    console.warn("[middleware-auth]", { pathname, hasSupabaseEnv: hasEnv, hasAuthCookie, hasSession: false, userId: null, reason: "session_lookup_failed" });
+    if (pathname.startsWith("/api")) {
       return NextResponse.json({ message: "Autenticação temporariamente indisponível" }, { status: 503 });
     }
 
