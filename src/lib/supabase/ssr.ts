@@ -15,15 +15,9 @@ function isValidSupabaseSessionValue(key: string, value: string) {
   const trimmed = value.trim();
   if (!trimmed) return false;
 
-  // Supabase session storage must be structured JSON for auth-token keys.
-  if (!(trimmed.startsWith("{") || trimmed.startsWith("["))) return false;
-
-  try {
-    JSON.parse(trimmed);
-    return true;
-  } catch {
-    return false;
-  }
+  // Supabase pode serializar sessão em formatos diferentes entre versões.
+  // Nunca invalidar apenas por não ser JSON para evitar falsos "sem sessão" no SSR.
+  return true;
 }
 
 function parseCookieHeader(cookieHeader: string) {
