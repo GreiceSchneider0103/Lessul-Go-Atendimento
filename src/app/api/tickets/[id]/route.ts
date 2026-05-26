@@ -3,11 +3,13 @@ import { getCurrentApiUser } from "@/lib/auth/session";
 import { assertPermission } from "@/lib/rbac/permissions";
 import { ticketSchema } from "@/lib/validation/ticket";
 import { withApiHandler } from "@/lib/http";
+import { ForbiddenError } from "@/lib/errors";
 import { getTicketById, softDeleteTicket, updateTicket } from "@/lib/services/tickets-service";
 
 export async function GET(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   return withApiHandler(async () => {
     const user = await getCurrentApiUser();
+    if (user.perfil === "LOJA") throw new ForbiddenError("Perfil loja não acessa tickets gerais");
     const { id } = await params;
     return getTicketById(id, user);
   });

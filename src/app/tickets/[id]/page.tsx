@@ -2,6 +2,7 @@ import { requireCurrentUser } from "@/lib/auth/require-user";
 import Link from "next/link";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { getTicketById } from "@/lib/services/tickets-service";
+import { prisma } from "@/lib/db/prisma";
 import { hasPermission } from "@/lib/rbac/permissions";
 import { TicketDeleteButton } from "@/components/tickets/ticket-delete-button";
 import { formatCurrencyBR, formatDateBR, formatDateTimeBR, formatEnumLabel } from "@/lib/formatters/display";
@@ -20,6 +21,7 @@ export default async function TicketDetail({ params }: { params: Promise<{ id: s
   const user = await requireCurrentUser();
   const { id } = await params;
   const { ticket, error } = await getTicket(id, user);
+  const operacionais = ticket ? await prisma.operationalRequest.findMany({ where: { ticketId: ticket.id }, include: { anexos: true }, orderBy: { createdAt: "desc" } }) : [];
 
   return (
     <section className="page">
@@ -71,6 +73,7 @@ export default async function TicketDetail({ params }: { params: Promise<{ id: s
               <p><strong>Status da reclamação:</strong> <StatusBadge value={ticket.statusReclamacao} context="statusReclamacao" /></p>
               <p><strong>Motivo:</strong> <StatusBadge value={ticket.motivo} context="motivo" /></p>
               <p><strong>Resolução:</strong> {ticket.resolucao ? formatEnumLabel(ticket.resolucao) : "-"}</p>
+              <p><strong>Ação operacional da loja:</strong> {ticket.acaoOperacionalLoja === "NENHUMA" ? "Nenhuma" : ticket.acaoOperacionalLoja === "ASSISTENCIA" ? "Enviar assistência" : ticket.acaoOperacionalLoja === "COLETA" ? "Solicitar coleta" : ticket.acaoOperacionalLoja === "DEVOLUCAO" ? "Devolução" : "Reembolso"}</p>
               <p><strong>Data da reclamação:</strong> {formatDateBR(ticket.dataReclamacao)}</p>
               <p><strong>Prazo de conclusão:</strong> {formatDateBR(ticket.prazoConclusao)}</p>
               <p><strong>SLA:</strong> <StatusBadge value={ticket.slaStatus} /></p>
@@ -92,6 +95,9 @@ export default async function TicketDetail({ params }: { params: Promise<{ id: s
             <h2>Comentário interno</h2>
             <p style={{ whiteSpace: "pre-wrap" }}>{ticket.comentarioInterno || "Sem comentário interno."}</p>
           </article>
+
+
+          {operacionais.length ? <article className="card"><h2>Solicitação operacional da loja</h2>{operacionais.map((op)=><div key={op.id} style={{border:"1px solid #ddd",padding:12,marginBottom:12,borderRadius:8}}><p><strong>Tipo:</strong> {op.tipoAcao}</p><p><strong>Status:</strong> {op.status}</p><p><strong>Empresa:</strong> {op.empresa}</p><p><strong>Prazo:</strong> {formatDateBR(op.prazoOperacional)}</p><p><strong>Comentário atendente:</strong> {op.comentarioAtendente ?? "-"}</p><p><strong>Comentário loja:</strong> {op.comentarioLoja ?? "-"}</p><p><strong>Reembolso:</strong> {formatCurrencyBR(op.valorReembolso as unknown as number)}</p><p><strong>CTE:</strong> {formatCurrencyBR(op.valorCte as unknown as number)}</p><p><strong>Coleta/envio/peças:</strong> {formatCurrencyBR(op.valorColetaEnvioPecas as unknown as number)}</p><p><strong>Código rastreio:</strong> {op.codigoRastreio ?? "-"}</p><p><strong>Criado em:</strong> {formatDateTimeBR(op.createdAt)}</p><p><strong>Atualizado em:</strong> {formatDateTimeBR(op.updatedAt)}</p><p><strong>Concluído em:</strong> {formatDateTimeBR(op.completedAt)}</p><p><strong>Anexos:</strong></p><ul>{op.anexos.map((a)=><li key={a.id}><a href={a.fileUrl ?? "#"} target="_blank">{a.fileName}</a> ({a.tipoAnexo})</li>)}</ul></div>)}</article> : null}
 
           <article className="card">
             <h2>Histórico de auditoria</h2>
