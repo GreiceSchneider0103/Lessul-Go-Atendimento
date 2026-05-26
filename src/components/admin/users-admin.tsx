@@ -8,7 +8,7 @@ type AdminUser = {
   authUserId: string;
   nome: string;
   email: string;
-  perfil: "ATENDENTE" | "SUPERVISOR" | "ADMIN";
+  perfil: "ATENDENTE" | "SUPERVISOR" | "ADMIN" | "LOJA";
   ativo: boolean;
 };
 
@@ -82,6 +82,7 @@ export function UsersAdmin({ initialUsers, initialError }: { initialUsers: unkno
           <option value="ATENDENTE">ATENDENTE</option>
           <option value="SUPERVISOR">SUPERVISOR</option>
           <option value="ADMIN">ADMIN</option>
+          <option value="LOJA">LOJA</option>
         </select>
         <button type="submit" className="btn btn-primary">Cadastrar usuário</button>
       </form>

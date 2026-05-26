@@ -89,7 +89,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
               <div className="brand-icon">⌘</div>
               <span className="brand">GO Atendimento</span>
             </div>
-            <SidebarNav />
+            <SidebarNav perfil={currentUser.perfil} />
             <div className="sidebar-footer">GO Atendimento v1.0</div>
           </aside>
 
