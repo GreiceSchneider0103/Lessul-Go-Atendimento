@@ -4,9 +4,10 @@ import { registerTicketAudit } from "@/lib/audit/ticket-audit";
 import { TicketFiltersInput, TicketInput } from "@/lib/validation/ticket";
 import { getTicketScopeWhere, hasPermission } from "@/lib/rbac/permissions";
 import { assertSlaConsistency, calculateSla } from "@/lib/utils/sla";
-import { ForbiddenError } from "@/lib/errors";
+import { AppError, ForbiddenError } from "@/lib/errors";
 import { appendTicketBackupRow, getGoogleSheetsBackupConfigError, isGoogleSheetsBackupEnabled, updateTicketBackupRow } from "@/lib/integrations/google-sheets-backup";
 import { logError } from "@/lib/logger";
+import { createSupabaseRouteClient } from "@/lib/supabase/server";
 
 const sensitiveFields = ["valorReembolso", "valorColeta", "prazoConclusao", "resolucao"] as const;
 
@@ -137,7 +138,7 @@ async function syncTicketUpdateBackup(ticketId: string) {
 
 export async function listTickets(
   query: TicketFiltersInput,
-  user: { id: string; perfil: "ATENDENTE" | "SUPERVISOR" | "ADMIN" }
+  user: { id: string; perfil: "ATENDENTE" | "SUPERVISOR" | "ADMIN" | "LOJA"; empresaVinculada?: "LESSUL"|"MS_DECOR"|"VIVA_VIDA"|"MOVELBENTO"|"MODIFIKA"|null }
 ) {
   const where: Prisma.TicketWhereInput = {
     ativo: true,
@@ -205,6 +206,11 @@ export async function createTicket(input: TicketInput, userId: string) {
       prazoConclusao,
       valorReembolso: new Prisma.Decimal(input.valorReembolso),
       valorColeta: new Prisma.Decimal(input.valorColeta),
+      valorAssistencia: new Prisma.Decimal((input as any).valorAssistencia ?? 0),
+      valorColetaEnvioPecas: new Prisma.Decimal((input as any).valorColetaEnvioPecas ?? input.valorColeta),
+      codigoRastreio: (input as any).codigoRastreio || null,
+      comentarioLoja: (input as any).comentarioLoja || null,
+      statusOperacionalLoja: (input as any).statusOperacionalLoja ?? "EM_ABERTO",
       custosTotais: new Prisma.Decimal(input.valorReembolso + input.valorColeta),
       criadoPorId: userId,
       atualizadoPorId: userId,
@@ -238,6 +244,7 @@ export async function getTicketById(id: string, user: Usuario) {
 export async function updateTicket(id: string, payload: Partial<TicketInput>, user: Usuario) {
   const before = await prisma.ticket.findFirstOrThrow({ where: { id, ativo: true, ...getTicketScopeWhere(user) } });
   assertCanEditFields(user, payload);
+  if (user.perfil === "LOJA" && (payload as any).statusOperacionalLoja === "CONCLUIDA") throw new ForbiddenError("LOJA não pode concluir operação");
 
   const resolvedPrazoConclusao = payload.prazoConclusao !== undefined
     ? (payload.prazoConclusao ? new Date(payload.prazoConclusao) : null)
@@ -265,10 +272,17 @@ export async function updateTicket(id: string, payload: Partial<TicketInput>, us
       resolucao: payload.resolucao !== undefined ? (payload.resolucao ?? null) : undefined,
       prazoConclusao: resolvedPrazoConclusao,
       slaStatus: calculateSla(resolvedStatusTicket, resolvedPrazoConclusao),
-      ...(payload.valorReembolso !== undefined || payload.valorColeta !== undefined
+      valorAssistencia: (payload as any).valorAssistencia !== undefined ? new Prisma.Decimal((payload as any).valorAssistencia) : undefined,
+      valorColetaEnvioPecas: (payload as any).valorColetaEnvioPecas !== undefined ? new Prisma.Decimal((payload as any).valorColetaEnvioPecas) : undefined,
+      codigoRastreio: (payload as any).codigoRastreio !== undefined ? ((payload as any).codigoRastreio || null) : undefined,
+      comentarioLoja: (payload as any).comentarioLoja !== undefined ? ((payload as any).comentarioLoja || null) : undefined,
+      statusOperacionalLoja: (payload as any).statusOperacionalLoja !== undefined ? (payload as any).statusOperacionalLoja : undefined,
+      ...(payload.valorReembolso !== undefined || payload.valorColeta !== undefined || (payload as any).valorAssistencia !== undefined || (payload as any).valorColetaEnvioPecas !== undefined
         ? {
             custosTotais: new Prisma.Decimal(
-              Number(payload.valorReembolso ?? before.valorReembolso) + Number(payload.valorColeta ?? before.valorColeta)
+              Number(payload.valorReembolso ?? before.valorReembolso)
+                + Number((payload as any).valorAssistencia ?? before.valorAssistencia ?? 0)
+                + Number((payload as any).valorColetaEnvioPecas ?? before.valorColetaEnvioPecas ?? before.valorColeta)
             )
           }
         : {})
@@ -302,4 +316,90 @@ export async function softDeleteTicket(id: string, user: Usuario) {
 
   await syncTicketUpdateBackup(id);
   return { ok: true };
+}
+
+
+export async function uploadTicketAttachment(id: string, user: Usuario, file: File) {
+  const ticket = await prisma.ticket.findFirst({ where: { id, ativo: true, ...getTicketScopeWhere(user) } });
+  if (!ticket) throw new ForbiddenError("Ticket não encontrado ou sem acesso");
+  if (user.perfil === "LOJA" && ticket.statusTicket === "CONCLUIDO") throw new ForbiddenError("LOJA não pode anexar em ticket concluído");
+
+  const allowed = ["image/png", "image/jpeg", "image/webp", "application/pdf"];
+  if (!allowed.includes(file.type)) throw new AppError("Tipo de arquivo não permitido", 400, "INVALID_FILE_TYPE");
+  if (file.size > 10 * 1024 * 1024) throw new AppError("Arquivo acima de 10MB", 400, "FILE_TOO_LARGE");
+
+  const supabase = await createSupabaseRouteClient();
+
+  if (ticket.anexoPath) {
+    await supabase.storage.from("ticket-anexos").remove([ticket.anexoPath]);
+  }
+
+  const path = `tickets/${ticket.empresa}/${id}/${Date.now()}-${file.name.replace(/\s+/g, "_")}`;
+  const { error } = await supabase.storage.from("ticket-anexos").upload(path, file, { upsert: false, contentType: file.type });
+  if (error) {
+    logError("Falha upload ticket anexo", { error: error.message, path, ticketId: id });
+    throw new AppError("Falha no upload do anexo", 500, "UPLOAD_FAILED");
+  }
+
+  const { data } = supabase.storage.from("ticket-anexos").getPublicUrl(path);
+
+  const updated = await prisma.ticket.update({
+    where: { id },
+    data: {
+      anexoUrl: data.publicUrl,
+      anexoPath: path,
+      anexoNome: file.name,
+      anexoMimeType: file.type,
+      anexoSizeBytes: BigInt(file.size),
+      anexoUploadedAt: new Date(),
+      anexoUploadedBy: user.id,
+      atualizadoPorId: user.id
+    }
+  });
+
+  await registerTicketAudit({
+    ticketId: id,
+    user,
+    action: "UPDATE",
+    before: { anexoPath: ticket.anexoPath } as unknown as Prisma.JsonObject,
+    after: { anexoPath: path } as unknown as Prisma.JsonObject
+  });
+
+  return updated;
+}
+
+export async function removeTicketAttachment(id: string, user: Usuario) {
+  if (user.perfil === "LOJA") throw new ForbiddenError("LOJA não pode remover anexo");
+
+  const ticket = await prisma.ticket.findFirst({ where: { id, ativo: true, ...getTicketScopeWhere(user) } });
+  if (!ticket) throw new ForbiddenError("Ticket não encontrado ou sem acesso");
+
+  const supabase = await createSupabaseRouteClient();
+  if (ticket.anexoPath) {
+    await supabase.storage.from("ticket-anexos").remove([ticket.anexoPath]);
+  }
+
+  const updated = await prisma.ticket.update({
+    where: { id },
+    data: {
+      anexoUrl: null,
+      anexoPath: null,
+      anexoNome: null,
+      anexoMimeType: null,
+      anexoSizeBytes: null,
+      anexoUploadedAt: null,
+      anexoUploadedBy: null,
+      atualizadoPorId: user.id
+    }
+  });
+
+  await registerTicketAudit({
+    ticketId: id,
+    user,
+    action: "UPDATE",
+    before: { anexoPath: ticket.anexoPath } as unknown as Prisma.JsonObject,
+    after: { anexoPath: null } as unknown as Prisma.JsonObject
+  });
+
+  return updated;
 }
