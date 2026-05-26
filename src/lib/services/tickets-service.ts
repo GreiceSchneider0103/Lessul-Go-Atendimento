@@ -137,7 +137,7 @@ async function syncTicketUpdateBackup(ticketId: string) {
 
 export async function listTickets(
   query: TicketFiltersInput,
-  user: { id: string; perfil: "ATENDENTE" | "SUPERVISOR" | "ADMIN" }
+  user: { id: string; perfil: "ATENDENTE" | "SUPERVISOR" | "ADMIN" | "LOJA"; empresaVinculada?: "LESSUL"|"MS_DECOR"|"VIVA_VIDA"|"MOVELBENTO"|"MODIFIKA"|null }
 ) {
   const where: Prisma.TicketWhereInput = {
     ativo: true,

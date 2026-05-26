@@ -27,7 +27,8 @@ export function LoginForm() {
       return;
     }
 
-    router.push("/dashboard");
+    await supabase.auth.getSession();
+    router.replace("/dashboard");
     router.refresh();
   }
 

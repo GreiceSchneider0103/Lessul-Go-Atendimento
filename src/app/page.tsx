@@ -1,16 +1,14 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-function hasSupabaseEnv() {
-  return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
-}
+import { hasSupabaseClientEnv } from "@/lib/supabase/config";
 
 function hasSupabaseSessionCookie(cookieNames: string[]) {
   return cookieNames.some((name) => name.includes("-auth-token"));
 }
 
 export default async function Home() {
-  if (!hasSupabaseEnv()) {
+  if (!hasSupabaseClientEnv()) {
     redirect("/login");
   }
 
