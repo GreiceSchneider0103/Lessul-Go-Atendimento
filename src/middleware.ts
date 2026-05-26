@@ -1,12 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@/lib/supabase/ssr";
+import { getSupabasePublicKey, getSupabaseUrl, hasSupabaseClientEnv } from "@/lib/supabase/config";
 
 const publicRoutes = ["/", "/login", "/auth/callback", "/api/health", "/indisponivel"];
 const AUTH_TIMEOUT_MS = Number(process.env.AUTH_TIMEOUT_MS ?? 8000);
-
-function hasSupabaseEnv() {
-  return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
-}
 
 function isPublicRoute(pathname: string) {
   return publicRoutes.some((route) => {
@@ -31,16 +28,12 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   });
 }
 
-function authUnavailableResponse(request: NextRequest) {
-  if (request.nextUrl.pathname.startsWith("/api")) {
-    return NextResponse.json({ message: "Autenticação temporariamente indisponível" }, { status: 503 });
-  }
-
-  return NextResponse.redirect(new URL("/indisponivel", request.url));
-}
-
 export async function middleware(request: NextRequest) {
-  if (isPublicRoute(request.nextUrl.pathname)) {
+  const pathname = request.nextUrl.pathname;
+  const hasEnv = hasSupabaseClientEnv();
+  const hasAuthCookie = request.cookies.getAll().some((c) => c.name.includes("auth-token"));
+
+  if (isPublicRoute(pathname)) {
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set("x-route-access", "public");
 
@@ -51,8 +44,9 @@ export async function middleware(request: NextRequest) {
     });
   }
 
-  if (!hasSupabaseEnv()) {
-    if (request.nextUrl.pathname.startsWith("/api")) {
+  if (!hasEnv) {
+    console.warn("[middleware-auth]", { pathname, hasSupabaseEnv: hasEnv, hasAuthCookie, hasSession: false, userId: null, reason: "session_lookup_failed" });
+    if (pathname.startsWith("/api")) {
       return NextResponse.json({ message: "Autenticação não configurada no ambiente" }, { status: 503 });
     }
 
@@ -68,7 +62,10 @@ export async function middleware(request: NextRequest) {
     }
   });
 
-  const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+  const supabaseUrl = getSupabaseUrl();
+  const supabasePublicKey = getSupabasePublicKey();
+
+  const supabase = createServerClient(supabaseUrl, supabasePublicKey, {
     cookies: {
       getAll() {
         return request.cookies.getAll();
@@ -87,7 +84,9 @@ export async function middleware(request: NextRequest) {
       data: { session }
     } = await withTimeout(supabase.auth.getSession(), AUTH_TIMEOUT_MS);
 
-    if (!session && request.nextUrl.pathname.startsWith("/api")) {
+    console.log("[middleware-auth]", { pathname, hasSupabaseEnv: hasEnv, hasAuthCookie, hasSession: Boolean(session), userId: session?.user?.id ? session.user.id.slice(0,8) : null });
+
+    if (!session && pathname.startsWith("/api")) {
       return NextResponse.json({ message: "Não autenticado" }, { status: 401 });
     }
 
@@ -97,7 +96,12 @@ export async function middleware(request: NextRequest) {
 
     return response;
   } catch {
-    return authUnavailableResponse(request);
+    console.warn("[middleware-auth]", { pathname, hasSupabaseEnv: hasEnv, hasAuthCookie, hasSession: false, userId: null, reason: "session_lookup_failed" });
+    if (pathname.startsWith("/api")) {
+      return NextResponse.json({ message: "Autenticação temporariamente indisponível" }, { status: 503 });
+    }
+
+    return NextResponse.redirect(new URL("/login", request.url));
   }
 }
 

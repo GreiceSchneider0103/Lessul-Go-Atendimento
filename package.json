@@ -16,7 +16,8 @@
     "prisma:migrate:dev": "prisma migrate dev",
     "prisma:seed": "tsx prisma/seed.ts",
     "setup": "npm run prisma:generate && npm run prisma:migrate:dev && npm run prisma:seed",
-    "test": "vitest run"
+    "test": "vitest run",
+    "start:render": "prisma migrate deploy && HOSTNAME=0.0.0.0 node .next/standalone/server.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
