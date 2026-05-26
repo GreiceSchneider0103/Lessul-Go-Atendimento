@@ -49,7 +49,7 @@ export async function createFromTicket(ticketId: string, tipoAcao: TipoAcaoOpera
   return created;
 }
 
-export async function updateOperationalRequest(id: string, actor: AppUser, payload: Partial<{ status: StatusOperacional; comentarioLoja: string; comentarioAtendente: string; codigoRastreio: string; valorReembolso: number; valorCte: number; valorColetaEnvioPecas: number; prazoOperacional: string; empresa: string; }>) {
+export async function updateOperationalRequest(id: string, actor: AppUser, payload: Partial<{ status: StatusOperacional; comentarioLoja: string; comentarioAtendente: string; codigoRastreio: string; valorReembolso: number; valorCte: number; valorColetaEnvioPecas: number; valorAssistencia: number; prazoOperacional: string; empresa: string; }>) {
   const current = await prisma.operationalRequest.findUnique({ where: { id } });
   if (!current) throw new AppError("Solicitação não encontrada", 404, "NOT_FOUND");
   if (actor.perfil === "LOJA" && current.empresa !== actor.empresaVinculada) throw new ForbiddenError();
@@ -77,6 +77,20 @@ export async function updateOperationalRequest(id: string, actor: AppUser, paylo
       completedAt: payload.status === "CONCLUIDA" ? new Date() : undefined
     }
   });
+  
+  await prisma.ticket.update({
+    where: { id: current.ticketId },
+    data: {
+      statusOperacionalLoja: (payload.status as any) ?? undefined,
+      codigoRastreio: payload.codigoRastreio !== undefined ? (payload.codigoRastreio || null) : undefined,
+      valorReembolso: payload.valorReembolso !== undefined ? new Prisma.Decimal(payload.valorReembolso) : undefined,
+      valorAssistencia: payload.valorAssistencia !== undefined ? new Prisma.Decimal(payload.valorAssistencia) : undefined,
+      valorColetaEnvioPecas: payload.valorColetaEnvioPecas !== undefined ? new Prisma.Decimal(payload.valorColetaEnvioPecas) : undefined,
+      comentarioLoja: payload.comentarioLoja !== undefined ? (payload.comentarioLoja || null) : undefined,
+      atualizadoPorId: actor.id
+    }
+  });
+
   await registerTicketAudit({ ticketId: current.ticketId, user: actor as any, action: "UPDATE", before: { operational: current } as any, after: { operational: updated } as any });
   return updated;
 }

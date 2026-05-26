@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { AcaoOperacionalLoja } from "@prisma/client";
+import { AcaoOperacionalLoja, StatusOperacionalLoja } from "@prisma/client";
 import { CANAIS_MARKETPLACE, EMPRESAS, MOTIVOS, normalizeCanalMarketplace, RESOLUCOES, STATUS_RECLAMACAO, STATUS_TICKET } from "@/config/domains";
 
 const isoDateOrDateString = z.string().refine((value) => !Number.isNaN(Date.parse(value)), {
@@ -36,7 +36,12 @@ export const ticketSchema = z.object({
   statusTicket: z.enum(STATUS_TICKET),
   prazoConclusao: isoDateOrDateString.optional().nullable(),
   responsavelId: z.string().uuid().optional().nullable(),
-  acaoOperacionalLoja: z.nativeEnum(AcaoOperacionalLoja).default("NENHUMA")
+  acaoOperacionalLoja: z.nativeEnum(AcaoOperacionalLoja).default("NENHUMA"),
+  statusOperacionalLoja: z.nativeEnum(StatusOperacionalLoja).default("EM_ABERTO"),
+  codigoRastreio: z.string().optional().or(z.literal("")),
+  valorAssistencia: z.coerce.number().min(0).default(0),
+  valorColetaEnvioPecas: z.coerce.number().min(0).default(0),
+  comentarioLoja: z.string().optional().or(z.literal("")),
 });
 
 export const ticketFormSchema = ticketSchema.extend({
@@ -50,7 +55,12 @@ export const ticketFormSchema = ticketSchema.extend({
   comentarioInterno: z.string().optional(),
   resolucao: z.enum(RESOLUCOES).or(z.literal("")).optional().nullable(),
   responsavelId: z.string().uuid("Responsável inválido").or(z.literal("")).optional().nullable(),
-  acaoOperacionalLoja: z.nativeEnum(AcaoOperacionalLoja).default("NENHUMA")
+  acaoOperacionalLoja: z.nativeEnum(AcaoOperacionalLoja).default("NENHUMA"),
+  statusOperacionalLoja: z.nativeEnum(StatusOperacionalLoja).default("EM_ABERTO"),
+  codigoRastreio: z.string().optional().or(z.literal("")),
+  valorAssistencia: z.coerce.number().min(0).default(0),
+  valorColetaEnvioPecas: z.coerce.number().min(0).default(0),
+  comentarioLoja: z.string().optional().or(z.literal("")),
 });
 
 export const ticketFiltersSchema = z.object({

@@ -68,6 +68,11 @@ model Ticket {
   backupLastSyncedAt            DateTime?
   backupSyncError               String?
   acaoOperacionalLoja           AcaoOperacionalLoja            @default(NENHUMA)
+  statusOperacionalLoja         StatusOperacionalLoja          @default(EM_ABERTO)
+  codigoRastreio                String?
+  valorAssistencia              Decimal                        @default(0) @db.Decimal(12, 2)
+  valorColetaEnvioPecas         Decimal                        @default(0) @db.Decimal(12, 2)
+  comentarioLoja                String?
   anexoUrl                      String?
   anexoPath                     String?
   anexoNome                     String?
@@ -174,6 +179,22 @@ enum AcaoOperacionalLoja {
   COLETA
   DEVOLUCAO
   REEMBOLSO
+}
+
+enum StatusOperacionalLoja {
+  EM_ABERTO
+  ASSISTENCIA_ENVIADA
+  ASSISTENCIA_A_CAMINHO
+  ASSISTENCIA_ENTREGUE
+  COLETA_SOLICITADA
+  COLETA_FEITA
+  DEVOLUCAO_SOLICITADA
+  DEVOLUCAO_A_CAMINHO
+  DEVOLUCAO_REALIZADA
+  REEMBOLSO_PENDENTE
+  REEMBOLSO_REALIZADO
+  AGUARDANDO_ATENDENTE
+  CONCLUIDA
 }
 
 enum TipoAcaoOperacional {

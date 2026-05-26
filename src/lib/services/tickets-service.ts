@@ -205,9 +205,14 @@ export async function createTicket(input: TicketInput, userId: string) {
       mesReclamacao: new Date(ticketInput.dataReclamacao).getUTCMonth() + 1,
       anoReclamacao: new Date(ticketInput.dataReclamacao).getUTCFullYear(),
       prazoConclusao,
-      valorReembolso: new Prisma.Decimal(ticketInput.valorReembolso),
-      valorColeta: new Prisma.Decimal(ticketInput.valorColeta),
-      custosTotais: new Prisma.Decimal(ticketInput.valorReembolso + ticketInput.valorColeta),
+      valorReembolso: new Prisma.Decimal(input.valorReembolso),
+      valorColeta: new Prisma.Decimal(input.valorColeta),
+      valorAssistencia: new Prisma.Decimal((input as any).valorAssistencia ?? 0),
+      valorColetaEnvioPecas: new Prisma.Decimal((input as any).valorColetaEnvioPecas ?? input.valorColeta),
+      codigoRastreio: (input as any).codigoRastreio || null,
+      comentarioLoja: (input as any).comentarioLoja || null,
+      statusOperacionalLoja: (input as any).statusOperacionalLoja ?? "EM_ABERTO",
+      custosTotais: new Prisma.Decimal(input.valorReembolso + input.valorColeta),
       criadoPorId: userId,
       atualizadoPorId: userId,
       linkPedido: normalizeOptionalText(ticketInput.linkPedido),
@@ -240,7 +245,8 @@ export async function getTicketById(id: string, user: Usuario) {
 export async function updateTicket(id: string, payload: Partial<TicketInput>, user: Usuario) {
   const { acaoOperacionalLoja: _acaoOperacionalLoja, ...ticketPayload } = payload;
   const before = await prisma.ticket.findFirstOrThrow({ where: { id, ativo: true, ...getTicketScopeWhere(user) } });
-  assertCanEditFields(user, ticketPayload);
+  assertCanEditFields(user, payload);
+  if (user.perfil === "LOJA" && (payload as any).statusOperacionalLoja === "CONCLUIDA") throw new ForbiddenError("LOJA não pode concluir operação");
 
   const resolvedPrazoConclusao = ticketPayload.prazoConclusao !== undefined
     ? (ticketPayload.prazoConclusao ? new Date(ticketPayload.prazoConclusao) : null)
@@ -268,10 +274,17 @@ export async function updateTicket(id: string, payload: Partial<TicketInput>, us
       resolucao: ticketPayload.resolucao !== undefined ? (ticketPayload.resolucao ?? null) : undefined,
       prazoConclusao: resolvedPrazoConclusao,
       slaStatus: calculateSla(resolvedStatusTicket, resolvedPrazoConclusao),
-      ...(ticketPayload.valorReembolso !== undefined || ticketPayload.valorColeta !== undefined
+      valorAssistencia: (payload as any).valorAssistencia !== undefined ? new Prisma.Decimal((payload as any).valorAssistencia) : undefined,
+      valorColetaEnvioPecas: (payload as any).valorColetaEnvioPecas !== undefined ? new Prisma.Decimal((payload as any).valorColetaEnvioPecas) : undefined,
+      codigoRastreio: (payload as any).codigoRastreio !== undefined ? ((payload as any).codigoRastreio || null) : undefined,
+      comentarioLoja: (payload as any).comentarioLoja !== undefined ? ((payload as any).comentarioLoja || null) : undefined,
+      statusOperacionalLoja: (payload as any).statusOperacionalLoja !== undefined ? (payload as any).statusOperacionalLoja : undefined,
+      ...(payload.valorReembolso !== undefined || payload.valorColeta !== undefined || (payload as any).valorAssistencia !== undefined || (payload as any).valorColetaEnvioPecas !== undefined
         ? {
             custosTotais: new Prisma.Decimal(
-              Number(ticketPayload.valorReembolso ?? before.valorReembolso) + Number(ticketPayload.valorColeta ?? before.valorColeta)
+              Number(payload.valorReembolso ?? before.valorReembolso)
+                + Number((payload as any).valorAssistencia ?? before.valorAssistencia ?? 0)
+                + Number((payload as any).valorColetaEnvioPecas ?? before.valorColetaEnvioPecas ?? before.valorColeta)
             )
           }
         : {})

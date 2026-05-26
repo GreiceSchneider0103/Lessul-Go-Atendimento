@@ -54,6 +54,11 @@ export function TicketForm({ ticketId, initialValues, canEditSensitive = true, a
       resolucao: initialValues?.resolucao ?? null,
       valorReembolso: Number(initialValues?.valorReembolso ?? 0),
       valorColeta: Number(initialValues?.valorColeta ?? 0),
+      valorAssistencia: Number((initialValues as any)?.valorAssistencia ?? 0),
+      valorColetaEnvioPecas: Number((initialValues as any)?.valorColetaEnvioPecas ?? 0),
+      codigoRastreio: (initialValues as any)?.codigoRastreio ?? "",
+      statusOperacionalLoja: (initialValues as any)?.statusOperacionalLoja ?? "EM_ABERTO",
+      comentarioLoja: (initialValues as any)?.comentarioLoja ?? "",
       statusTicket: initialValues?.statusTicket ?? "ABERTO",
       prazoConclusao: toDateInput(initialValues?.prazoConclusao),
       responsavelId: initialValues?.responsavelId ?? null,
@@ -227,6 +232,36 @@ export function TicketForm({ ticketId, initialValues, canEditSensitive = true, a
             </select>
           </label>
           <label>
+            Valor de assistência
+            <input {...register("valorAssistencia" as any, { valueAsNumber: true })} type="number" step="0.01" placeholder="R$ 0,00" />
+          </label>
+          <label>
+            Valor de coleta, envio ou peças (operacional)
+            <input {...register("valorColetaEnvioPecas" as any, { valueAsNumber: true })} type="number" step="0.01" placeholder="R$ 0,00" />
+          </label>
+          <label>
+            Código de rastreio
+            <input {...register("codigoRastreio" as any)} placeholder="Código de rastreio" />
+          </label>
+          <label>
+            Status operacional da loja
+            <select {...register("statusOperacionalLoja" as any)}>
+              <option value="EM_ABERTO">Em aberto</option>
+              <option value="ASSISTENCIA_ENVIADA">Assistência enviada</option>
+              <option value="ASSISTENCIA_A_CAMINHO">Assistência a caminho</option>
+              <option value="ASSISTENCIA_ENTREGUE">Assistência entregue</option>
+              <option value="COLETA_SOLICITADA">Coleta solicitada</option>
+              <option value="COLETA_FEITA">Coleta feita</option>
+              <option value="DEVOLUCAO_SOLICITADA">Devolução solicitada</option>
+              <option value="DEVOLUCAO_A_CAMINHO">Devolução a caminho</option>
+              <option value="DEVOLUCAO_REALIZADA">Devolução realizada</option>
+              <option value="REEMBOLSO_PENDENTE">Reembolso pendente</option>
+              <option value="REEMBOLSO_REALIZADO">Reembolso realizado</option>
+              <option value="AGUARDANDO_ATENDENTE">Aguardando atendente</option>
+              <option value="CONCLUIDA">Concluída</option>
+            </select>
+          </label>
+          <label>
             Valor de coleta, envio ou peças
             <input {...register("valorColeta", { valueAsNumber: true })} type="number" step="0.01" placeholder="Valor coleta, envio ou peças" disabled={!canEditSensitive} />
           </label>
@@ -234,6 +269,10 @@ export function TicketForm({ ticketId, initialValues, canEditSensitive = true, a
         <label>
           Detalhes do cliente
           <textarea {...register("detalhesCliente")} placeholder="Detalhes do cliente" rows={4} />
+        </label>
+        <label>
+          Comentário da loja
+          <textarea {...register("comentarioLoja" as any)} placeholder="Descreva a atualização, envio, coleta, assistência ou observação da loja" rows={4} />
         </label>
         <label>
           Comentário interno
