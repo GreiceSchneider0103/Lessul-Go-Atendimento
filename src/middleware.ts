@@ -1,8 +1,15 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@/lib/supabase/ssr";
+import { prisma } from "@/lib/db/prisma";
 
 const publicRoutes = ["/", "/login", "/auth/callback", "/api/health", "/indisponivel"];
 const AUTH_TIMEOUT_MS = Number(process.env.AUTH_TIMEOUT_MS ?? 8000);
+
+const lojaAllowedPrefixes = ["/loja/solicitacoes", "/api/operational-requests", "/auth/callback"];
+function isLojaAllowed(pathname: string) {
+  return lojaAllowedPrefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+}
+
 
 function hasSupabaseEnv() {
   return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
@@ -92,6 +99,14 @@ export async function middleware(request: NextRequest) {
 
     if (!session) {
       return NextResponse.redirect(new URL("/login", request.url));
+    }
+
+    const appUser = await prisma.usuario.findUnique({ where: { authUserId: session.user.id }, select: { perfil: true } });
+    if (appUser?.perfil === "LOJA" && !isLojaAllowed(request.nextUrl.pathname)) {
+      if (request.nextUrl.pathname.startsWith("/api")) {
+        return NextResponse.json({ message: "Acesso negado para perfil loja" }, { status: 403 });
+      }
+      return NextResponse.redirect(new URL("/loja/solicitacoes", request.url));
     }
 
     return response;
