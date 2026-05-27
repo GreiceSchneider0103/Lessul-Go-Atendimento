@@ -1,24 +1,54 @@
-import { getCurrentApiUser } from "@/lib/auth/session";
-import { withApiHandler } from "@/lib/http";
-import { removeTicketAttachment, uploadTicketAttachment } from "@/lib/services/tickets-service";
+import { NextRequest, NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/auth/session";
+import { uploadTicketAttachment, removeTicketAttachment } from "@/lib/services/tickets-service";
+import { AppError } from "@/lib/errors";
 
-export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  return withApiHandler(async () => {
-    const user = await getCurrentApiUser();
+type Params = Promise<{ id: string }>;
+
+export async function POST(req: NextRequest, { params }: { params: Params }) {
+  try {
     const { id } = await params;
-    const form = await request.formData();
-    const file = form.get("file");
-    if (!(file instanceof File)) {
-      throw new Error("Arquivo é obrigatório");
+    const user = await getCurrentUser();
+
+    const formData = await req.formData();
+    const file = formData.get("file");
+
+    if (!file || !(file instanceof File)) {
+      return NextResponse.json({ message: "Arquivo obrigatório" }, { status: 400 });
     }
-    return { data: await uploadTicketAttachment(id, user, file) };
-  });
+
+    const updatedTicket = await uploadTicketAttachment(id, user, file);
+
+    // Retorna o ticket com BigInt convertido
+    return NextResponse.json({ 
+      data: { 
+        ...updatedTicket, 
+        anexoSizeBytes: updatedTicket.anexoSizeBytes ? Number(updatedTicket.anexoSizeBytes) : null 
+      } 
+    });
+  } catch (error: any) {
+    const status = error instanceof AppError ? error.status : 500;
+    const message = error.message || "Falha no upload do anexo";
+    return NextResponse.json({ message, code: error.code }, { status });
+  }
 }
 
-export async function DELETE(_: Request, { params }: { params: Promise<{ id: string }> }) {
-  return withApiHandler(async () => {
-    const user = await getCurrentApiUser();
+export async function DELETE(_req: NextRequest, { params }: { params: Params }) {
+  try {
     const { id } = await params;
-    return { data: await removeTicketAttachment(id, user) };
-  });
+    const user = await getCurrentUser();
+
+    const updatedTicket = await removeTicketAttachment(id, user);
+
+    return NextResponse.json({ 
+      data: { 
+        ...updatedTicket, 
+        anexoSizeBytes: updatedTicket.anexoSizeBytes ? Number(updatedTicket.anexoSizeBytes) : null 
+      } 
+    });
+  } catch (error: any) {
+    const status = error instanceof AppError ? error.status : 500;
+    const message = error.message || "Falha ao remover anexo";
+    return NextResponse.json({ message, code: error.code }, { status });
+  }
 }

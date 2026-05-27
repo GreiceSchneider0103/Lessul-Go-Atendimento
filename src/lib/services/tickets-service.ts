@@ -8,6 +8,7 @@ import { AppError, ForbiddenError } from "@/lib/errors";
 import { appendTicketBackupRow, getGoogleSheetsBackupConfigError, isGoogleSheetsBackupEnabled, updateTicketBackupRow } from "@/lib/integrations/google-sheets-backup";
 import { logError } from "@/lib/logger";
 import { createSupabaseRouteClient } from "@/lib/supabase/server";
+import { createSupabaseAdmin } from "@/lib/supabase/service-role";
 
 const sensitiveFields = ["valorColeta", "prazoConclusao", "resolucao"] as const;
 
@@ -356,25 +357,29 @@ export async function uploadTicketAttachment(id: string, user: Usuario, file: Fi
   if (!allowed.includes(file.type)) throw new AppError("Tipo de arquivo não permitido", 400, "INVALID_FILE_TYPE");
   if (file.size > 10 * 1024 * 1024) throw new AppError("Arquivo acima de 10MB", 400, "FILE_TOO_LARGE");
 
-  const supabase = await createSupabaseRouteClient();
+  // Usa service role para Storage
+  const supabase = createSupabaseAdmin();
+  const BUCKET = "ticket-anexos";
 
   if (ticket.anexoPath) {
-    await supabase.storage.from("ticket-anexos").remove([ticket.anexoPath]);
+    await supabase.storage.from(BUCKET).remove([ticket.anexoPath]);
   }
 
   const path = `tickets/${ticket.empresa}/${id}/${Date.now()}-${file.name.replace(/\s+/g, "_")}`;
-  const { error } = await supabase.storage.from("ticket-anexos").upload(path, file, { upsert: false, contentType: file.type });
-  if (error) {
-    logError("Falha upload ticket anexo", { error: error.message, path, ticketId: id });
-    throw new AppError("Falha no upload do anexo", 500, "UPLOAD_FAILED");
+  const { error: uploadError } = await supabase.storage.from(BUCKET).upload(path, file, { upsert: false, contentType: file.type });
+  
+  if (uploadError) {
+    if (uploadError.message.includes("not found")) throw new AppError("Bucket ticket-anexos não encontrado", 500, "STORAGE_ERROR");
+    throw new AppError("Sem permissão para enviar anexo", 403, "STORAGE_PERMISSION");
   }
 
-  const { data } = supabase.storage.from("ticket-anexos").getPublicUrl(path);
+  // Gera Signed URL por ser bucket privado
+  const { data: signedData } = await supabase.storage.from(BUCKET).createSignedUrl(path, 3600); // 1 hora
 
   const updated = await prisma.ticket.update({
     where: { id },
     data: {
-      anexoUrl: data.publicUrl,
+      anexoUrl: signedData?.signedUrl || null,
       anexoPath: path,
       anexoNome: file.name,
       anexoMimeType: file.type,
@@ -402,7 +407,7 @@ export async function removeTicketAttachment(id: string, user: Usuario) {
   const ticket = await prisma.ticket.findFirst({ where: { id, ativo: true, ...getTicketScopeWhere(user) } });
   if (!ticket) throw new ForbiddenError("Ticket não encontrado ou sem acesso");
 
-  const supabase = await createSupabaseRouteClient();
+  const supabase = createSupabaseAdmin();
   if (ticket.anexoPath) {
     await supabase.storage.from("ticket-anexos").remove([ticket.anexoPath]);
   }
