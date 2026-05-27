@@ -222,13 +222,27 @@ export default async function TicketDetail({ params }: { params: Promise<{ id: s
 
       <div className="ticket-detail-grid">
         <article className="card">
-          <h2>Dados do cliente</h2>
+          <div style={{ display: 'grid', gap: '24px' }}>
+            <section>
+              <h2 style={{ marginTop: 0 }}>Dados do cliente</h2>
+              <div className="ticket-info-list">
+                <InfoRow label="Nome" value={ticket.nomeCliente} />
+                <InfoRow label="CPF" value={ticket.cpf} />
+                <InfoRow label="UF" value={ticket.uf} />
+                <InfoRow label="Detalhes" value={ticket.detalhesCliente || "-"} />
+              </div>
+            </section>
 
-          <div className="ticket-info-list">
-            <InfoRow label="Nome" value={ticket.nomeCliente} />
-            <InfoRow label="CPF" value={ticket.cpf} />
-            <InfoRow label="UF" value={ticket.uf} />
-            <InfoRow label="Detalhes" value={ticket.detalhesCliente || "-"} />
+            <section style={{ paddingTop: '16px', borderTop: '1px solid #f1f5f9' }}>
+              <h2>Valores e rastreabilidade</h2>
+              <div className="ticket-info-list">
+                <InfoRow label="Reembolso" value={toCurrency(ticket.valorReembolso)} />
+                <InfoRow label="Valor de assistência" value={toCurrency(ticketComExtras.valorAssistencia)} />
+                <InfoRow label="Coleta, envio ou peças" value={toCurrency(ticketComExtras.valorColetaEnvioPecas ?? ticket.valorColeta)} />
+                <InfoRow label="Código de rastreio" value={ticketComExtras.codigoRastreio || "Sem rastreio"} />
+                <InfoRow label="Custos totais" value={<strong>{toCurrency(ticket.custosTotais)}</strong>} />
+              </div>
+            </section>
           </div>
         </article>
 
@@ -275,46 +289,35 @@ export default async function TicketDetail({ params }: { params: Promise<{ id: s
         </article>
 
         <article className="card">
-          <h2>Valores e rastreabilidade</h2>
-
-          <div className="ticket-info-list">
-            <InfoRow label="Reembolso" value={toCurrency(ticket.valorReembolso)} />
-            <InfoRow label="Valor de assistência" value={toCurrency(ticketComExtras.valorAssistencia)} />
-            <InfoRow label="Coleta, envio ou peças" value={toCurrency(ticketComExtras.valorColetaEnvioPecas ?? ticket.valorColeta)} />
-            <InfoRow label="Código de rastreio" value={ticketComExtras.codigoRastreio || "Sem rastreio"} />
-            <InfoRow label="Status operacional" value={formatEnumLabel(ticketComExtras.statusOperacionalLoja ?? "EM_ABERTO")} />
-            <InfoRow label="Comentário da loja" value={ticketComExtras.comentarioLoja || "-"} />
-            <InfoRow label="Custos totais" value={<strong>{toCurrency(ticket.custosTotais)}</strong>} />
-            <InfoRow label="Responsável" value={ticket.responsavel?.nome ?? "Não atribuído"} />
-            <InfoRow label="Criado em" value={toDateTime(ticket.criadoEm)} />
-            <InfoRow label="Atualizado em" value={toDateTime(ticket.atualizadoEm)} />
-            <InfoRow label="Atualizado por" value={ticket.atualizadoPorId ?? "-"} />          </div>
-        </article>
-
-        <article className="card">
           <h2>Anexo do ticket</h2>
 
           <div className="ticket-info-list">
             <AttachmentPreview anexo={anexo} />
           </div>
         </article>
+      </div>
 
-        <article className="card">
-          <h2>Comentário interno</h2>
-
-          <div
-            style={{
-              border: "1px solid #e2e8f0",
-              borderRadius: 12,
-              padding: 12,
-              background: "#f8fafc",
-              whiteSpace: "pre-wrap"
-            }}
-          >
+      <article className="card">
+        <h2>Comentários</h2>
+        
+        <div style={{ marginBottom: '20px' }}>
+          <h3 style={{ fontSize: '14px', color: '#64748b', marginBottom: '8px' }}>Interno</h3>
+          <div style={{ border: "1px solid #e2e8f0", borderRadius: 12, padding: 12, background: "#f8fafc", whiteSpace: "pre-wrap" }}>
             {ticket.comentarioInterno || "Sem comentário interno."}
           </div>
-        </article>
-      </div>
+        </div>
+
+        <h3 style={{ fontSize: '14px', color: '#64748b', marginBottom: '8px' }}>Operacionais</h3>
+        {comentariosOperacionais.length ? (
+          <div style={{ display: "grid", gap: 10 }}>
+            {comentariosOperacionais.map((comentario) => (
+              <ComentarioBubble key={comentario.id} comentario={comentario} />
+            ))}
+          </div>
+        ) : (
+          <p className="muted">Nenhum comentário operacional registrado.</p>
+        )}
+      </article>
 
       {operacionais.length ? (
         <article className="card">
@@ -368,20 +371,6 @@ export default async function TicketDetail({ params }: { params: Promise<{ id: s
           </div>
         </article>
       ) : null}
-
-      <article className="card">
-        <h2>Comentários operacionais</h2>
-
-        {comentariosOperacionais.length ? (
-          <div style={{ display: "grid", gap: 10 }}>
-            {comentariosOperacionais.map((comentario) => (
-              <ComentarioBubble key={comentario.id} comentario={comentario} />
-            ))}
-          </div>
-        ) : (
-          <p className="muted">Nenhum comentário operacional registrado.</p>
-        )}
-      </article>
 
       {user.perfil === "ADMIN" ? (
         <details className="audit-accordion">
