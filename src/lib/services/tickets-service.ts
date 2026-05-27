@@ -5,9 +5,13 @@ import { TicketFiltersInput, TicketInput } from "@/lib/validation/ticket";
 import { getTicketScopeWhere, hasPermission } from "@/lib/rbac/permissions";
 import { assertSlaConsistency, calculateSla } from "@/lib/utils/sla";
 import { AppError, ForbiddenError } from "@/lib/errors";
-import { appendTicketBackupRow, getGoogleSheetsBackupConfigError, isGoogleSheetsBackupEnabled, updateTicketBackupRow } from "@/lib/integrations/google-sheets-backup";
+import {
+  appendTicketBackupRow,
+  getGoogleSheetsBackupConfigError,
+  isGoogleSheetsBackupEnabled,
+  updateTicketBackupRow
+} from "@/lib/integrations/google-sheets-backup";
 import { logError } from "@/lib/logger";
-import { createSupabaseRouteClient } from "@/lib/supabase/server";
 import { createSupabaseAdmin } from "@/lib/supabase/service-role";
 
 const sensitiveFields = ["valorColeta", "prazoConclusao", "resolucao"] as const;
@@ -21,16 +25,20 @@ function normalizeOptionalText(value?: string | null) {
 function assertCanEditFields(user: Usuario, payload: Partial<TicketInput>) {
   if (user.perfil === "LOJA") {
     const forbidden = ["valorColeta", "prazoConclusao", "resolucao"] as const;
+
     if (forbidden.some((field) => payload[field] !== undefined)) {
       throw new ForbiddenError("Perfil LOJA não pode editar campos administrativos");
     }
-    if ((payload as any).statusOperacionalLoja === "CONCLUIDA") {
+
+    if (payload.statusOperacionalLoja === "CONCLUIDA") {
       throw new ForbiddenError("LOJA não pode concluir operação");
     }
+
     return;
   }
 
   const touchingSensitive = sensitiveFields.some((field) => payload[field] !== undefined);
+
   if (touchingSensitive && !hasPermission(user.perfil, "ticket.update_sensitive")) {
     throw new ForbiddenError("Seu perfil não pode editar campos sensíveis");
   }
@@ -38,6 +46,7 @@ function assertCanEditFields(user: Usuario, payload: Partial<TicketInput>) {
 
 function getDateRange(startDate?: string, endDate?: string) {
   if (!startDate && !endDate) return undefined;
+
   return {
     ...(startDate ? { gte: new Date(startDate) } : {}),
     ...(endDate ? { lte: new Date(endDate) } : {})
@@ -76,9 +85,54 @@ function toTicketBackupRow(ticket: {
   };
 }
 
+function toAuditJson(ticket: Record<string, unknown>): Prisma.JsonObject {
+  const output: Record<string, Prisma.JsonValue> = {};
+
+  for (const [key, value] of Object.entries(ticket)) {
+    if (value === undefined) continue;
+
+    if (value === null) {
+      output[key] = null;
+      continue;
+    }
+
+    if (value instanceof Date) {
+      output[key] = value.toISOString();
+      continue;
+    }
+
+    if (typeof value === "bigint") {
+      output[key] = value.toString();
+      continue;
+    }
+
+    if (typeof value === "object" && value !== null && "toNumber" in value) {
+      const decimalLike = value as { toNumber?: () => number };
+
+      if (typeof decimalLike.toNumber === "function") {
+        output[key] = decimalLike.toNumber();
+        continue;
+      }
+    }
+
+    if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+      output[key] = value;
+      continue;
+    }
+
+    output[key] = String(value);
+  }
+
+  return output as Prisma.JsonObject;
+}
+
 async function markBackupSyncFailure(ticketId: string, error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
-  logError("Falha ao sincronizar backup Google Sheets", { ticketId, error: message });
+
+  logError("Falha ao sincronizar backup Google Sheets", {
+    ticketId,
+    error: message
+  });
 
   await prisma.ticket.update({
     where: { id: ticketId },
@@ -98,12 +152,17 @@ async function syncTicketCreateBackup(ticketId: string) {
         backupSyncError: getGoogleSheetsBackupConfigError() ?? "Integração Google Sheets não configurada"
       }
     });
+
     return;
   }
 
   try {
-    const ticket = await prisma.ticket.findUniqueOrThrow({ where: { id: ticketId } });
+    const ticket = await prisma.ticket.findUniqueOrThrow({
+      where: { id: ticketId }
+    });
+
     const { rowNumber } = await appendTicketBackupRow(toTicketBackupRow(ticket));
+
     await prisma.ticket.update({
       where: { id: ticketId },
       data: {
@@ -127,11 +186,15 @@ async function syncTicketUpdateBackup(ticketId: string) {
         backupSyncError: getGoogleSheetsBackupConfigError() ?? "Integração Google Sheets não configurada"
       }
     });
+
     return;
   }
 
   try {
-    const ticket = await prisma.ticket.findUniqueOrThrow({ where: { id: ticketId } });
+    const ticket = await prisma.ticket.findUniqueOrThrow({
+      where: { id: ticketId }
+    });
+
     const { rowNumber } = await updateTicketBackupRow(toTicketBackupRow(ticket), ticket.backupSheetRowNumber);
 
     await prisma.ticket.update({
@@ -150,11 +213,16 @@ async function syncTicketUpdateBackup(ticketId: string) {
 
 export async function listTickets(
   query: TicketFiltersInput,
-  user: { id: string; perfil: "ATENDENTE" | "SUPERVISOR" | "ADMIN" | "LOJA"; empresaVinculada?: "LESSUL"|"MS_DECOR"|"VIVA_VIDA"|"MOVELBENTO"|"MODIFIKA"|null }
+  user: {
+    id: string;
+    perfil: "ATENDENTE" | "SUPERVISOR" | "ADMIN" | "LOJA";
+    empresaVinculada?: "LESSUL" | "MS_DECOR" | "VIVA_VIDA" | "MOVELBENTO" | "MODIFIKA" | null;
+  }
 ) {
   const where: Prisma.TicketWhereInput = {
     ativo: true,
     ...getTicketScopeWhere(user),
+
     ...(query.search
       ? {
           OR: [
@@ -165,17 +233,24 @@ export async function listTickets(
           ]
         }
       : {}),
+
     ...(query.sku ? { sku: { contains: query.sku, mode: "insensitive" } } : {}),
     ...(query.empresa ? { empresa: query.empresa } : {}),
     ...(query.canalMarketplace ? { canalMarketplace: query.canalMarketplace } : {}),
+
     ...(query.statusTicket
       ? { statusTicket: query.statusTicket }
-      : (!query.includeConcluidos ? { statusTicket: { not: "CONCLUIDO" } } : {})),
+      : !query.includeConcluidos
+        ? { statusTicket: { not: "CONCLUIDO" } }
+        : {}),
+
     ...(query.statusReclamacao ? { statusReclamacao: query.statusReclamacao } : {}),
     ...(query.motivo ? { motivo: query.motivo } : {}),
     ...(query.responsavelId ? { responsavelId: query.responsavelId } : {}),
     ...(query.criadoPorId ? { criadoPorId: query.criadoPorId } : {}),
-    ...(getDateRange(query.startDate, query.endDate) ? { dataReclamacao: getDateRange(query.startDate, query.endDate) } : {})
+    ...(getDateRange(query.startDate, query.endDate)
+      ? { dataReclamacao: getDateRange(query.startDate, query.endDate) }
+      : {})
   };
 
   const [items, total] = await Promise.all([
@@ -184,19 +259,34 @@ export async function listTickets(
       orderBy: { [query.orderBy]: query.orderDir },
       skip: (query.page - 1) * query.pageSize,
       take: query.pageSize,
-      include: { criadoPor: true, atualizadoPor: true, responsavel: { select: { id: true, nome: true } } }
+      include: {
+        criadoPor: true,
+        atualizadoPor: true,
+        responsavel: {
+          select: {
+            id: true,
+            nome: true
+          }
+        }
+      }
     }),
+
     prisma.ticket.count({ where })
   ]);
 
   return {
-    data: items.map((item) => ({ ...item, slaStatus: calculateSla(item.statusTicket, item.prazoConclusao) })),
+    data: items.map((item) => ({
+      ...item,
+      slaStatus: calculateSla(item.statusTicket, item.prazoConclusao)
+    })),
+
     pagination: {
       total,
       page: query.page,
       pageSize: query.pageSize,
       totalPages: Math.ceil(total / query.pageSize)
     },
+
     meta: {
       orderBy: query.orderBy,
       orderDir: query.orderDir
@@ -206,180 +296,333 @@ export async function listTickets(
 
 export async function createTicket(input: TicketInput, userId: string) {
   const prazoConclusao = input.prazoConclusao ? new Date(input.prazoConclusao) : null;
+
   assertSlaConsistency(input.statusTicket, prazoConclusao);
 
   const valorReembolso = Number(input.valorReembolso ?? 0);
   const valorColeta = Number(input.valorColeta ?? 0);
-  const valorAssistencia = Number((input as any).valorAssistencia ?? 0);
-  const valorColetaEnvioPecas = Number((input as any).valorColetaEnvioPecas ?? 0);
+  const valorAssistencia = Number(input.valorAssistencia ?? 0);
+  const valorColetaEnvioPecas = Number(input.valorColetaEnvioPecas ?? 0);
   const custosTotais = valorReembolso + valorColeta + valorAssistencia + valorColetaEnvioPecas;
 
   const ticket = await prisma.ticket.create({
     data: {
-      ...input,
+      nomeCliente: input.nomeCliente,
       dataCompra: new Date(input.dataCompra),
+      numeroVenda: input.numeroVenda,
+      linkPedido: normalizeOptionalText(input.linkPedido),
+      uf: input.uf.toUpperCase(),
+      cpf: input.cpf,
+      canalMarketplace: input.canalMarketplace,
+      empresa: input.empresa,
+      produto: input.produto,
+      sku: input.sku,
+      fabricante: normalizeOptionalText(input.fabricante),
+      transportadora: normalizeOptionalText(input.transportadora),
+      statusReclamacao: input.statusReclamacao,
       dataReclamacao: new Date(input.dataReclamacao),
       mesReclamacao: new Date(input.dataReclamacao).getUTCMonth() + 1,
       anoReclamacao: new Date(input.dataReclamacao).getUTCFullYear(),
-      prazoConclusao,
+      motivo: input.motivo,
+      detalhesCliente: normalizeOptionalText(input.detalhesCliente),
+      comentarioInterno: normalizeOptionalText(input.comentarioInterno),
+      resolucao: input.resolucao ?? null,
       valorReembolso: new Prisma.Decimal(valorReembolso),
       valorColeta: new Prisma.Decimal(valorColeta),
       valorAssistencia: new Prisma.Decimal(valorAssistencia),
       valorColetaEnvioPecas: new Prisma.Decimal(valorColetaEnvioPecas),
       custosTotais: new Prisma.Decimal(custosTotais),
-      acaoOperacionalLoja: input.acaoOperacionalLoja ?? "NENHUMA",
-      statusOperacionalLoja: (input as any).statusOperacionalLoja ?? "EM_ABERTO",
-      codigoRastreio: (input as any).codigoRastreio || null,
-      comentarioLoja: normalizeOptionalText(input.comentarioLoja),
+      statusTicket: input.statusTicket,
+      prazoConclusao,
+      responsavelId: normalizeOptionalText(input.responsavelId),
       criadoPorId: userId,
       atualizadoPorId: userId,
-      linkPedido: normalizeOptionalText(input.linkPedido),
-      fabricante: normalizeOptionalText(input.fabricante),
-      transportadora: normalizeOptionalText(input.transportadora),
-      detalhesCliente: normalizeOptionalText(input.detalhesCliente),
-      comentarioInterno: normalizeOptionalText(input.comentarioInterno),
-      responsavelId: normalizeOptionalText(input.responsavelId),
-      resolucao: input.resolucao ?? null,
+      acaoOperacionalLoja: input.acaoOperacionalLoja ?? "NENHUMA",
+      statusOperacionalLoja: input.statusOperacionalLoja ?? "EM_ABERTO",
+      codigoRastreio: normalizeOptionalText(input.codigoRastreio),
+      comentarioLoja: normalizeOptionalText(input.comentarioLoja),
       slaStatus: calculateSla(input.statusTicket, prazoConclusao)
     }
   });
 
-  const user = await prisma.usuario.findUniqueOrThrow({ where: { id: userId } });
-  await registerTicketAudit({ ticketId: ticket.id, user, action: "CREATE", after: ticket as unknown as Prisma.JsonObject });
+  const user = await prisma.usuario.findUniqueOrThrow({
+    where: { id: userId }
+  });
+
+  await registerTicketAudit({
+    ticketId: ticket.id,
+    user,
+    action: "CREATE",
+    after: toAuditJson(ticket as unknown as Record<string, unknown>)
+  });
+
   await syncTicketCreateBackup(ticket.id);
+
   return ticket;
 }
 
 export async function getTicketById(id: string, user: Usuario) {
   const ticket = await prisma.ticket.findFirst({
-    where: { id, ativo: true, ...getTicketScopeWhere(user) },
-    include: { auditoria: { orderBy: { dataHora: "desc" }, take: 100 }, responsavel: { select: { id: true, nome: true } }, comentariosOperacionais: { orderBy: { criadoEm: "desc" } } }
+    where: {
+      id,
+      ativo: true,
+      ...getTicketScopeWhere(user)
+    },
+    include: {
+      auditoria: {
+        orderBy: {
+          dataHora: "desc"
+        },
+        take: 100
+      },
+      responsavel: {
+        select: {
+          id: true,
+          nome: true
+        }
+      },
+      comentariosOperacionais: {
+        orderBy: {
+          criadoEm: "desc"
+        }
+      }
+    }
   });
 
-  if (!ticket) throw new ForbiddenError("Ticket não encontrado ou sem acesso");
+  if (!ticket) {
+    throw new ForbiddenError("Ticket não encontrado ou sem acesso");
+  }
+
   return ticket;
 }
 
 export async function updateTicket(id: string, payload: Partial<TicketInput>, user: Usuario) {
-  const before = await prisma.ticket.findFirstOrThrow({ where: { id, ativo: true, ...getTicketScopeWhere(user) } });
-  assertCanEditFields(user, payload);
-
-  const resolvedPrazoConclusao = payload.prazoConclusao !== undefined
-    ? (payload.prazoConclusao ? new Date(payload.prazoConclusao) : null)
-    : before.prazoConclusao;
-  const resolvedStatusTicket = payload.statusTicket ?? before.statusTicket;
-  assertSlaConsistency(resolvedStatusTicket, resolvedPrazoConclusao);
-
-  // Cálculos de custos com fallbacks corretos
-  const nextValorReembolso = payload.valorReembolso !== undefined ? Number(payload.valorReembolso) : Number(before.valorReembolso);
-  const nextValorColeta = payload.valorColeta !== undefined ? Number(payload.valorColeta) : Number(before.valorColeta);
-  const nextValorAssistencia = (payload as any).valorAssistencia !== undefined ? Number((payload as any).valorAssistencia) : Number(before.valorAssistencia);
-  const nextValorColetaEnvioPecas = (payload as any).valorColetaEnvioPecas !== undefined ? Number((payload as any).valorColetaEnvioPecas) : Number(before.valorColetaEnvioPecas);
-
-  const isMonetaryUpdated = 
-    payload.valorReembolso !== undefined || 
-    payload.valorColeta !== undefined || 
-    (payload as any).valorAssistencia !== undefined || 
-    (payload as any).valorColetaEnvioPecas !== undefined;
-
-  const updated = await prisma.ticket.update({
-    where: { id },
-    data: {
-      ...payload,
-      atualizadoPorId: user.id,
-      ...(payload.dataReclamacao
-        ? {
-            mesReclamacao: new Date(payload.dataReclamacao).getUTCMonth() + 1,
-            anoReclamacao: new Date(payload.dataReclamacao).getUTCFullYear()
-          }
-        : {}),
-      linkPedido: payload.linkPedido !== undefined ? normalizeOptionalText(payload.linkPedido) : undefined,
-      fabricante: payload.fabricante !== undefined ? normalizeOptionalText(payload.fabricante) : undefined,
-      transportadora: payload.transportadora !== undefined ? normalizeOptionalText(payload.transportadora) : undefined,
-      detalhesCliente: payload.detalhesCliente !== undefined ? normalizeOptionalText(payload.detalhesCliente) : undefined,
-      comentarioInterno: payload.comentarioInterno !== undefined ? normalizeOptionalText(payload.comentarioInterno) : undefined,
-      comentarioLoja: payload.comentarioLoja !== undefined ? normalizeOptionalText(payload.comentarioLoja) : undefined,
-      responsavelId: payload.responsavelId !== undefined ? normalizeOptionalText(payload.responsavelId) : undefined,
-      resolucao: payload.resolucao !== undefined ? (payload.resolucao ?? null) : undefined,
-      prazoConclusao: resolvedPrazoConclusao,
-      slaStatus: calculateSla(resolvedStatusTicket, resolvedPrazoConclusao),
-      codigoRastreio: (payload as any).codigoRastreio !== undefined ? ((payload as any).codigoRastreio || null) : undefined,
-      statusOperacionalLoja: (payload as any).statusOperacionalLoja !== undefined ? (payload as any).statusOperacionalLoja : undefined,
-      acaoOperacionalLoja: payload.acaoOperacionalLoja !== undefined ? payload.acaoOperacionalLoja : undefined,
-      ...(isMonetaryUpdated
-        ? {
-            valorReembolso: new Prisma.Decimal(nextValorReembolso),
-            valorColeta: new Prisma.Decimal(nextValorColeta),
-            valorAssistencia: new Prisma.Decimal(nextValorAssistencia),
-            valorColetaEnvioPecas: new Prisma.Decimal(nextValorColetaEnvioPecas),
-            custosTotais: new Prisma.Decimal(nextValorReembolso + nextValorColeta + nextValorAssistencia + nextValorColetaEnvioPecas)
-          }
-        : {})
+  const before = await prisma.ticket.findFirstOrThrow({
+    where: {
+      id,
+      ativo: true,
+      ...getTicketScopeWhere(user)
     }
   });
 
+  assertCanEditFields(user, payload);
+
+  const resolvedPrazoConclusao =
+    payload.prazoConclusao !== undefined
+      ? payload.prazoConclusao
+        ? new Date(payload.prazoConclusao)
+        : null
+      : before.prazoConclusao;
+
+  const resolvedStatusTicket = payload.statusTicket ?? before.statusTicket;
+
+  assertSlaConsistency(resolvedStatusTicket, resolvedPrazoConclusao);
+
+  const nextValorReembolso =
+    payload.valorReembolso !== undefined ? Number(payload.valorReembolso) : Number(before.valorReembolso);
+
+  const nextValorColeta = payload.valorColeta !== undefined ? Number(payload.valorColeta) : Number(before.valorColeta);
+
+  const nextValorAssistencia =
+    payload.valorAssistencia !== undefined ? Number(payload.valorAssistencia) : Number(before.valorAssistencia);
+
+  const nextValorColetaEnvioPecas =
+    payload.valorColetaEnvioPecas !== undefined
+      ? Number(payload.valorColetaEnvioPecas)
+      : Number(before.valorColetaEnvioPecas);
+
+  const isMonetaryUpdated =
+    payload.valorReembolso !== undefined ||
+    payload.valorColeta !== undefined ||
+    payload.valorAssistencia !== undefined ||
+    payload.valorColetaEnvioPecas !== undefined;
+
+  const nextCustosTotais = nextValorReembolso + nextValorColeta + nextValorAssistencia + nextValorColetaEnvioPecas;
+
+  const data: Prisma.TicketUncheckedUpdateInput = {
+    atualizadoPorId: user.id,
+
+    ...(payload.nomeCliente !== undefined ? { nomeCliente: payload.nomeCliente } : {}),
+    ...(payload.numeroVenda !== undefined ? { numeroVenda: payload.numeroVenda } : {}),
+    ...(payload.produto !== undefined ? { produto: payload.produto } : {}),
+    ...(payload.sku !== undefined ? { sku: payload.sku } : {}),
+    ...(payload.uf !== undefined ? { uf: payload.uf.toUpperCase() } : {}),
+    ...(payload.cpf !== undefined ? { cpf: payload.cpf } : {}),
+    ...(payload.canalMarketplace !== undefined ? { canalMarketplace: payload.canalMarketplace } : {}),
+    ...(payload.empresa !== undefined ? { empresa: payload.empresa } : {}),
+    ...(payload.motivo !== undefined ? { motivo: payload.motivo } : {}),
+    ...(payload.statusTicket !== undefined ? { statusTicket: payload.statusTicket } : {}),
+    ...(payload.statusReclamacao !== undefined ? { statusReclamacao: payload.statusReclamacao } : {}),
+    ...(payload.acaoOperacionalLoja !== undefined ? { acaoOperacionalLoja: payload.acaoOperacionalLoja } : {}),
+    ...(payload.statusOperacionalLoja !== undefined ? { statusOperacionalLoja: payload.statusOperacionalLoja } : {}),
+
+    ...(payload.dataCompra !== undefined ? { dataCompra: new Date(payload.dataCompra) } : {}),
+
+    ...(payload.dataReclamacao !== undefined
+      ? {
+          dataReclamacao: new Date(payload.dataReclamacao),
+          mesReclamacao: new Date(payload.dataReclamacao).getUTCMonth() + 1,
+          anoReclamacao: new Date(payload.dataReclamacao).getUTCFullYear()
+        }
+      : {}),
+
+    ...(payload.prazoConclusao !== undefined
+      ? {
+          prazoConclusao: resolvedPrazoConclusao
+        }
+      : {}),
+
+    slaStatus: calculateSla(resolvedStatusTicket, resolvedPrazoConclusao),
+
+    ...(payload.linkPedido !== undefined ? { linkPedido: normalizeOptionalText(payload.linkPedido) } : {}),
+    ...(payload.fabricante !== undefined ? { fabricante: normalizeOptionalText(payload.fabricante) } : {}),
+    ...(payload.transportadora !== undefined ? { transportadora: normalizeOptionalText(payload.transportadora) } : {}),
+    ...(payload.detalhesCliente !== undefined ? { detalhesCliente: normalizeOptionalText(payload.detalhesCliente) } : {}),
+    ...(payload.comentarioInterno !== undefined ? { comentarioInterno: normalizeOptionalText(payload.comentarioInterno) } : {}),
+    ...(payload.comentarioLoja !== undefined ? { comentarioLoja: normalizeOptionalText(payload.comentarioLoja) } : {}),
+    ...(payload.codigoRastreio !== undefined ? { codigoRastreio: normalizeOptionalText(payload.codigoRastreio) } : {}),
+    ...(payload.responsavelId !== undefined ? { responsavelId: normalizeOptionalText(payload.responsavelId) } : {}),
+    ...(payload.resolucao !== undefined ? { resolucao: payload.resolucao ?? null } : {}),
+
+    ...(isMonetaryUpdated
+      ? {
+          valorReembolso: new Prisma.Decimal(nextValorReembolso),
+          valorColeta: new Prisma.Decimal(nextValorColeta),
+          valorAssistencia: new Prisma.Decimal(nextValorAssistencia),
+          valorColetaEnvioPecas: new Prisma.Decimal(nextValorColetaEnvioPecas),
+          custosTotais: new Prisma.Decimal(nextCustosTotais)
+        }
+      : {})
+  };
+
+  const updated = await prisma.ticket.update({
+    where: { id },
+    data
+  });
+
   const action = payload.statusTicket && payload.statusTicket !== before.statusTicket ? "STATUS_CHANGE" : "UPDATE";
+
   await registerTicketAudit({
     ticketId: id,
     user,
     action,
-    before: before as unknown as Prisma.JsonObject,
-    after: updated as unknown as Prisma.JsonObject
+    before: toAuditJson(before as unknown as Record<string, unknown>),
+    after: toAuditJson(updated as unknown as Record<string, unknown>)
   });
 
   await syncTicketUpdateBackup(id);
+
   return updated;
 }
 
 export async function softDeleteTicket(id: string, user: Usuario) {
-  const before = await prisma.ticket.findFirstOrThrow({ where: { id, ...getTicketScopeWhere(user) } });
-  const updated = await prisma.ticket.update({ where: { id }, data: { ativo: false, atualizadoPorId: user.id } });
+  const before = await prisma.ticket.findFirstOrThrow({
+    where: {
+      id,
+      ...getTicketScopeWhere(user)
+    }
+  });
+
+  const updated = await prisma.ticket.update({
+    where: { id },
+    data: {
+      ativo: false,
+      atualizadoPorId: user.id
+    }
+  });
 
   await registerTicketAudit({
     ticketId: id,
     user,
     action: "SOFT_DELETE",
-    before: before as unknown as Prisma.JsonObject,
-    after: updated as unknown as Prisma.JsonObject
+    before: toAuditJson(before as unknown as Record<string, unknown>),
+    after: toAuditJson(updated as unknown as Record<string, unknown>)
   });
 
   await syncTicketUpdateBackup(id);
+
   return { ok: true };
 }
 
+function getSafeFileName(fileName: string) {
+  return fileName
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\w.\-]+/g, "_")
+    .replace(/_+/g, "_")
+    .slice(0, 120);
+}
 
 export async function uploadTicketAttachment(id: string, user: Usuario, file: File) {
-  const ticket = await prisma.ticket.findFirst({ where: { id, ativo: true, ...getTicketScopeWhere(user) } });
-  if (!ticket) throw new ForbiddenError("Ticket não encontrado ou sem acesso");
-  if (user.perfil === "LOJA" && ticket.statusTicket === "CONCLUIDO") throw new ForbiddenError("LOJA não pode anexar em ticket concluído");
+  const ticket = await prisma.ticket.findFirst({
+    where: {
+      id,
+      ativo: true,
+      ...getTicketScopeWhere(user)
+    }
+  });
+
+  if (!ticket) {
+    throw new ForbiddenError("Ticket não encontrado ou sem acesso");
+  }
+
+  if (user.perfil === "LOJA" && ticket.statusTicket === "CONCLUIDO") {
+    throw new ForbiddenError("LOJA não pode anexar em ticket concluído");
+  }
 
   const allowed = ["image/png", "image/jpeg", "image/webp", "application/pdf"];
-  if (!allowed.includes(file.type)) throw new AppError("Tipo de arquivo não permitido", 400, "INVALID_FILE_TYPE");
-  if (file.size > 10 * 1024 * 1024) throw new AppError("Arquivo acima de 10MB", 400, "FILE_TOO_LARGE");
 
-  // Usa service role para Storage
+  if (!allowed.includes(file.type)) {
+    throw new AppError("Tipo de arquivo não permitido", 400, "INVALID_FILE_TYPE");
+  }
+
+  if (file.size > 10 * 1024 * 1024) {
+    throw new AppError("Arquivo acima de 10MB", 400, "FILE_TOO_LARGE");
+  }
+
   const supabase = createSupabaseAdmin();
-  const BUCKET = "ticket-anexos";
+  const bucket = "ticket-anexos";
 
   if (ticket.anexoPath) {
-    await supabase.storage.from(BUCKET).remove([ticket.anexoPath]);
+    await supabase.storage.from(bucket).remove([ticket.anexoPath]);
   }
 
-  const path = `tickets/${ticket.empresa}/${id}/${Date.now()}-${file.name.replace(/\s+/g, "_")}`;
-  const { error: uploadError } = await supabase.storage.from(BUCKET).upload(path, file, { upsert: false, contentType: file.type });
-  
+  const safeFileName = getSafeFileName(file.name);
+  const path = `tickets/${ticket.empresa}/${id}/${Date.now()}-${safeFileName}`;
+
+  const { error: uploadError } = await supabase.storage.from(bucket).upload(path, file, {
+    upsert: false,
+    contentType: file.type
+  });
+
   if (uploadError) {
-    if (uploadError.message.includes("not found")) throw new AppError("Bucket ticket-anexos não encontrado", 500, "STORAGE_ERROR");
-    throw new AppError("Sem permissão para enviar anexo", 403, "STORAGE_PERMISSION");
+    logError("Falha no upload do anexo do ticket", {
+      ticketId: id,
+      path,
+      message: uploadError.message
+    });
+
+    if (uploadError.message.toLowerCase().includes("not found")) {
+      throw new AppError("Bucket ticket-anexos não encontrado", 500, "STORAGE_BUCKET_NOT_FOUND");
+    }
+
+    throw new AppError("Falha no upload do anexo", 500, "UPLOAD_FAILED");
   }
 
-  // Gera Signed URL por ser bucket privado
-  const { data: signedData } = await supabase.storage.from(BUCKET).createSignedUrl(path, 3600); // 1 hora
+  const { data: signedData, error: signedUrlError } = await supabase.storage.from(bucket).createSignedUrl(path, 60 * 60);
+
+  if (signedUrlError) {
+    logError("Falha ao gerar signed URL do anexo", {
+      ticketId: id,
+      path,
+      message: signedUrlError.message
+    });
+  }
 
   const updated = await prisma.ticket.update({
     where: { id },
     data: {
-      anexoUrl: signedData?.signedUrl || null,
+      anexoUrl: signedData?.signedUrl ?? null,
       anexoPath: path,
       anexoNome: file.name,
       anexoMimeType: file.type,
@@ -394,22 +637,45 @@ export async function uploadTicketAttachment(id: string, user: Usuario, file: Fi
     ticketId: id,
     user,
     action: "UPDATE",
-    before: { anexoPath: ticket.anexoPath } as unknown as Prisma.JsonObject,
-    after: { anexoPath: path } as unknown as Prisma.JsonObject
+    before: toAuditJson({
+      anexoPath: ticket.anexoPath,
+      anexoNome: ticket.anexoNome,
+      anexoMimeType: ticket.anexoMimeType,
+      anexoSizeBytes: ticket.anexoSizeBytes
+    }),
+    after: toAuditJson({
+      anexoPath: path,
+      anexoNome: file.name,
+      anexoMimeType: file.type,
+      anexoSizeBytes: BigInt(file.size)
+    })
   });
 
   return updated;
 }
 
 export async function removeTicketAttachment(id: string, user: Usuario) {
-  if (user.perfil === "LOJA") throw new ForbiddenError("LOJA não pode remover anexo");
+  if (user.perfil === "LOJA") {
+    throw new ForbiddenError("LOJA não pode remover anexo");
+  }
 
-  const ticket = await prisma.ticket.findFirst({ where: { id, ativo: true, ...getTicketScopeWhere(user) } });
-  if (!ticket) throw new ForbiddenError("Ticket não encontrado ou sem acesso");
+  const ticket = await prisma.ticket.findFirst({
+    where: {
+      id,
+      ativo: true,
+      ...getTicketScopeWhere(user)
+    }
+  });
+
+  if (!ticket) {
+    throw new ForbiddenError("Ticket não encontrado ou sem acesso");
+  }
 
   const supabase = createSupabaseAdmin();
+  const bucket = "ticket-anexos";
+
   if (ticket.anexoPath) {
-    await supabase.storage.from("ticket-anexos").remove([ticket.anexoPath]);
+    await supabase.storage.from(bucket).remove([ticket.anexoPath]);
   }
 
   const updated = await prisma.ticket.update({
@@ -430,8 +696,18 @@ export async function removeTicketAttachment(id: string, user: Usuario) {
     ticketId: id,
     user,
     action: "UPDATE",
-    before: { anexoPath: ticket.anexoPath } as unknown as Prisma.JsonObject,
-    after: { anexoPath: null } as unknown as Prisma.JsonObject
+    before: toAuditJson({
+      anexoPath: ticket.anexoPath,
+      anexoNome: ticket.anexoNome,
+      anexoMimeType: ticket.anexoMimeType,
+      anexoSizeBytes: ticket.anexoSizeBytes
+    }),
+    after: toAuditJson({
+      anexoPath: null,
+      anexoNome: null,
+      anexoMimeType: null,
+      anexoSizeBytes: null
+    })
   });
 
   return updated;
