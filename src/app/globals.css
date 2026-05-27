@@ -111,3 +111,67 @@ button { border: 0; border-radius: 10px; padding: 10px 14px; cursor: pointer; }
 .badge-custom-motivo-cinza { background: #e5e7eb; color: #374151; }
 .badge-custom-motivo-vermelho { background: #fee2e2; color: #b91c1c; }
 .badge-custom-status-afetando { background: #fee2e2; color: #b91c1c; }
+
+/* Ticket Detail Specific Styles */
+.ticket-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 8px;
+  transition: color 0.2s;
+}
+.ticket-back-link:hover { color: #2563eb; }
+
+.ticket-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+  gap: 16px;
+}
+
+.ticket-detail-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.ticket-detail-grid {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(3, 1fr);
+  margin-bottom: 24px;
+}
+
+.ticket-info-list { display: grid; gap: 12px; }
+.ticket-info-row { display: flex; flex-direction: column; gap: 2px; }
+.ticket-info-label { font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: 700; letter-spacing: 0.025em; }
+.ticket-info-value { font-size: 14px; color: #1e293b; word-break: break-word; }
+
+.audit-accordion { 
+  border: 1px solid #dbe1ea; 
+  border-radius: 12px; 
+  background: #fff; 
+  overflow: hidden; 
+}
+.audit-accordion summary { 
+  padding: 16px; 
+  font-weight: 600; 
+  cursor: pointer; 
+  list-style: none; 
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center; 
+}
+.audit-accordion summary:hover { background: #f8fafc; }
+.audit-content { padding: 16px; border-top: 1px solid #f1f5f9; }
+
+@media (max-width: 1200px) { .ticket-detail-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 768px) { 
+  .ticket-detail-grid { grid-template-columns: 1fr; } 
+  .ticket-detail-header { flex-direction: column; }
+  .ticket-detail-actions { width: 100%; justify-content: flex-start; }
+}
