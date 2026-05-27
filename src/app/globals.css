@@ -175,3 +175,24 @@ button { border: 0; border-radius: 10px; padding: 10px 14px; cursor: pointer; }
   .ticket-detail-header { flex-direction: column; }
   .ticket-detail-actions { width: 100%; justify-content: flex-start; }
 }
+
+/* Ticket Edit Page Styles */
+.ticket-edit-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.ticket-edit-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ticket-edit-actions .btn {
+  min-height: 40px;
+  border-radius: 10px;
+  padding: 0 18px;
+}
