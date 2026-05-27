@@ -1,4 +1,4 @@
-import { AcaoAuditoria, BackupSyncStatus, Prisma, Usuario } from "@prisma/client";
+import { BackupSyncStatus, Prisma, Usuario } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { registerTicketAudit } from "@/lib/audit/ticket-audit";
 import { TicketFiltersInput, TicketInput } from "@/lib/validation/ticket";
@@ -9,7 +9,7 @@ import { appendTicketBackupRow, getGoogleSheetsBackupConfigError, isGoogleSheets
 import { logError } from "@/lib/logger";
 import { createSupabaseRouteClient } from "@/lib/supabase/server";
 
-const sensitiveFields = ["valorReembolso", "valorColeta", "prazoConclusao", "resolucao"] as const;
+const sensitiveFields = ["valorColeta", "prazoConclusao", "resolucao"] as const;
 
 function normalizeOptionalText(value?: string | null) {
   if (value === undefined || value === null) return null;
@@ -18,6 +18,17 @@ function normalizeOptionalText(value?: string | null) {
 }
 
 function assertCanEditFields(user: Usuario, payload: Partial<TicketInput>) {
+  if (user.perfil === "LOJA") {
+    const forbidden = ["valorColeta", "prazoConclusao", "resolucao"] as const;
+    if (forbidden.some((field) => payload[field] !== undefined)) {
+      throw new ForbiddenError("Perfil LOJA não pode editar campos administrativos");
+    }
+    if ((payload as any).statusOperacionalLoja === "CONCLUIDA") {
+      throw new ForbiddenError("LOJA não pode concluir operação");
+    }
+    return;
+  }
+
   const touchingSensitive = sensitiveFields.some((field) => payload[field] !== undefined);
   if (touchingSensitive && !hasPermission(user.perfil, "ticket.update_sensitive")) {
     throw new ForbiddenError("Seu perfil não pode editar campos sensíveis");
@@ -193,36 +204,42 @@ export async function listTickets(
 }
 
 export async function createTicket(input: TicketInput, userId: string) {
-  const { acaoOperacionalLoja: _acaoOperacionalLoja, ...ticketInput } = input;
-  const prazoConclusao = ticketInput.prazoConclusao ? new Date(ticketInput.prazoConclusao) : null;
-  assertSlaConsistency(ticketInput.statusTicket, prazoConclusao);
+  const prazoConclusao = input.prazoConclusao ? new Date(input.prazoConclusao) : null;
+  assertSlaConsistency(input.statusTicket, prazoConclusao);
+
+  const valorReembolso = Number(input.valorReembolso ?? 0);
+  const valorColeta = Number(input.valorColeta ?? 0);
+  const valorAssistencia = Number((input as any).valorAssistencia ?? 0);
+  const valorColetaEnvioPecas = Number((input as any).valorColetaEnvioPecas ?? 0);
+  const custosTotais = valorReembolso + valorColeta + valorAssistencia + valorColetaEnvioPecas;
 
   const ticket = await prisma.ticket.create({
     data: {
-      ...ticketInput,
-      dataCompra: new Date(ticketInput.dataCompra),
-      dataReclamacao: new Date(ticketInput.dataReclamacao),
-      mesReclamacao: new Date(ticketInput.dataReclamacao).getUTCMonth() + 1,
-      anoReclamacao: new Date(ticketInput.dataReclamacao).getUTCFullYear(),
+      ...input,
+      dataCompra: new Date(input.dataCompra),
+      dataReclamacao: new Date(input.dataReclamacao),
+      mesReclamacao: new Date(input.dataReclamacao).getUTCMonth() + 1,
+      anoReclamacao: new Date(input.dataReclamacao).getUTCFullYear(),
       prazoConclusao,
-      valorReembolso: new Prisma.Decimal(input.valorReembolso),
-      valorColeta: new Prisma.Decimal(input.valorColeta),
-      valorAssistencia: new Prisma.Decimal((input as any).valorAssistencia ?? 0),
-      valorColetaEnvioPecas: new Prisma.Decimal((input as any).valorColetaEnvioPecas ?? input.valorColeta),
-      codigoRastreio: (input as any).codigoRastreio || null,
-      comentarioLoja: (input as any).comentarioLoja || null,
+      valorReembolso: new Prisma.Decimal(valorReembolso),
+      valorColeta: new Prisma.Decimal(valorColeta),
+      valorAssistencia: new Prisma.Decimal(valorAssistencia),
+      valorColetaEnvioPecas: new Prisma.Decimal(valorColetaEnvioPecas),
+      custosTotais: new Prisma.Decimal(custosTotais),
+      acaoOperacionalLoja: input.acaoOperacionalLoja ?? "NENHUMA",
       statusOperacionalLoja: (input as any).statusOperacionalLoja ?? "EM_ABERTO",
-      custosTotais: new Prisma.Decimal(input.valorReembolso + input.valorColeta),
+      codigoRastreio: (input as any).codigoRastreio || null,
+      comentarioLoja: normalizeOptionalText(input.comentarioLoja),
       criadoPorId: userId,
       atualizadoPorId: userId,
-      linkPedido: normalizeOptionalText(ticketInput.linkPedido),
-      fabricante: normalizeOptionalText(ticketInput.fabricante),
-      transportadora: normalizeOptionalText(ticketInput.transportadora),
-      detalhesCliente: normalizeOptionalText(ticketInput.detalhesCliente),
-      comentarioInterno: normalizeOptionalText(ticketInput.comentarioInterno),
-      responsavelId: normalizeOptionalText(ticketInput.responsavelId),
-      resolucao: ticketInput.resolucao ?? null,
-      slaStatus: calculateSla(ticketInput.statusTicket, prazoConclusao)
+      linkPedido: normalizeOptionalText(input.linkPedido),
+      fabricante: normalizeOptionalText(input.fabricante),
+      transportadora: normalizeOptionalText(input.transportadora),
+      detalhesCliente: normalizeOptionalText(input.detalhesCliente),
+      comentarioInterno: normalizeOptionalText(input.comentarioInterno),
+      responsavelId: normalizeOptionalText(input.responsavelId),
+      resolucao: input.resolucao ?? null,
+      slaStatus: calculateSla(input.statusTicket, prazoConclusao)
     }
   });
 
@@ -243,55 +260,64 @@ export async function getTicketById(id: string, user: Usuario) {
 }
 
 export async function updateTicket(id: string, payload: Partial<TicketInput>, user: Usuario) {
-  const { acaoOperacionalLoja: _acaoOperacionalLoja, ...ticketPayload } = payload;
   const before = await prisma.ticket.findFirstOrThrow({ where: { id, ativo: true, ...getTicketScopeWhere(user) } });
   assertCanEditFields(user, payload);
-  if (user.perfil === "LOJA" && (payload as any).statusOperacionalLoja === "CONCLUIDA") throw new ForbiddenError("LOJA não pode concluir operação");
 
-  const resolvedPrazoConclusao = ticketPayload.prazoConclusao !== undefined
-    ? (ticketPayload.prazoConclusao ? new Date(ticketPayload.prazoConclusao) : null)
+  const resolvedPrazoConclusao = payload.prazoConclusao !== undefined
+    ? (payload.prazoConclusao ? new Date(payload.prazoConclusao) : null)
     : before.prazoConclusao;
-  const resolvedStatusTicket = ticketPayload.statusTicket ?? before.statusTicket;
+  const resolvedStatusTicket = payload.statusTicket ?? before.statusTicket;
   assertSlaConsistency(resolvedStatusTicket, resolvedPrazoConclusao);
+
+  // Cálculos de custos com fallbacks corretos
+  const nextValorReembolso = payload.valorReembolso !== undefined ? Number(payload.valorReembolso) : Number(before.valorReembolso);
+  const nextValorColeta = payload.valorColeta !== undefined ? Number(payload.valorColeta) : Number(before.valorColeta);
+  const nextValorAssistencia = (payload as any).valorAssistencia !== undefined ? Number((payload as any).valorAssistencia) : Number(before.valorAssistencia);
+  const nextValorColetaEnvioPecas = (payload as any).valorColetaEnvioPecas !== undefined ? Number((payload as any).valorColetaEnvioPecas) : Number(before.valorColetaEnvioPecas);
+
+  const isMonetaryUpdated = 
+    payload.valorReembolso !== undefined || 
+    payload.valorColeta !== undefined || 
+    (payload as any).valorAssistencia !== undefined || 
+    (payload as any).valorColetaEnvioPecas !== undefined;
 
   const updated = await prisma.ticket.update({
     where: { id },
     data: {
-      ...ticketPayload,
+      ...payload,
       atualizadoPorId: user.id,
-      ...(ticketPayload.dataReclamacao
+      ...(payload.dataReclamacao
         ? {
-            mesReclamacao: new Date(ticketPayload.dataReclamacao).getUTCMonth() + 1,
-            anoReclamacao: new Date(ticketPayload.dataReclamacao).getUTCFullYear()
+            mesReclamacao: new Date(payload.dataReclamacao).getUTCMonth() + 1,
+            anoReclamacao: new Date(payload.dataReclamacao).getUTCFullYear()
           }
         : {}),
-      linkPedido: ticketPayload.linkPedido !== undefined ? normalizeOptionalText(ticketPayload.linkPedido) : undefined,
-      fabricante: ticketPayload.fabricante !== undefined ? normalizeOptionalText(ticketPayload.fabricante) : undefined,
-      transportadora: ticketPayload.transportadora !== undefined ? normalizeOptionalText(ticketPayload.transportadora) : undefined,
-      detalhesCliente: ticketPayload.detalhesCliente !== undefined ? normalizeOptionalText(ticketPayload.detalhesCliente) : undefined,
-      comentarioInterno: ticketPayload.comentarioInterno !== undefined ? normalizeOptionalText(ticketPayload.comentarioInterno) : undefined,
-      responsavelId: ticketPayload.responsavelId !== undefined ? normalizeOptionalText(ticketPayload.responsavelId) : undefined,
-      resolucao: ticketPayload.resolucao !== undefined ? (ticketPayload.resolucao ?? null) : undefined,
+      linkPedido: payload.linkPedido !== undefined ? normalizeOptionalText(payload.linkPedido) : undefined,
+      fabricante: payload.fabricante !== undefined ? normalizeOptionalText(payload.fabricante) : undefined,
+      transportadora: payload.transportadora !== undefined ? normalizeOptionalText(payload.transportadora) : undefined,
+      detalhesCliente: payload.detalhesCliente !== undefined ? normalizeOptionalText(payload.detalhesCliente) : undefined,
+      comentarioInterno: payload.comentarioInterno !== undefined ? normalizeOptionalText(payload.comentarioInterno) : undefined,
+      comentarioLoja: payload.comentarioLoja !== undefined ? normalizeOptionalText(payload.comentarioLoja) : undefined,
+      responsavelId: payload.responsavelId !== undefined ? normalizeOptionalText(payload.responsavelId) : undefined,
+      resolucao: payload.resolucao !== undefined ? (payload.resolucao ?? null) : undefined,
       prazoConclusao: resolvedPrazoConclusao,
       slaStatus: calculateSla(resolvedStatusTicket, resolvedPrazoConclusao),
-      valorAssistencia: (payload as any).valorAssistencia !== undefined ? new Prisma.Decimal((payload as any).valorAssistencia) : undefined,
-      valorColetaEnvioPecas: (payload as any).valorColetaEnvioPecas !== undefined ? new Prisma.Decimal((payload as any).valorColetaEnvioPecas) : undefined,
       codigoRastreio: (payload as any).codigoRastreio !== undefined ? ((payload as any).codigoRastreio || null) : undefined,
-      comentarioLoja: (payload as any).comentarioLoja !== undefined ? ((payload as any).comentarioLoja || null) : undefined,
       statusOperacionalLoja: (payload as any).statusOperacionalLoja !== undefined ? (payload as any).statusOperacionalLoja : undefined,
-      ...(payload.valorReembolso !== undefined || payload.valorColeta !== undefined || (payload as any).valorAssistencia !== undefined || (payload as any).valorColetaEnvioPecas !== undefined
+      acaoOperacionalLoja: payload.acaoOperacionalLoja !== undefined ? payload.acaoOperacionalLoja : undefined,
+      ...(isMonetaryUpdated
         ? {
-            custosTotais: new Prisma.Decimal(
-              Number(payload.valorReembolso ?? before.valorReembolso)
-                + Number((payload as any).valorAssistencia ?? before.valorAssistencia ?? 0)
-                + Number((payload as any).valorColetaEnvioPecas ?? before.valorColetaEnvioPecas ?? before.valorColeta)
-            )
+            valorReembolso: new Prisma.Decimal(nextValorReembolso),
+            valorColeta: new Prisma.Decimal(nextValorColeta),
+            valorAssistencia: new Prisma.Decimal(nextValorAssistencia),
+            valorColetaEnvioPecas: new Prisma.Decimal(nextValorColetaEnvioPecas),
+            custosTotais: new Prisma.Decimal(nextValorReembolso + nextValorColeta + nextValorAssistencia + nextValorColetaEnvioPecas)
           }
         : {})
     }
   });
 
-  const action: AcaoAuditoria = ticketPayload.statusTicket && ticketPayload.statusTicket !== before.statusTicket ? "STATUS_CHANGE" : "UPDATE";
+  const action = payload.statusTicket && payload.statusTicket !== before.statusTicket ? "STATUS_CHANGE" : "UPDATE";
   await registerTicketAudit({
     ticketId: id,
     user,

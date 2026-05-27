@@ -7,6 +7,7 @@ import { prisma } from "@/lib/db/prisma";
 import { normalizeCanalMarketplace } from "@/config/domains";
 import { formatDateTimeBR, formatEnumLabel } from "@/lib/formatters/display";
 import { TicketDeleteButton } from "@/components/tickets/ticket-delete-button";
+import { Perfil } from "@prisma/client";
 
 async function getTicket(id: string, user: Awaited<ReturnType<typeof requireCurrentUser>>): Promise<{ ok: true; payload: Awaited<ReturnType<typeof getTicketById>> } | { ok: false; message: string }> {
   try {
@@ -72,6 +73,15 @@ export default async function EditTicketPage({ params }: { params: Promise<{ id:
           <TicketForm
             ticketId={id}
             initialValues={toFormValues(result.payload)}
+            ticketAttachment={{
+              fileUrl: result.payload.anexoUrl,
+              fileName: result.payload.anexoNome,
+              filePath: result.payload.anexoPath,
+              mimeType: result.payload.anexoMimeType,
+              sizeBytes: result.payload.anexoSizeBytes ? Number(result.payload.anexoSizeBytes) : null,
+              uploadedAt: result.payload.anexoUploadedAt ? result.payload.anexoUploadedAt.toISOString() : null
+            }}
+            userPerfil={user.perfil}
             canEditSensitive={hasPermission(user.perfil, "ticket.update_sensitive")}
             assignableUsers={assignableUsers}
             cancelHref={`/tickets/${id}`}
