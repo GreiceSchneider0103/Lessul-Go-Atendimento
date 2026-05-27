@@ -41,6 +41,15 @@ button { border: 0; border-radius: 10px; padding: 10px 14px; cursor: pointer; }
 .page-header h1 { margin: 0; font-size: 30px; }
 .muted { margin: 0; color: #64748b; }
 
+/* Utilitário para filtros em linha única */
+.filters-inline-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+.filters-inline-row > * { flex: 1; min-width: 0; }
+.filters-inline-row .btn { flex: 0 0 auto; height: 42px; }
+
 .grid { display: grid; gap: 16px; }
 .grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .panel, .card { background: #fff; border: 1px solid #dbe1ea; border-radius: 12px; padding: 16px; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04); }
