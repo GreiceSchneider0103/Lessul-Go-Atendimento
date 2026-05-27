@@ -47,7 +47,6 @@ type OperationalRequestWithTicket = {
   };
 };
 
-// Usa diretamente os status gerados pelo Prisma para garantir sincronia.
 const statusOptions = Object.values(StatusOperacional) as StatusOperacional[];
 
 const statusLabel: Record<string, string> = {
@@ -76,17 +75,36 @@ function isStatusOperacional(value: string | undefined): value is StatusOperacio
 
 function toNumber(value: unknown): number {
   if (value === null || value === undefined || value === "") return 0;
-  if (typeof value === "number") return Number.isFinite(value) ? value : 0;
+
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : 0;
+  }
+
   if (typeof value === "string") {
     const parsed = Number(value.replace(",", "."));
     return Number.isFinite(parsed) ? parsed : 0;
   }
+
   if (typeof value === "object" && value !== null && "toNumber" in value) {
     const parsed = (value as { toNumber: () => number }).toNumber();
     return Number.isFinite(parsed) ? parsed : 0;
   }
+
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function isOverdue(prazoOperacional: string | null, status: string) {
+  if (!prazoOperacional) return false;
+  if (status === "CONCLUIDA") return false;
+
+  const prazo = new Date(prazoOperacional);
+  const hoje = new Date();
+
+  prazo.setHours(23, 59, 59, 999);
+  hoje.setHours(0, 0, 0, 0);
+
+  return prazo < hoje;
 }
 
 export default async function LojaSolicitacoesPage({ searchParams }: PageProps) {
@@ -139,9 +157,7 @@ export default async function LojaSolicitacoesPage({ searchParams }: PageProps) 
     }
   })) as unknown as OperationalRequestWithTicket[];
 
-  // Mapeamento priorizando dados persistidos no Ticket (Tarefa 8)
   const mappedData = data.map((row) => {
-    // Os Enums de Ticket e OperationalRequest são tipos diferentes no Prisma, requer cast
     const displayStatus = (row.ticket.statusOperacionalLoja as unknown as StatusOperacional) || row.status;
     const displayTipoAcao = row.ticket.acaoOperacionalLoja !== "NENHUMA" ? row.ticket.acaoOperacionalLoja : row.tipoAcao;
 
@@ -174,24 +190,27 @@ export default async function LojaSolicitacoesPage({ searchParams }: PageProps) 
     };
   });
 
-  const statusStats = statusOptions.reduce(
-    (acc, status) => {
-      acc[status] = mappedData.filter((d) => d.status === status).length;
-      return acc;
-    },
-    {} as Record<StatusOperacional, number>
-  );
-
-  const atrasadas = mappedData.filter(
-    (d) => d.prazoOperacional && new Date(d.prazoOperacional) < new Date() && d.status !== "CONCLUIDA"
-  ).length;
+  const total = mappedData.length;
+  const concluidas = mappedData.filter((item) => item.status === "CONCLUIDA").length;
+  const atrasadas = mappedData.filter((item) => isOverdue(item.prazoOperacional, item.status)).length;
+  const emAberto = mappedData.filter((item) => item.status !== "CONCLUIDA").length;
 
   const stats = [
-    ...statusOptions.map((status) => ({
-      key: status,
-      label: statusLabel[status] ?? formatEnumLabel(status),
-      value: statusStats[status]
-    })),
+    {
+      key: "TOTAL",
+      label: "Total",
+      value: total
+    },
+    {
+      key: "EM_ABERTO",
+      label: "Em aberto",
+      value: emAberto
+    },
+    {
+      key: "CONCLUIDAS",
+      label: "Concluídas",
+      value: concluidas
+    },
     {
       key: "ATRASADAS",
       label: "Atrasadas",
@@ -241,15 +260,15 @@ export default async function LojaSolicitacoesPage({ searchParams }: PageProps) 
             </button>
 
             <Link
-              className="btn btn-secondary" 
-              href="/loja/solicitacoes" 
-              style={{ 
-                height: "42px", 
-                display: "inline-flex", 
+              className="btn btn-secondary"
+              href="/loja/solicitacoes"
+              style={{
+                height: "42px",
+                display: "inline-flex",
                 alignItems: "center",
-                backgroundColor: '#f1f5f9',
-                color: '#475569',
-                border: '1px solid #e2e8f0'
+                backgroundColor: "#f1f5f9",
+                color: "#475569",
+                border: "1px solid #e2e8f0"
               }}
             >
               Limpar
@@ -258,7 +277,7 @@ export default async function LojaSolicitacoesPage({ searchParams }: PageProps) 
         </form>
       </div>
 
-      <div className="grid" style={{ gridTemplateColumns: "repeat(4,minmax(0,1fr))" }}>
+      <div className="grid grid-4">
         {stats.map((item) => (
           <article className="card" key={item.key}>
             <strong>{item.label}</strong>

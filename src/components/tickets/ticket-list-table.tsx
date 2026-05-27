@@ -215,7 +215,6 @@ export function TicketListTable({ initialItems }: { initialItems: Ticket[] }) {
         <table className="table" style={{ minWidth: "980px" }}>
           <thead>
             <tr>
-              <th style={{ width: 48 }}>SLA</th>
               <th>Cliente</th>
               <th>Venda</th>
               <th>Empresa</th>
@@ -224,14 +223,14 @@ export function TicketListTable({ initialItems }: { initialItems: Ticket[] }) {
               <th>Status Ticket</th>
               <th>Status Reclamação</th>
               <th>Custos</th>
-              <th>Ações</th>
+              <th style={{ width: 48 }}>SLA</th>
             </tr>
           </thead>
 
           <tbody>
             {items.length === 0 ? (
               <tr>
-                <td colSpan={10} className="muted" style={{ textAlign: "center", padding: 20 }}>
+                <td colSpan={9} className="muted" style={{ textAlign: "center", padding: 20 }}>
                   Nenhum ticket encontrado com os filtros atuais.
                 </td>
               </tr>
@@ -245,22 +244,18 @@ export function TicketListTable({ initialItems }: { initialItems: Ticket[] }) {
                 return (
                   <tr key={ticket.id}>
                     <td>
-                      <span
-                        className="sla-indicator"
-                        title={isSlaAtrasado ? "Atrasado" : "No prazo"}
-                        aria-label={isSlaAtrasado ? "Atrasado" : "No prazo"}
+                      <Link
+                        href={`/tickets/${ticket.id}`}
+                        title="Abrir ticket"
                         style={{
-                          display: "inline-block",
-                          width: 12,
-                          height: 12,
-                          borderRadius: "50%",
-                          backgroundColor: isSlaAtrasado ? "#ef4444" : "#22c55e",
-                          verticalAlign: "middle"
+                          fontWeight: 700,
+                          color: "#1d4ed8",
+                          textDecoration: "none"
                         }}
-                      />
+                      >
+                        {ticket.nomeCliente}
+                      </Link>
                     </td>
-
-                    <td>{ticket.nomeCliente}</td>
 
                     <td>
                       {ticket.linkPedido ? (
@@ -374,9 +369,19 @@ export function TicketListTable({ initialItems }: { initialItems: Ticket[] }) {
                     <td>{formatCurrencyBR(Number(ticket.custosTotais))}</td>
 
                     <td>
-                      <Link href={`/tickets/${ticket.id}`} className="btn btn-sm btn-secondary">
-                        Ver
-                      </Link>
+                      <span
+                        className="sla-indicator"
+                        title={isSlaAtrasado ? "Atrasado" : "No prazo"}
+                        aria-label={isSlaAtrasado ? "Atrasado" : "No prazo"}
+                        style={{
+                          display: "inline-block",
+                          width: 12,
+                          height: 12,
+                          borderRadius: "50%",
+                          backgroundColor: isSlaAtrasado ? "#ef4444" : "#22c55e",
+                          verticalAlign: "middle"
+                        }}
+                      />
                     </td>
                   </tr>
                 );

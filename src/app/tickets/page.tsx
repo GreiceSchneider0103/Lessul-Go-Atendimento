@@ -1,21 +1,38 @@
 import { requireCurrentUser } from "@/lib/auth/require-user";
 import Link from "next/link";
-import { CANAIS_MARKETPLACE, EMPRESAS, MOTIVOS, STATUS_RECLAMACAO, STATUS_TICKET } from "@/config/domains";
+import { CANAIS_MARKETPLACE, EMPRESAS, MOTIVOS } from "@/config/domains";
 import { TicketListResponse } from "@/lib/contracts";
 import { listTickets } from "@/lib/services/tickets-service";
 import { ticketFiltersSchema } from "@/lib/validation/ticket";
 import { formatEnumLabel } from "@/lib/formatters/display";
 import { TicketListTable } from "@/components/tickets/ticket-list-table";
-import { prisma } from "@/lib/db/prisma";
 
-async function getTickets(query: Record<string, string | undefined>, user: Awaited<ReturnType<typeof requireCurrentUser>>): Promise<{ data: TicketListResponse["data"]; pagination: TicketListResponse["pagination"]; error: string | null }> {
+async function getTickets(
+  query: Record<string, string | undefined>,
+  user: Awaited<ReturnType<typeof requireCurrentUser>>
+): Promise<{
+  data: TicketListResponse["data"];
+  pagination: TicketListResponse["pagination"];
+  error: string | null;
+}> {
   const parsed = ticketFiltersSchema.safeParse(query);
+
   if (!parsed.success) {
-    return { data: [], pagination: { total: 0, page: 1, pageSize: 20, totalPages: 0 }, error: "Filtros inválidos" };
+    return {
+      data: [],
+      pagination: {
+        total: 0,
+        page: 1,
+        pageSize: 20,
+        totalPages: 0
+      },
+      error: "Filtros inválidos"
+    };
   }
 
   try {
     const payload = await listTickets(parsed.data, user);
+
     return {
       data: payload.data,
       pagination: payload.pagination,
@@ -23,23 +40,46 @@ async function getTickets(query: Record<string, string | undefined>, user: Await
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Falha ao carregar tickets";
-    return { data: [], pagination: { total: 0, page: 1, pageSize: 20, totalPages: 0 }, error: message };
+
+    return {
+      data: [],
+      pagination: {
+        total: 0,
+        page: 1,
+        pageSize: 20,
+        totalPages: 0
+      },
+      error: message
+    };
   }
 }
 
 function buildTicketHref(query: Record<string, string | undefined>, page: number) {
   const params = new URLSearchParams();
+
   Object.entries(query).forEach(([key, value]) => {
-    if (value !== undefined && value !== "") params.set(key, value);
+    if (value !== undefined && value !== "") {
+      params.set(key, value);
+    }
   });
+
   params.set("page", String(page));
-  if (!params.get("pageSize")) params.set("pageSize", "20");
+
+  if (!params.get("pageSize")) {
+    params.set("pageSize", "20");
+  }
+
   return `/tickets?${params.toString()}`;
 }
 
-export default async function TicketsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
+export default async function TicketsPage({
+  searchParams
+}: {
+  searchParams: Promise<Record<string, string | undefined>>;
+}) {
   const user = await requireCurrentUser();
   const query = await searchParams;
+
   const normalizedQuery: Record<string, string | undefined> = {
     ...query,
     page: query.page ?? "1",
@@ -47,86 +87,140 @@ export default async function TicketsPage({ searchParams }: { searchParams: Prom
     includeConcluidos: query.includeConcluidos ?? "false"
   };
 
-  const [result, users] = await Promise.all([
-    getTickets(normalizedQuery, user),
-    prisma.usuario.findMany({ where: { ativo: true }, orderBy: { nome: "asc" }, select: { id: true, nome: true } })
-  ]);
+  const result = await getTickets(normalizedQuery, user);
 
   const currentPage = result.pagination.page;
   const totalPages = Math.max(result.pagination.totalPages, 1);
-  const pagesWindow = Array.from(new Set([1, currentPage - 1, currentPage, currentPage + 1, totalPages])).filter((item) => item >= 1 && item <= totalPages);
+  const pagesWindow = Array.from(new Set([1, currentPage - 1, currentPage, currentPage + 1, totalPages])).filter(
+    (item) => item >= 1 && item <= totalPages
+  );
 
   return (
     <section className="page">
-      <div className="page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+      <div
+        className="page-header"
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 12,
+          flexWrap: "wrap"
+        }}
+      >
         <div>
           <h1>Lista de tickets</h1>
           <p className="muted">Visualização operacional com filtros, paginação e status de SLA.</p>
         </div>
+
         <Link href="/tickets/new" className="btn btn-primary btn-create-ticket" style={{ whiteSpace: "nowrap" }}>
           <span aria-hidden>＋</span>
           Criar ticket
         </Link>
       </div>
 
-      <form className="panel" method="GET" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, alignItems: 'flex-end' }}>
-        <div style={{ gridColumn: 'span 2 / auto' }}> {/* Ocupa 2 colunas no desktop */}
-          <label>Busca
-            <input name="search" placeholder="Cliente, venda, produto" defaultValue={normalizedQuery.search} style={{ width: '100%' }} />
+      <form
+        className="panel"
+        method="GET"
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+          gap: 16,
+          alignItems: "flex-end"
+        }}
+      >
+        <div style={{ gridColumn: "span 2 / auto" }}>
+          <label>
+            Busca
+            <input
+              name="search"
+              placeholder="Cliente, venda, produto"
+              defaultValue={normalizedQuery.search}
+              style={{ width: "100%" }}
+            />
           </label>
         </div>
-        <label>SKU
-          <input name="sku" placeholder="SKU" defaultValue={normalizedQuery.sku} style={{ width: '100%' }} />
+
+        <label>
+          SKU
+          <input name="sku" placeholder="SKU" defaultValue={normalizedQuery.sku} style={{ width: "100%" }} />
         </label>
-        <label>Marketplace
-          <select name="canalMarketplace" defaultValue={normalizedQuery.canalMarketplace ?? ""} style={{ width: '100%' }}>
+
+        <label>
+          Marketplace
+          <select name="canalMarketplace" defaultValue={normalizedQuery.canalMarketplace ?? ""} style={{ width: "100%" }}>
             <option value="">Todos</option>
-            {CANAIS_MARKETPLACE.map((item) => <option key={item} value={item}>{formatEnumLabel(item)}</option>)}
+            {CANAIS_MARKETPLACE.map((item) => (
+              <option key={item} value={item}>
+                {formatEnumLabel(item)}
+              </option>
+            ))}
           </select>
         </label>
-        
-        <label>Empresa
-          <select name="empresa" defaultValue={normalizedQuery.empresa ?? ""} style={{ width: '100%' }}>
+
+        <label>
+          Empresa
+          <select name="empresa" defaultValue={normalizedQuery.empresa ?? ""} style={{ width: "100%" }}>
             <option value="">Todas</option>
-            {EMPRESAS.map((item) => <option key={item} value={item}>{formatEnumLabel(item)}</option>)}
+            {EMPRESAS.map((item) => (
+              <option key={item} value={item}>
+                {formatEnumLabel(item)}
+              </option>
+            ))}
           </select>
         </label>
-        <label>Motivo
-          <select name="motivo" defaultValue={normalizedQuery.motivo ?? ""} style={{ width: '100%' }}>
+
+        <label>
+          Motivo
+          <select name="motivo" defaultValue={normalizedQuery.motivo ?? ""} style={{ width: "100%" }}>
             <option value="">Todos</option>
-            {MOTIVOS.map((item) => <option key={item} value={item}>{formatEnumLabel(item)}</option>)}
+            {MOTIVOS.map((item) => (
+              <option key={item} value={item}>
+                {formatEnumLabel(item)}
+              </option>
+            ))}
           </select>
         </label>
-        <label>Responsável
-          <select name="responsavelId" defaultValue={normalizedQuery.responsavelId ?? ""} style={{ width: '100%' }}>
-            <option value="">Todos</option>
-            {users.map((item) => <option key={item.id} value={item.id}>{item.nome}</option>)}
-          </select>
+
+        <label>
+          Data inicial
+          <input name="dateFrom" type="date" defaultValue={normalizedQuery.dateFrom} style={{ width: "100%" }} />
         </label>
-        
-        <label>Ordenar por
-          <select name="orderBy" defaultValue={normalizedQuery.orderBy ?? "criadoEm"} style={{ width: '100%' }}>
+
+        <label>
+          Data final
+          <input name="dateTo" type="date" defaultValue={normalizedQuery.dateTo} style={{ width: "100%" }} />
+        </label>
+
+        <label>
+          Ordenar por
+          <select name="orderBy" defaultValue={normalizedQuery.orderBy ?? "criadoEm"} style={{ width: "100%" }}>
             <option value="criadoEm">Criação</option>
             <option value="dataReclamacao">Reclamação</option>
             <option value="custosTotais">Custos</option>
             <option value="prazoConclusao">Prazo</option>
           </select>
         </label>
-        <label>Direção
-          <select name="orderDir" defaultValue={normalizedQuery.orderDir ?? "desc"} style={{ width: '100%' }}>
-            <option value="desc">Descendente</option>
-            <option value="asc">Ascendente</option>
-          </select>
-        </label>
-        
-        <div style={{ display: "flex", alignItems: "center", gap: 8, height: '42px' }}>
-          <input type="checkbox" name="includeConcluidos" value="true" defaultChecked={normalizedQuery.includeConcluidos === "true"} style={{ width: 16, height: 16 }} />
-          <label htmlFor="includeConcluidos" style={{ margin: 0 }}>Incluir concluídos</label>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 8, height: "42px" }}>
+          <input
+            id="includeConcluidos"
+            type="checkbox"
+            name="includeConcluidos"
+            value="true"
+            defaultChecked={normalizedQuery.includeConcluidos === "true"}
+            style={{ width: 16, height: 16 }}
+          />
+          <label htmlFor="includeConcluidos" style={{ margin: 0 }}>
+            Incluir concluídos
+          </label>
         </div>
 
         <input type="hidden" name="page" value="1" />
         <input type="hidden" name="pageSize" value={normalizedQuery.pageSize ?? "20"} />
-        <button type="submit" className="btn btn-primary" style={{ height: '42px' }}>Aplicar filtros</button>
+
+        <button type="submit" className="btn btn-primary" style={{ height: "42px" }}>
+          Aplicar filtros
+        </button>
       </form>
 
       {result.error ? <div className="alert alert-error">{result.error}</div> : null}
@@ -135,10 +229,29 @@ export default async function TicketsPage({ searchParams }: { searchParams: Prom
         <TicketListTable initialItems={result.data} />
       </div>
 
-      <div className="card" style={{ display: "flex", gap: 8, justifyContent: "space-between", flexWrap: "wrap", alignItems: "center" }}>
-        <strong>Paginação:</strong> página {result.pagination.page} de {totalPages} • total {result.pagination.total}
+      <div
+        className="card"
+        style={{
+          display: "flex",
+          gap: 8,
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          alignItems: "center"
+        }}
+      >
+        <strong>
+          Paginação: página {result.pagination.page} de {totalPages} • total {result.pagination.total}
+        </strong>
+
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          <a className="btn btn-secondary" aria-disabled={currentPage <= 1} href={buildTicketHref(normalizedQuery, Math.max(currentPage - 1, 1))}>Anterior</a>
+          <a
+            className="btn btn-secondary"
+            aria-disabled={currentPage <= 1}
+            href={buildTicketHref(normalizedQuery, Math.max(currentPage - 1, 1))}
+          >
+            Anterior
+          </a>
+
           {pagesWindow.map((pageNumber) => (
             <a
               key={pageNumber}
@@ -148,7 +261,14 @@ export default async function TicketsPage({ searchParams }: { searchParams: Prom
               {pageNumber}
             </a>
           ))}
-          <a className="btn btn-secondary" aria-disabled={currentPage >= totalPages} href={buildTicketHref(normalizedQuery, Math.min(currentPage + 1, totalPages))}>Próxima</a>
+
+          <a
+            className="btn btn-secondary"
+            aria-disabled={currentPage >= totalPages}
+            href={buildTicketHref(normalizedQuery, Math.min(currentPage + 1, totalPages))}
+          >
+            Próxima
+          </a>
         </div>
       </div>
     </section>
