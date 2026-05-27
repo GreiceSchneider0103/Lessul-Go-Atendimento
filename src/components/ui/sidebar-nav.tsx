@@ -10,7 +10,6 @@ const navByPerfil: Record<string, NavItem[]> = {
   ADMIN: [
     { label: "Dashboard", href: "/dashboard" },
     { label: "Tickets", href: "/tickets" },
-    { label: "Kanban", href: "/tickets/kanban" },
     { label: "Relatórios", href: "/reports" },
     { label: "Usuários", href: "/users" },
     { label: "Administração", href: "/admin" },
@@ -19,7 +18,6 @@ const navByPerfil: Record<string, NavItem[]> = {
   DEFAULT: [
     { label: "Dashboard", href: "/dashboard" },
     { label: "Tickets", href: "/tickets" },
-    { label: "Kanban", href: "/tickets/kanban" },
     { label: "Relatórios", href: "/reports" },
     { label: "Usuários", href: "/users" },
     { label: "Administração", href: "/admin" }

@@ -51,28 +51,43 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         <p className="muted">Indicadores consolidados da operação de atendimento.</p>
       </div>
 
-      <form className="panel form-grid cols-4" method="GET">
-        <select name="canalMarketplace" defaultValue={normalizedQuery.canalMarketplace ?? ""}>
-          <option value="">Todos os marketplaces</option>
-          {CANAIS_MARKETPLACE.map((item) => <option key={item} value={item}>{formatEnumLabel(item)}</option>)}
-        </select>
-        <select name="empresa" defaultValue={normalizedQuery.empresa ?? ""}>
-          <option value="">Todas as empresas</option>
-          {EMPRESAS.map((item) => <option key={item} value={item}>{formatEnumLabel(item)}</option>)}
-        </select>
-        <input name="startDate" type="date" defaultValue={normalizedQuery.startDate} />
-        <input name="endDate" type="date" defaultValue={normalizedQuery.endDate} />
-        <input name="sku" placeholder="SKU" defaultValue={normalizedQuery.sku} />
-        <button type="submit" className="btn btn-secondary">Filtrar</button>
+      <form className="panel" method="GET" style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center' }}>
+        <div style={{ flex: 1, minWidth: 200 }}>
+          <select name="canalMarketplace" defaultValue={normalizedQuery.canalMarketplace ?? ""} style={{ width: '100%' }}>
+            <option value="">Todos os marketplaces</option>
+            {CANAIS_MARKETPLACE.map((item) => <option key={item} value={item}>{formatEnumLabel(item)}</option>)}
+          </select>
+        </div>
+        <div style={{ flex: 1, minWidth: 180 }}>
+          <select name="empresa" defaultValue={normalizedQuery.empresa ?? ""} style={{ width: '100%' }}>
+            <option value="">Todas as empresas</option>
+            {EMPRESAS.map((item) => <option key={item} value={item}>{formatEnumLabel(item)}</option>)}
+          </select>
+        </div>
+        <input name="startDate" type="date" defaultValue={normalizedQuery.startDate} style={{ width: 'auto' }} />
+        <input name="endDate" type="date" defaultValue={normalizedQuery.endDate} style={{ width: 'auto' }} />
+        <input name="sku" placeholder="SKU" defaultValue={normalizedQuery.sku} style={{ width: 120 }} />
+        <button type="submit" className="btn btn-primary" style={{ height: 42 }}>Filtrar</button>
       </form>
 
       {data.error ? <div className="alert alert-error">{data.error}</div> : null}
 
-      <div className="grid grid-4">
+      <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16 }}>
         {Object.entries(data.cards).map(([key, value]) => {
+          const isFinancial = ['custoTotal', 'reembolsoTotal', 'coletaTotal'].includes(key);
           const config = cardConfig[key] ?? { label: key, tone: "#2563eb", icon: "●" };
           return (
-            <article key={key} className="card" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+            <article 
+              key={key} 
+              className="card" 
+              style={{ 
+                display: "flex", 
+                justifyContent: "space-between", 
+                alignItems: "center", 
+                gap: 12,
+                borderTop: isFinancial ? `4px solid ${config.tone}` : undefined 
+              }}
+            >
               <div>
                 <p className="muted">{config.label}</p>
                 <p className="metric-value">{config.money ? formatCurrencyBR(Number(value)) : String(value)}</p>

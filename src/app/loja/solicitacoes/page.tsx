@@ -36,6 +36,7 @@ type OperationalRequestWithTicket = {
     anexoUrl: string | null;
     anexoNome: string | null;
     anexoPath: string | null;
+    anexoMimeType: string | null;
     valorReembolso: Prisma.Decimal;
     valorAssistencia: Prisma.Decimal;
     valorColetaEnvioPecas: Prisma.Decimal;
@@ -122,6 +123,7 @@ export default async function LojaSolicitacoesPage({ searchParams }: PageProps) 
           anexoUrl: true,
           anexoNome: true,
           anexoPath: true,
+          anexoMimeType: true,
           valorReembolso: true,
           valorColetaEnvioPecas: true,
           valorAssistencia: true,
@@ -165,7 +167,8 @@ export default async function LojaSolicitacoesPage({ searchParams }: PageProps) 
         ? {
             fileUrl: row.ticket.anexoUrl,
             fileName: row.ticket.anexoNome ?? "Anexo",
-            filePath: row.ticket.anexoPath ?? null
+            filePath: row.ticket.anexoPath ?? null,
+            mimeType: row.ticket.anexoMimeType ?? null
           }
         : undefined
     };
@@ -204,7 +207,7 @@ export default async function LojaSolicitacoesPage({ searchParams }: PageProps) 
         <form
           action="/loja/solicitacoes"
           method="get"
-          style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "flex-end" }}
+          style={{ display: "flex", flexWrap: "wrap", gap: 16, alignItems: "flex-end" }}
         >
           {user.perfil === "ADMIN" ? (
             <label style={{ minWidth: 220 }}>
@@ -232,13 +235,26 @@ export default async function LojaSolicitacoesPage({ searchParams }: PageProps) 
             </select>
           </label>
 
-          <button className="btn btn-primary" type="submit">
-            Filtrar
-          </button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button className="btn btn-primary" type="submit" style={{ height: "42px" }}>
+              Filtrar
+            </button>
 
-          <Link className="btn btn-secondary" href="/loja/solicitacoes">
-            Limpar
-          </Link>
+            <Link 
+              className="btn btn-secondary" 
+              href="/loja/solicitacoes" 
+              style={{ 
+                height: "42px", 
+                display: "inline-flex", 
+                alignItems: "center",
+                backgroundColor: '#f1f5f9',
+                color: '#475569',
+                border: '1px solid #e2e8f0'
+              }}
+            >
+              Limpar
+            </Link>
+          </div>
         </form>
       </div>
 
