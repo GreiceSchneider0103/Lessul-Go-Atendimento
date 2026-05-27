@@ -19,6 +19,7 @@ type TicketAttachment = {
   mimeType?: string | null;
   sizeBytes?: number | null;
   uploadedAt?: string | null;
+  uploadedBy?: string | null;
 };
 
 type TicketFormProps = {
@@ -27,8 +28,8 @@ type TicketFormProps = {
   canEditSensitive?: boolean;
   assignableUsers?: AssignableUser[];
   cancelHref?: "/tickets" | `/tickets/${string}`;
-  ticketAttachment?: TicketAttachment;
   userPerfil?: UserPerfil;
+  ticketAttachment?: TicketAttachment;
 };
 
 function toText(value: unknown): string {
@@ -89,8 +90,8 @@ export function TicketForm({
   canEditSensitive = true,
   assignableUsers = [],
   cancelHref,
-  ticketAttachment,
-  userPerfil
+  userPerfil,
+  ticketAttachment
 }: TicketFormProps) {
   const router = useRouter();
 
@@ -124,15 +125,12 @@ export function TicketForm({
       dataReclamacao: toDateInput(initialValues?.dataReclamacao),
       motivo: toText(initialValues?.motivo) || "DESISTENCIA",
       detalhesCliente: toText(initialValues?.detalhesCliente),
-      comentarioInterno: toText(initialValues?.comentarioInterno),
       resolucao: toNullableText(initialValues?.resolucao),
       valorReembolso: toNumberValue(initialValues?.valorReembolso),
       valorColeta: toNumberValue(initialValues?.valorColeta),
       valorAssistencia: toNumberValue(initialValues?.valorAssistencia),
       valorColetaEnvioPecas: toNumberValue(initialValues?.valorColetaEnvioPecas),
       codigoRastreio: toText(initialValues?.codigoRastreio),
-      statusOperacionalLoja: toText(initialValues?.statusOperacionalLoja) || "EM_ABERTO",
-      comentarioLoja: toText(initialValues?.comentarioLoja),
       statusTicket: toText(initialValues?.statusTicket) || "ABERTO",
       prazoConclusao: toDateInput(initialValues?.prazoConclusao),
       responsavelId: toNullableText(initialValues?.responsavelId),
@@ -161,8 +159,6 @@ export function TicketForm({
       fabricante: toText(values.fabricante),
       transportadora: toText(values.transportadora),
       detalhesCliente: toText(values.detalhesCliente),
-      comentarioInterno: toText(values.comentarioInterno),
-      comentarioLoja: toText(values.comentarioLoja),
       codigoRastreio: toText(values.codigoRastreio),
       responsavelId: toNullableText(values.responsavelId),
       resolucao: toNullableText(values.resolucao),
@@ -194,11 +190,14 @@ export function TicketForm({
       return;
     }
 
-    if (payload.acaoOperacionalLoja !== "NENHUMA" && ticketId) {
+    const result = await response.json().catch(() => ({}));
+    const activeTicketId = ticketId || result.data?.id;
+
+    if (payload.acaoOperacionalLoja !== "NENHUMA" && activeTicketId) {
       await fetch("/api/operational-requests", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ticketId, tipoAcao: payload.acaoOperacionalLoja })
+        body: JSON.stringify({ ticketId: activeTicketId, tipoAcao: payload.acaoOperacionalLoja })
       });
     }
 

@@ -240,7 +240,7 @@ export default async function LojaSolicitacoesPage({ searchParams }: PageProps) 
               Filtrar
             </button>
 
-            <Link 
+            <Link
               className="btn btn-secondary" 
               href="/loja/solicitacoes" 
               style={{ 

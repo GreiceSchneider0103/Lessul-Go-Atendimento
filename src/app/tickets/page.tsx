@@ -69,53 +69,64 @@ export default async function TicketsPage({ searchParams }: { searchParams: Prom
         </Link>
       </div>
 
-      <form className="panel form-grid cols-4" method="GET">
-        <input name="search" placeholder="Busca por cliente, venda, produto" defaultValue={normalizedQuery.search} />
-        <input name="sku" placeholder="SKU" defaultValue={normalizedQuery.sku} />
-        <select name="canalMarketplace" defaultValue={normalizedQuery.canalMarketplace ?? ""}>
-          <option value="">Todos os marketplaces</option>
-          {CANAIS_MARKETPLACE.map((item) => <option key={item} value={item}>{formatEnumLabel(item)}</option>)}
-        </select>
-        <select name="empresa" defaultValue={normalizedQuery.empresa ?? ""}>
-          <option value="">Todas as empresas</option>
-          {EMPRESAS.map((item) => <option key={item} value={item}>{formatEnumLabel(item)}</option>)}
-        </select>
-        <select name="statusTicket" defaultValue={normalizedQuery.statusTicket ?? ""}>
-          <option value="">Todos os status de ticket</option>
-          {STATUS_TICKET.map((item) => <option key={item} value={item}>{formatEnumLabel(item)}</option>)}</select>
-        <select name="statusReclamacao" defaultValue={normalizedQuery.statusReclamacao ?? ""}>
-          <option value="">Todos os status de reclamação</option>
-          {STATUS_RECLAMACAO.map((item) => <option key={item} value={item}>{formatEnumLabel(item)}</option>)}</select>
-        <select name="motivo" defaultValue={normalizedQuery.motivo ?? ""}>
-          <option value="">Todos os motivos</option>
-          {MOTIVOS.map((item) => <option key={item} value={item}>{formatEnumLabel(item)}</option>)}</select>
-        <select name="responsavelId" defaultValue={normalizedQuery.responsavelId ?? ""}>
-          <option value="">Todos os responsáveis</option>
-          {users.map((item) => <option key={item.id} value={item.id}>{item.nome}</option>)}
-        </select>
-        <select name="criadoPorId" defaultValue={normalizedQuery.criadoPorId ?? ""}>
-          <option value="">Todos os criadores</option>
-          {users.map((item) => <option key={item.id} value={item.id}>{item.nome}</option>)}
-        </select>
-        <input name="startDate" type="date" defaultValue={normalizedQuery.startDate} />
-        <input name="endDate" type="date" defaultValue={normalizedQuery.endDate} />
-        <select name="orderBy" defaultValue={normalizedQuery.orderBy ?? "criadoEm"}>
-          <option value="criadoEm">Criado em</option>
-          <option value="dataReclamacao">Data reclamação</option>
-          <option value="custosTotais">Custos</option>
-          <option value="prazoConclusao">Prazo</option>
-        </select>
-        <select name="orderDir" defaultValue={normalizedQuery.orderDir ?? "desc"}>
-          <option value="desc">Mais recentes primeiro</option>
-          <option value="asc">Mais antigos primeiro</option>
-        </select>
-        <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <input style={{ width: 16, height: 16 }} type="checkbox" name="includeConcluidos" value="true" defaultChecked={normalizedQuery.includeConcluidos === "true"} />
-          Incluir concluídos
+      <form className="panel" method="GET" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, alignItems: 'flex-end' }}>
+        <div style={{ gridColumn: 'span 2 / auto' }}> {/* Ocupa 2 colunas no desktop */}
+          <label>Busca
+            <input name="search" placeholder="Cliente, venda, produto" defaultValue={normalizedQuery.search} style={{ width: '100%' }} />
+          </label>
+        </div>
+        <label>SKU
+          <input name="sku" placeholder="SKU" defaultValue={normalizedQuery.sku} style={{ width: '100%' }} />
         </label>
+        <label>Marketplace
+          <select name="canalMarketplace" defaultValue={normalizedQuery.canalMarketplace ?? ""} style={{ width: '100%' }}>
+            <option value="">Todos</option>
+            {CANAIS_MARKETPLACE.map((item) => <option key={item} value={item}>{formatEnumLabel(item)}</option>)}
+          </select>
+        </label>
+        
+        <label>Empresa
+          <select name="empresa" defaultValue={normalizedQuery.empresa ?? ""} style={{ width: '100%' }}>
+            <option value="">Todas</option>
+            {EMPRESAS.map((item) => <option key={item} value={item}>{formatEnumLabel(item)}</option>)}
+          </select>
+        </label>
+        <label>Motivo
+          <select name="motivo" defaultValue={normalizedQuery.motivo ?? ""} style={{ width: '100%' }}>
+            <option value="">Todos</option>
+            {MOTIVOS.map((item) => <option key={item} value={item}>{formatEnumLabel(item)}</option>)}
+          </select>
+        </label>
+        <label>Responsável
+          <select name="responsavelId" defaultValue={normalizedQuery.responsavelId ?? ""} style={{ width: '100%' }}>
+            <option value="">Todos</option>
+            {users.map((item) => <option key={item.id} value={item.id}>{item.nome}</option>)}
+          </select>
+        </label>
+        
+        <label>Ordenar por
+          <select name="orderBy" defaultValue={normalizedQuery.orderBy ?? "criadoEm"} style={{ width: '100%' }}>
+            <option value="criadoEm">Criação</option>
+            <option value="dataReclamacao">Reclamação</option>
+            <option value="custosTotais">Custos</option>
+            <option value="prazoConclusao">Prazo</option>
+          </select>
+        </label>
+        <label>Direção
+          <select name="orderDir" defaultValue={normalizedQuery.orderDir ?? "desc"} style={{ width: '100%' }}>
+            <option value="desc">Descendente</option>
+            <option value="asc">Ascendente</option>
+          </select>
+        </label>
+        
+        <div style={{ display: "flex", alignItems: "center", gap: 8, height: '42px' }}>
+          <input type="checkbox" name="includeConcluidos" value="true" defaultChecked={normalizedQuery.includeConcluidos === "true"} style={{ width: 16, height: 16 }} />
+          <label htmlFor="includeConcluidos" style={{ margin: 0 }}>Incluir concluídos</label>
+        </div>
+
         <input type="hidden" name="page" value="1" />
         <input type="hidden" name="pageSize" value={normalizedQuery.pageSize ?? "20"} />
-        <button type="submit" className="btn btn-secondary">Aplicar filtros</button>
+        <button type="submit" className="btn btn-primary" style={{ height: '42px' }}>Aplicar filtros</button>
       </form>
 
       {result.error ? <div className="alert alert-error">{result.error}</div> : null}
