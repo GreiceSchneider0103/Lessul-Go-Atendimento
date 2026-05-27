@@ -173,17 +173,11 @@ export default async function TicketDetail({ params }: { params: Promise<{ id: s
     : [];
 
   if (error || !ticket) {
-    return (
-      <section className="page">
-        <Link href="/tickets" className="ticket-back-link">
-          ← Voltar para tickets
-        </Link>
-
-        <div className="alert alert-error">{error ?? "Ticket não encontrado"}</div>
-      </section>
-    );
+    throw new Error(error ?? "Ticket não encontrado"); // Deixe o Next.js lidar com error.tsx
   }
 
+  // Sugestão: Tipar o retorno do getTicketById corretamente no service 
+  // para evitar o cast 'as typeof ticket & ...'
   const ticketComExtras = ticket as typeof ticket & {
     valorAssistencia?: unknown;
     valorColetaEnvioPecas?: unknown;
