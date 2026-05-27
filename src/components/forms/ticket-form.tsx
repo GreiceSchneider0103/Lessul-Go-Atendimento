@@ -506,6 +506,7 @@ export function TicketForm({
 
                     setAttachmentFile(null);
                     setAttachmentMessage("Anexo enviado com sucesso.");
+                    router.refresh();
                   } catch {
                     setAttachmentError("Falha ao enviar o anexo.");
                   } finally {

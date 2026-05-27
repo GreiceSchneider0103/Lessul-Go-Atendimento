@@ -97,13 +97,22 @@ export default async function TicketEditPage({ params }: { params: Promise<{ id:
         <p className="muted">ID: {ticket.id}</p>
       </div>
 
-      <TicketForm
+       <TicketForm
         ticketId={id}
         initialValues={initialValues}
         canEditSensitive={!isLoja}
         assignableUsers={assignableUsers}
         cancelHref={`/tickets/${id}`}
         userPerfil={user.perfil}
+        ticketAttachment={{
+          fileUrl: ticket.anexoUrl,
+          fileName: ticket.anexoNome,
+          filePath: ticket.anexoPath,
+          mimeType: ticket.anexoMimeType,
+          sizeBytes: ticket.anexoSizeBytes ? Number(ticket.anexoSizeBytes) : null,
+          uploadedAt: ticket.anexoUploadedAt?.toISOString() ?? null,
+          uploadedBy: ticket.anexoUploadedBy
+        }}
       />
     </section>
   );
