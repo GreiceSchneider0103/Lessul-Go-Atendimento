@@ -18,7 +18,7 @@ async function getTicket(id: string, user: Awaited<ReturnType<typeof requireCurr
   }
 }
 
-function toFormValues(payload: Awaited<ReturnType<typeof getTicketById>>): Partial<TicketFormInput> {
+function toFormValues(payload: Awaited<ReturnType<typeof getTicketById>>): Partial<TicketFormInput> & { anexoUrl?: string | null; anexoNome?: string | null } {
   return {
     nomeCliente: payload.nomeCliente,
     dataCompra: payload.dataCompra ? payload.dataCompra.toISOString() : "",
@@ -42,7 +42,9 @@ function toFormValues(payload: Awaited<ReturnType<typeof getTicketById>>): Parti
     valorColeta: Number(payload.valorColeta ?? 0),
     statusTicket: payload.statusTicket,
     prazoConclusao: payload.prazoConclusao ? payload.prazoConclusao.toISOString() : null,
-    responsavelId: payload.responsavelId ?? null
+    responsavelId: payload.responsavelId ?? null,
+    anexoUrl: (payload as any).anexoUrl ?? null,
+    anexoNome: (payload as any).anexoNome ?? null
   };
 }
 
@@ -75,6 +77,7 @@ export default async function EditTicketPage({ params }: { params: Promise<{ id:
             canEditSensitive={hasPermission(user.perfil, "ticket.update_sensitive")}
             assignableUsers={assignableUsers}
             cancelHref={`/tickets/${id}`}
+            perfil={user.perfil as any}
           />
 
           <aside className="panel" style={{ alignSelf: "start" }}>

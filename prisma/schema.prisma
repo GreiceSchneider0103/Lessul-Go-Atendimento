@@ -9,64 +9,84 @@ datasource db {
 }
 
 model Usuario {
-  id                 String            @id @default(uuid())
-  authUserId         String            @unique
-  nome               String
-  email              String            @unique
-  perfil             Perfil
-  ativo              Boolean           @default(true)
-  criadoEm           DateTime          @default(now())
-  atualizadoEm       DateTime          @updatedAt
-  ticketsAtualizados Ticket[]          @relation("tickets_atualizados")
-  ticketsCriados     Ticket[]          @relation("tickets_criados")
-  ticketsResponsavel Ticket[]          @relation("tickets_responsavel")
-  auditorias         TicketAuditoria[]
-  auditoriasComoAlvo UsuarioAuditoria[]  @relation("usuario_auditoria_alvo")
-  auditoriasComoAtor UsuarioAuditoria[]  @relation("usuario_auditoria_ator")
+  id                      String                         @id @default(uuid())
+  authUserId              String                         @unique
+  nome                    String
+  email                   String                         @unique
+  perfil                  Perfil
+  ativo                   Boolean                        @default(true)
+  criadoEm                DateTime                       @default(now())
+  atualizadoEm            DateTime                       @updatedAt
+  ticketsAtualizados      Ticket[]                       @relation("tickets_atualizados")
+  ticketsCriados          Ticket[]                       @relation("tickets_criados")
+  ticketsResponsavel      Ticket[]                       @relation("tickets_responsavel")
+  auditorias              TicketAuditoria[]
+  auditoriasComoAlvo      UsuarioAuditoria[]             @relation("usuario_auditoria_alvo")
+  auditoriasComoAtor      UsuarioAuditoria[]             @relation("usuario_auditoria_ator")
+  empresaVinculada        Empresa?
+  operacionaisCriadas     OperationalRequest[]           @relation("operacionais_criadas")
+  operacionaisAtualizadas OperationalRequest[]           @relation("operacionais_atualizadas")
+  anexosOperacionais      OperationalRequestAttachment[] @relation("anexos_operacionais_usuario")
 }
 
 model Ticket {
-  id               String            @id @default(uuid())
-  nomeCliente      String
-  dataCompra       DateTime
-  numeroVenda      String
-  linkPedido       String?
-  uf               String            @db.Char(2)
-  cpf              String
-  canalMarketplace String
-  empresa          Empresa
-  produto          String
-  sku              String
-  fabricante       String?
-  transportadora   String?
-  statusReclamacao StatusReclamacao
-  dataReclamacao   DateTime
-  motivo           Motivo
-  detalhesCliente  String?
-  comentarioInterno String?
-  resolucao        Resolucao?
-  valorReembolso   Decimal           @default(0) @db.Decimal(12, 2)
-  valorColeta      Decimal           @default(0) @db.Decimal(12, 2)
-  custosTotais     Decimal           @default(0) @db.Decimal(12, 2)
-  statusTicket     StatusTicket      @default(ABERTO)
-  responsavelId    String?
-  criadoEm         DateTime          @default(now())
-  criadoPorId      String
-  atualizadoPorId  String
-  atualizadoEm     DateTime          @updatedAt
-  prazoConclusao   DateTime?
-  ativo            Boolean           @default(true)
-  mesReclamacao    Int
-  anoReclamacao    Int
-  slaStatus          String            @default("NO_PRAZO")
-  backupSheetRowNumber Int?
-  backupSyncStatus   BackupSyncStatus  @default(PENDING)
-  backupLastSyncedAt DateTime?
-  backupSyncError    String?
-  atualizadoPor    Usuario           @relation("tickets_atualizados", fields: [atualizadoPorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  criadoPor        Usuario           @relation("tickets_criados", fields: [criadoPorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  responsavel      Usuario?          @relation("tickets_responsavel", fields: [responsavelId], references: [id])
-  auditoria        TicketAuditoria[]
+  id                            String                         @id @default(uuid())
+  nomeCliente                   String
+  dataCompra                    DateTime
+  numeroVenda                   String
+  linkPedido                    String?
+  uf                            String                         @db.Char(2)
+  cpf                           String
+  canalMarketplace              String
+  empresa                       Empresa
+  produto                       String
+  sku                           String
+  fabricante                    String?
+  transportadora                String?
+  statusReclamacao              StatusReclamacao
+  dataReclamacao                DateTime
+  motivo                        Motivo
+  detalhesCliente               String?
+  comentarioInterno             String?
+  resolucao                     Resolucao?
+  valorReembolso                Decimal                        @default(0) @db.Decimal(12, 2)
+  valorColeta                   Decimal                        @default(0) @db.Decimal(12, 2)
+  custosTotais                  Decimal                        @default(0) @db.Decimal(12, 2)
+  statusTicket                  StatusTicket                   @default(ABERTO)
+  responsavelId                 String?
+  criadoEm                      DateTime                       @default(now())
+  criadoPorId                   String
+  atualizadoPorId               String
+  atualizadoEm                  DateTime                       @updatedAt
+  prazoConclusao                DateTime?
+  ativo                         Boolean                        @default(true)
+  mesReclamacao                 Int
+  anoReclamacao                 Int
+  slaStatus                     String                         @default("NO_PRAZO")
+  backupSheetRowNumber          Int?
+  backupSyncStatus              BackupSyncStatus               @default(PENDING)
+  backupLastSyncedAt            DateTime?
+  backupSyncError               String?
+  acaoOperacionalLoja           AcaoOperacionalLoja            @default(NENHUMA)
+  statusOperacionalLoja         StatusOperacionalLoja          @default(EM_ABERTO)
+  codigoRastreio                String?
+  valorAssistencia              Decimal                        @default(0) @db.Decimal(12, 2)
+  valorColetaEnvioPecas         Decimal                        @default(0) @db.Decimal(12, 2)
+  comentarioLoja                String?
+  anexoUrl                      String?
+  anexoPath                     String?
+  anexoNome                     String?
+  anexoMimeType                 String?
+  anexoSizeBytes                BigInt?
+  anexoUploadedAt               DateTime?
+  anexoUploadedBy               String?
+  atualizadoPor                 Usuario                        @relation("tickets_atualizados", fields: [atualizadoPorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  criadoPor                     Usuario                        @relation("tickets_criados", fields: [criadoPorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  responsavel                   Usuario?                       @relation("tickets_responsavel", fields: [responsavelId], references: [id])
+  auditoria                     TicketAuditoria[]
+  operationalRequests           OperationalRequest[]
+  operationalRequestAttachments OperationalRequestAttachment[]
+  comentariosOperacionais       TicketComentarioOperacional[]
 
   @@index([dataReclamacao])
   @@index([canalMarketplace, empresa], map: "Ticket_marketplace_empresa_idx")
@@ -92,18 +112,17 @@ model TicketAuditoria {
   @@index([usuarioId], map: "TicketAuditoria_usuario_idx")
 }
 
-
 model UsuarioAuditoria {
-  id              String                @id @default(uuid())
-  usuarioId       String
-  atorId          String
-  acao            AcaoUsuarioAuditoria
-  campo           String
-  valorAntigo     String?
-  valorNovo       String?
-  dataHora        DateTime              @default(now())
-  usuario         Usuario               @relation("usuario_auditoria_alvo", fields: [usuarioId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  ator            Usuario               @relation("usuario_auditoria_ator", fields: [atorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  id          String               @id @default(uuid())
+  usuarioId   String
+  atorId      String
+  acao        AcaoUsuarioAuditoria
+  campo       String
+  valorAntigo String?
+  valorNovo   String?
+  dataHora    DateTime             @default(now())
+  usuario     Usuario              @relation("usuario_auditoria_alvo", fields: [usuarioId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ator        Usuario              @relation("usuario_auditoria_ator", fields: [atorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([usuarioId, dataHora], map: "UsuarioAuditoria_usuario_data_idx")
   @@index([atorId], map: "UsuarioAuditoria_ator_idx")
@@ -113,6 +132,7 @@ enum Perfil {
   ATENDENTE
   SUPERVISOR
   ADMIN
+  LOJA
 }
 
 enum Empresa {
@@ -152,6 +172,116 @@ enum StatusTicket {
   AGUARDANDO_DEVOLUCAO
   AGUARDANDO_ASSISTENCIA
   AGUARDANDO_MARKETPLACE
+}
+
+enum AcaoOperacionalLoja {
+  NENHUMA
+  ASSISTENCIA
+  COLETA
+  DEVOLUCAO
+  REEMBOLSO
+}
+
+enum StatusOperacionalLoja {
+  EM_ABERTO
+  ASSISTENCIA_ENVIADA
+  ASSISTENCIA_A_CAMINHO
+  ASSISTENCIA_ENTREGUE
+  COLETA_SOLICITADA
+  COLETA_FEITA
+  DEVOLUCAO_SOLICITADA
+  DEVOLUCAO_A_CAMINHO
+  DEVOLUCAO_REALIZADA
+  REEMBOLSO_PENDENTE
+  REEMBOLSO_REALIZADO
+  AGUARDANDO_ATENDENTE
+  CONCLUIDA
+}
+
+enum TipoAcaoOperacional {
+  ASSISTENCIA
+  COLETA
+  DEVOLUCAO
+  REEMBOLSO
+}
+
+enum StatusOperacional {
+  EM_ABERTO
+  ASSISTENCIA_A_CAMINHO
+  ASSISTENCIA_ENTREGUE
+  COLETA_SOLICITADA
+  COLETA_FEITA
+  DEVOLUCAO_SOLICITADA
+  DEVOLUCAO_REALIZADA
+  REEMBOLSO_PENDENTE
+  REEMBOLSO_REALIZADO
+  AGUARDANDO_ATENDENTE
+  CONCLUIDA
+}
+
+enum TipoAnexoOperacional {
+  IMAGEM_PECA
+  CTE
+  COMPROVANTE_REEMBOLSO
+  OUTRO
+}
+
+model OperationalRequest {
+  id                    String                         @id @default(uuid())
+  ticketId              String
+  empresa               Empresa
+  tipoAcao              TipoAcaoOperacional
+  status                StatusOperacional              @default(EM_ABERTO)
+  prazoOperacional      DateTime?
+  comentarioAtendente   String?
+  comentarioLoja        String?
+  valorReembolso        Decimal                        @default(0) @db.Decimal(12, 2)
+  valorCte              Decimal                        @default(0) @db.Decimal(12, 2)
+  valorColetaEnvioPecas Decimal                        @default(0) @db.Decimal(12, 2)
+  codigoRastreio        String?
+  createdBy             String?
+  updatedBy             String?
+  completedAt           DateTime?
+  createdAt             DateTime                       @default(now())
+  updatedAt             DateTime                       @updatedAt
+  ticket                Ticket                         @relation(fields: [ticketId], references: [id])
+  criador               Usuario?                       @relation("operacionais_criadas", fields: [createdBy], references: [id])
+  atualizador           Usuario?                       @relation("operacionais_atualizadas", fields: [updatedBy], references: [id])
+  anexos                OperationalRequestAttachment[]
+
+  @@index([empresa, status])
+}
+
+model OperationalRequestAttachment {
+  id                   String               @id @default(uuid())
+  operationalRequestId String
+  ticketId             String
+  empresa              Empresa
+  tipoAnexo            TipoAnexoOperacional
+  fileUrl              String?
+  storagePath          String?
+  fileName             String
+  mimeType             String?
+  sizeBytes            BigInt?
+  uploadedBy           String?
+  uploadedAt           DateTime             @default(now())
+  operationalRequest   OperationalRequest   @relation(fields: [operationalRequestId], references: [id], onDelete: Cascade)
+  ticket               Ticket               @relation(fields: [ticketId], references: [id])
+  uploader             Usuario?             @relation("anexos_operacionais_usuario", fields: [uploadedBy], references: [id])
+}
+
+
+model TicketComentarioOperacional {
+  id         String   @id @default(uuid())
+  ticketId    String
+  autorId     String?
+  autorNome   String?
+  autorPerfil Perfil?
+  comentario  String
+  criadoEm    DateTime @default(now())
+  ticket      Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId, criadoEm], map: "TicketComentarioOperacional_ticketId_criadoEm_idx")
 }
 
 enum BackupSyncStatus {
