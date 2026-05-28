@@ -44,6 +44,10 @@ type OperationalRequestWithTicket = {
     statusOperacionalLoja: StatusOperacionalLoja;
     comentarioLoja: string | null;
     acaoOperacionalLoja: string;
+    produto: string;
+    sku: string;
+    detalhesCliente: string | null;
+    resolucao: string | null;
   };
 };
 
@@ -148,7 +152,11 @@ export default async function LojaSolicitacoesPage({ searchParams }: PageProps) 
           codigoRastreio: true,
           statusOperacionalLoja: true,
           comentarioLoja: true,
-          acaoOperacionalLoja: true
+          acaoOperacionalLoja: true,
+          produto: true,
+          sku: true,
+          detalhesCliente: true,
+          resolucao: true
         }
       }
     },
@@ -173,11 +181,19 @@ export default async function LojaSolicitacoesPage({ searchParams }: PageProps) 
       comentarioAtendente: row.comentarioAtendente ?? null,
       codigoRastreio: row.ticket.codigoRastreio ?? row.codigoRastreio ?? null,
       valorReembolso: toNumber(row.ticket.valorReembolso) || toNumber(row.valorReembolso),
+      valorAssistencia: toNumber(row.ticket.valorAssistencia),
       valorColetaEnvioPecas: toNumber(row.ticket.valorColetaEnvioPecas) || toNumber(row.valorColetaEnvioPecas),
       ticket: {
         nomeCliente: row.ticket.nomeCliente,
         numeroVenda: row.ticket.numeroVenda,
-        linkPedido: row.ticket.linkPedido ?? null
+        linkPedido: row.ticket.linkPedido ?? null,
+        produto: row.ticket.produto,
+        sku: row.ticket.sku,
+        detalhesCliente: row.ticket.detalhesCliente ?? null,
+        resolucao: row.ticket.resolucao ?? null,
+        acaoOperacionalLoja: row.ticket.acaoOperacionalLoja,
+        statusOperacionalLoja: row.ticket.statusOperacionalLoja,
+        comentarioLoja: row.ticket.comentarioLoja ?? null,
       },
       anexo: row.ticket.anexoUrl
         ? {

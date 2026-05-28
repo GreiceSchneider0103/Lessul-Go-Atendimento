@@ -1,4 +1,5 @@
 "use client";
+import { useState } from "react";
 import Link from "next/link";
 import { Perfil, StatusOperacional } from "@prisma/client";
 import { formatDateBR, formatDateTimeBR, formatEnumLabel } from "@/lib/formatters/display";
@@ -14,17 +15,48 @@ type Row = {
   comentarioLoja: string | null; 
   comentarioAtendente: string | null; 
   codigoRastreio: string | null; 
-  valorReembolso: number; 
-  valorAssistencia?: number; 
+  valorReembolso: number;
+  valorAssistencia?: number;
   valorColetaEnvioPecas: number; 
-  ticket: { nomeCliente: string; numeroVenda: string; linkPedido: string | null }; 
+  ticket: { 
+    nomeCliente: string; 
+    numeroVenda: string; 
+    linkPedido: string | null;
+    produto: string;
+    sku: string;
+    detalhesCliente: string | null;
+    resolucao: string | null;
+    acaoOperacionalLoja: string;
+    statusOperacionalLoja: string;
+    comentarioLoja: string | null;
+  }; 
   anexo?: { fileUrl: string | null; fileName?: string; filePath?: string | null; mimeType?: string | null } 
 };
 
 const statusOptions = ["EM_ABERTO","ASSISTENCIA_ENVIADA","ASSISTENCIA_A_CAMINHO","ASSISTENCIA_ENTREGUE","COLETA_SOLICITADA","COLETA_FEITA","DEVOLUCAO_SOLICITADA","DEVOLUCAO_A_CAMINHO","DEVOLUCAO_REALIZADA","REEMBOLSO_PENDENTE","REEMBOLSO_REALIZADO","AGUARDANDO_ATENDENTE","CONCLUIDA"];
 const STATUS_OPERACIONAL_LABELS: Record<string, string> = { EM_ABERTO:"Em aberto", ASSISTENCIA_ENVIADA:"Assistência enviada", ASSISTENCIA_A_CAMINHO:"Assistência a caminho", ASSISTENCIA_ENTREGUE:"Assistência entregue", COLETA_SOLICITADA:"Coleta solicitada", COLETA_FEITA:"Coleta feita", DEVOLUCAO_SOLICITADA:"Devolução solicitada", DEVOLUCAO_A_CAMINHO:"Devolução a caminho", DEVOLUCAO_REALIZADA:"Devolução realizada", REEMBOLSO_PENDENTE:"Reembolso pendente", REEMBOLSO_REALIZADO:"Reembolso realizado", AGUARDANDO_ATENDENTE:"Aguardando atendente", CONCLUIDA:"Concluída" };
 
+const resolucoesOptions = ["ASSISTENCIA", "DEVOLUCAO", "REEMBOLSO", "RESOLVIDO"];
+const resolucoesLabels: Record<string, string> = {
+  ASSISTENCIA: "Assistência",
+  DEVOLUCAO: "Devolução",
+  REEMBOLSO: "Reembolso",
+  RESOLVIDO: "Resolvido"
+};
+
+const acoesOptions = ["NENHUMA", "ASSISTENCIA", "COLETA", "DEVOLUCAO", "REEMBOLSO"];
+const acoesLabels: Record<string, string> = {
+  NENHUMA: "Nenhuma",
+  ASSISTENCIA: "Assistência",
+  COLETA: "Coleta",
+  DEVOLUCAO: "Devolução",
+  REEMBOLSO: "Reembolso"
+};
+
 export function OperationalRequestsPanel({ data, perfil }: { data: Row[]; perfil: Perfil }) {
+  const [selectedRow, setSelectedRow] = useState<Row | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
   const renderAnexoThumbnail = (row: Row) => {
     if (!row.anexo?.fileUrl) return <span style={{ color: '#999', fontSize: '0.85rem' }}>Sem anexo</span>;
 
@@ -51,129 +83,539 @@ export function OperationalRequestsPanel({ data, perfil }: { data: Row[]; perfil
     );
   };
 
+  const handleSaveDrawer = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!selectedRow) return;
+
+    setIsSaving(true);
+    try {
+      const fd = new FormData(e.currentTarget);
+      const payload = Object.fromEntries(fd.entries());
+      
+      // Remove empty strings
+      Object.keys(payload).forEach(key => {
+        if (payload[key] === "") delete payload[key];
+      });
+
+      const response = await fetch(`/api/tickets/${selectedRow.ticketId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        alert("Falha ao atualizar: " + error);
+        return;
+      }
+
+      alert("Dados salvos com sucesso!");
+      setSelectedRow(null);
+      location.reload();
+    } catch (error) {
+      alert("Erro ao salvar: " + (error instanceof Error ? error.message : String(error)));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleUploadAttachment = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!selectedRow) return;
+
+    const file = (e.currentTarget.querySelector('input[type="file"]') as HTMLInputElement)?.files?.[0];
+    if (!file) {
+      alert("Selecione um arquivo");
+      return;
+    }
+
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      
+      const response = await fetch(`/api/tickets/${selectedRow.ticketId}/attachment`, {
+        method: "POST",
+        body: fd
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        alert("Falha no upload: " + error);
+        return;
+      }
+
+      alert("Anexo enviado com sucesso!");
+      setSelectedRow(null);
+      location.reload();
+    } catch (error) {
+      alert("Erro no upload: " + (error instanceof Error ? error.message : String(error)));
+    }
+  };
+
   return (
-    <div className="panel table-wrap">
-      <table className="table">
-        <thead>
-          <tr>
-            <th>Empresa</th>
-            <th>Ticket</th>
-            <th>Cliente</th>
-            <th>Pedido</th>
-            <th>Ação</th>
-            <th>Status</th>
-            <th>Prazo</th>
-            <th>Anexo</th>
-            <th>Atualizado</th>
-            <th>Ações</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.map((row) => {
-            const isAtrasado = row.prazoOperacional && new Date(row.prazoOperacional) < new Date() && row.status !== "CONCLUIDA";
-            
-            return (
-              <tr key={row.id}>
-                <td>{formatEnumLabel(row.empresa)}</td>
-                <td><Link href={`/tickets/${row.ticketId}`} className="link">Ver Ticket</Link></td>
-                <td>{row.ticket.nomeCliente}</td>
-                <td>
-                  {row.ticket.linkPedido ? (
-                    <a href={row.ticket.linkPedido} target="_blank" rel="noopener noreferrer" className="link">
-                      {row.ticket.numeroVenda}
-                    </a>
-                  ) : row.ticket.numeroVenda}
-                </td>
-                <td><span className="badge">{formatEnumLabel(row.tipoAcao)}</span></td>
-                <td>{STATUS_OPERACIONAL_LABELS[row.status] ?? formatEnumLabel(row.status)}</td>
-                <td>
-                  {row.prazoOperacional ? (
-                    <span style={{ 
-                      padding: '4px 8px', 
-                      borderRadius: '4px', 
-                      fontSize: '0.85rem',
-                      fontWeight: '500',
-                      backgroundColor: isAtrasado ? '#fff1f0' : '#f6ffed', 
-                      color: isAtrasado ? '#cf1322' : '#389e0d',
-                      border: `1px solid ${isAtrasado ? '#ffa39e' : '#b7eb8f'}`
-                    }}>
-                      {formatDateBR(new Date(row.prazoOperacional))}
-                    </span>
-                  ) : '-'}
-                </td>
-                <td>{renderAnexoThumbnail(row)}</td>
-                <td style={{ fontSize: '0.85rem', color: '#666' }}>{formatDateTimeBR(new Date(row.updatedAt))}</td>
-                <td>
-                  <details className="dropdown-details">
-                    <summary className="btn btn-sm">Ações</summary>
-                    <div className="panel details-content" style={{ marginTop: 8, padding: 16, minWidth: 300, border: '1px solid #eee' }}>
-                      <form onSubmit={async (e)=>{
-                        e.preventDefault();
-                        const fd=new FormData(e.currentTarget);
-                        const payload=Object.fromEntries(fd.entries());
-                        const r=await fetch(`/api/operational-requests/${row.id}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
-                        if(!r.ok){alert("Falha ao atualizar");return;}
-                        location.reload();
+    <>
+      <div className="panel table-wrap">
+        <table className="table">
+          <thead>
+            <tr>
+              <th>Empresa</th>
+              <th>Ticket</th>
+              <th>Cliente</th>
+              <th>Pedido</th>
+              <th>Ação</th>
+              <th>Status</th>
+              <th>Prazo</th>
+              <th>Anexo</th>
+              <th>Atualizado</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.map((row) => {
+              const isAtrasado = row.prazoOperacional && new Date(row.prazoOperacional) < new Date() && row.status !== "CONCLUIDA";
+              
+              return (
+                <tr key={row.id}>
+                  <td>{formatEnumLabel(row.empresa)}</td>
+                  <td><Link href={`/tickets/${row.ticketId}`} className="link">Ver Ticket</Link></td>
+                  <td>{row.ticket.nomeCliente}</td>
+                  <td>
+                    {row.ticket.linkPedido ? (
+                      <a href={row.ticket.linkPedido} target="_blank" rel="noopener noreferrer" className="link">
+                        {row.ticket.numeroVenda}
+                      </a>
+                    ) : row.ticket.numeroVenda}
+                  </td>
+                  <td><span className="badge">{formatEnumLabel(row.tipoAcao)}</span></td>
+                  <td>{STATUS_OPERACIONAL_LABELS[row.status] ?? formatEnumLabel(row.status)}</td>
+                  <td>
+                    {row.prazoOperacional ? (
+                      <span style={{ 
+                        padding: '4px 8px', 
+                        borderRadius: '4px', 
+                        fontSize: '0.85rem',
+                        fontWeight: '500',
+                        backgroundColor: isAtrasado ? '#fff1f0' : '#f6ffed', 
+                        color: isAtrasado ? '#cf1322' : '#389e0d',
+                        border: `1px solid ${isAtrasado ? '#ffa39e' : '#b7eb8f'}`
                       }}>
-                        <div style={{ display: 'grid', gap: 12 }}>
-                          <label>Status operacional
-                            <select name="status" defaultValue={row.status as string}>
-                              {statusOptions.map((s)=><option key={s} value={s} disabled={perfil===Perfil.LOJA && s==="CONCLUIDA"}>{STATUS_OPERACIONAL_LABELS[s] ?? s}</option>)}
-                            </select>
-                          </label>
-                          <label>Prazo operacional
-                            <input type="date" name="prazoOperacional" defaultValue={row.prazoOperacional?.slice(0,10) ?? ""}/>
-                          </label>
-                          <label>Código de rastreio
-                            <input name="codigoRastreio" defaultValue={row.codigoRastreio ?? ""} placeholder="Código de rastreio"/>
-                          </label>
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                            <label>Reembolso
-                              <input name="valorReembolso" defaultValue={row.valorReembolso} placeholder="R$ 0,00"/>
-                            </label>
-                            <label>Assistência
-                              <input name="valorAssistencia" defaultValue={row.valorAssistencia ?? 0} placeholder="R$ 0,00"/>
-                            </label>
-                          </div>
-                          <label>Coleta/Envio/Peças
-                            <input name="valorColetaEnvioPecas" defaultValue={row.valorColetaEnvioPecas} placeholder="R$ 0,00"/>
-                          </label>
-                          <label>Comentário da loja
-                            <textarea name="comentarioLoja" defaultValue={row.comentarioLoja ?? ""} rows={3} placeholder="Observações da loja..."/>
-                          </label>
-                          {perfil===Perfil.ADMIN && (
-                            <label>Comentário interno (Atendente)
-                              <textarea name="comentarioAtendente" defaultValue={row.comentarioAtendente ?? ""} rows={2}/>
-                            </label>
-                          )}
-                          <button className="btn btn-primary btn-block" type="submit">Salvar Alterações</button>
-                        </div>
-                      </form>
-                      
-                      <hr style={{ margin: '16px 0' }} />
-                      
-                      <form onSubmit={async (e)=>{
-                        e.preventDefault();
-                        const file=(e.currentTarget.querySelector('input[type="file"]') as HTMLInputElement)?.files?.[0];
-                        if(!file)return;
-                        const fd=new FormData();
-                        fd.append("file",file);
-                        const r=await fetch(`/api/tickets/${row.ticketId}/attachment`,{method:"POST",body:fd});
-                        if(!r.ok){alert("Falha no upload do anexo");return;}
-                        location.reload();
+                        {formatDateBR(new Date(row.prazoOperacional))}
+                      </span>
+                    ) : '-'}
+                  </td>
+                  <td>{renderAnexoThumbnail(row)}</td>
+                  <td style={{ fontSize: '0.85rem', color: '#666' }}>{formatDateTimeBR(new Date(row.updatedAt))}</td>
+                  <td>
+                    <button 
+                      className="btn btn-sm" 
+                      onClick={() => setSelectedRow(row)}
+                    >
+                      Ações
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Overlay */}
+      {selectedRow && (
+        <div 
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            zIndex: 999,
+            cursor: "pointer"
+          }}
+          onClick={() => setSelectedRow(null)}
+        />
+      )}
+
+      {/* Drawer */}
+      {selectedRow && (
+        <div
+          style={{
+            position: "fixed",
+            right: 0,
+            top: 0,
+            height: "100vh",
+            width: "420px",
+            backgroundColor: "white",
+            borderLeft: "1px solid #e2e8f0",
+            boxShadow: "-2px 0 8px rgba(0, 0, 0, 0.1)",
+            zIndex: 1000,
+            overflowY: "auto",
+            display: "flex",
+            flexDirection: "column"
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div
+            style={{
+              padding: "16px",
+              borderBottom: "1px solid #e2e8f0",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              position: "sticky",
+              top: 0,
+              backgroundColor: "white",
+              zIndex: 1001
+            }}
+          >
+            <h3 style={{ margin: 0, fontSize: "18px" }}>Dados Complementares</h3>
+            <button
+              type="button"
+              onClick={() => setSelectedRow(null)}
+              style={{
+                background: "none",
+                border: "none",
+                fontSize: "24px",
+                cursor: "pointer",
+                color: "#666",
+                padding: 0,
+                width: "32px",
+                height: "32px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center"
+              }}
+            >
+              ×
+            </button>
+          </div>
+
+          {/* Content */}
+          <div style={{ flex: 1, padding: "16px", overflowY: "auto" }}>
+            <form onSubmit={handleSaveDrawer} style={{ display: "grid", gap: "12px" }}>
+              {/* Client Info */}
+              <fieldset style={{ border: "1px solid #e2e8f0", padding: "12px", borderRadius: "4px" }}>
+                <legend style={{ paddingInline: "4px", fontSize: "0.85rem", fontWeight: "bold", color: "#666" }}>
+                  Informações do Cliente
+                </legend>
+                <div style={{ display: "grid", gap: "8px" }}>
+                  <div style={{ fontSize: "0.9rem" }}>
+                    <strong>Cliente:</strong> {selectedRow.ticket.nomeCliente}
+                  </div>
+                  <div style={{ fontSize: "0.9rem" }}>
+                    <strong>Número do Pedido:</strong>
+                    {selectedRow.ticket.linkPedido ? (
+                      <a 
+                        href={selectedRow.ticket.linkPedido} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        style={{ marginLeft: "8px" }}
+                        className="link"
+                      >
+                        {selectedRow.ticket.numeroVenda}
+                      </a>
+                    ) : (
+                      <span style={{ marginLeft: "8px" }}>{selectedRow.ticket.numeroVenda}</span>
+                    )}
+                  </div>
+                </div>
+              </fieldset>
+
+              {/* Product Info */}
+              <fieldset style={{ border: "1px solid #e2e8f0", padding: "12px", borderRadius: "4px" }}>
+                <legend style={{ paddingInline: "4px", fontSize: "0.85rem", fontWeight: "bold", color: "#666" }}>
+                  Informações do Produto
+                </legend>
+                <div style={{ display: "grid", gap: "8px" }}>
+                  <div style={{ fontSize: "0.9rem" }}>
+                    <strong>SKU:</strong> {selectedRow.ticket.sku}
+                  </div>
+                  <div style={{ fontSize: "0.9rem" }}>
+                    <strong>Produto:</strong> {selectedRow.ticket.produto}
+                  </div>
+                </div>
+              </fieldset>
+
+              {/* Attachment */}
+              <fieldset style={{ border: "1px solid #e2e8f0", padding: "12px", borderRadius: "4px" }}>
+                <legend style={{ paddingInline: "4px", fontSize: "0.85rem", fontWeight: "bold", color: "#666" }}>
+                  Anexo
+                </legend>
+                {selectedRow.anexo?.fileUrl ? (
+                  <div style={{ marginBottom: "8px", textAlign: "center" }}>
+                    {selectedRow.anexo.mimeType?.startsWith("image/") || /\.(jpg|jpeg|png|webp|gif)$/i.test(selectedRow.anexo.fileUrl) ? (
+                      <img 
+                        src={selectedRow.anexo.fileUrl}
+                        alt="Anexo"
+                        style={{ maxWidth: "100%", maxHeight: "200px", borderRadius: "4px", border: "1px solid #e2e8f0" }}
+                      />
+                    ) : selectedRow.anexo.mimeType === "application/pdf" || selectedRow.anexo.fileUrl.endsWith(".pdf") ? (
+                      <div style={{
+                        padding: "24px",
+                        backgroundColor: "#f8f9fa",
+                        borderRadius: "4px",
+                        border: "1px solid #e2e8f0",
+                        fontSize: "48px",
+                        color: "#d32f2f"
                       }}>
-                        <label style={{ fontSize: '0.85rem', fontWeight: 'bold', marginBottom: 4 }}>{row.anexo ? "Substituir Anexo" : "Adicionar Anexo"}</label>
-                        <input type="file" accept="image/*,application/pdf" style={{ marginBottom: 8 }} />
-                        <button className="btn btn-secondary btn-sm btn-block" type="submit">Fazer Upload</button>
-                      </form>
-                    </div>
-                  </details>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+                        📄
+                      </div>
+                    ) : (
+                      <div style={{
+                        padding: "24px",
+                        backgroundColor: "#f8f9fa",
+                        borderRadius: "4px",
+                        border: "1px solid #e2e8f0"
+                      }}>
+                        Arquivo: {selectedRow.anexo.fileName}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div style={{ fontSize: "0.9rem", color: "#999", marginBottom: "8px" }}>
+                    Sem anexo
+                  </div>
+                )}
+              </fieldset>
+
+              {/* Details */}
+              <label style={{ fontSize: "0.9rem", fontWeight: "500" }}>
+                Detalhes do Cliente
+                <textarea
+                  name="detalhesCliente"
+                  defaultValue={selectedRow.ticket.detalhesCliente ?? ""}
+                  rows={3}
+                  placeholder="Observações sobre o cliente..."
+                  style={{
+                    width: "100%",
+                    padding: "8px",
+                    marginTop: "4px",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "4px",
+                    fontFamily: "inherit",
+                    fontSize: "0.9rem"
+                  }}
+                />
+              </label>
+
+              {/* Commentary */}
+              <label style={{ fontSize: "0.9rem", fontWeight: "500" }}>
+                Comentário da Loja
+                <textarea
+                  name="comentarioLoja"
+                  defaultValue={selectedRow.ticket.comentarioLoja ?? ""}
+                  rows={3}
+                  placeholder="Observações da loja..."
+                  style={{
+                    width: "100%",
+                    padding: "8px",
+                    marginTop: "4px",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "4px",
+                    fontFamily: "inherit",
+                    fontSize: "0.9rem"
+                  }}
+                />
+              </label>
+
+              {/* Action */}
+              <label style={{ fontSize: "0.9rem", fontWeight: "500" }}>
+                Ação Operacional da Loja
+                <select
+                  name="acaoOperacionalLoja"
+                  defaultValue={selectedRow.ticket.acaoOperacionalLoja}
+                  style={{
+                    width: "100%",
+                    padding: "8px",
+                    marginTop: "4px",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "4px",
+                    fontSize: "0.9rem"
+                  }}
+                >
+                  {acoesOptions.map((opcao) => (
+                    <option key={opcao} value={opcao}>
+                      {acoesLabels[opcao]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              {/* Resolution */}
+              <label style={{ fontSize: "0.9rem", fontWeight: "500" }}>
+                Resolução
+                <select
+                  name="resolucao"
+                  defaultValue={selectedRow.ticket.resolucao ?? ""}
+                  style={{
+                    width: "100%",
+                    padding: "8px",
+                    marginTop: "4px",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "4px",
+                    fontSize: "0.9rem"
+                  }}
+                >
+                  <option value="">Sem resolução</option>
+                  {resolucoesOptions.map((opcao) => (
+                    <option key={opcao} value={opcao}>
+                      {resolucoesLabels[opcao]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              {/* Status */}
+              <label style={{ fontSize: "0.9rem", fontWeight: "500" }}>
+                Status Operacional da Loja
+                <select
+                  name="statusOperacionalLoja"
+                  defaultValue={selectedRow.ticket.statusOperacionalLoja}
+                  style={{
+                    width: "100%",
+                    padding: "8px",
+                    marginTop: "4px",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "4px",
+                    fontSize: "0.9rem"
+                  }}
+                >
+                  {statusOptions.map((status) => (
+                    <option
+                      key={status}
+                      value={status}
+                      disabled={perfil === Perfil.LOJA && status === "CONCLUIDA"}
+                    >
+                      {STATUS_OPERACIONAL_LABELS[status] ?? formatEnumLabel(status)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              {/* Tracking Code */}
+              <label style={{ fontSize: "0.9rem", fontWeight: "500" }}>
+                Código de Rastreio
+                <input
+                  type="text"
+                  name="codigoRastreio"
+                  defaultValue={selectedRow.codigoRastreio ?? ""}
+                  placeholder="Código de rastreio..."
+                  style={{
+                    width: "100%",
+                    padding: "8px",
+                    marginTop: "4px",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "4px",
+                    fontSize: "0.9rem",
+                    boxSizing: "border-box"
+                  }}
+                />
+              </label>
+
+              {/* Values */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                <label style={{ fontSize: "0.9rem", fontWeight: "500" }}>
+                  Valor de Reembolso
+                  <input
+                    type="number"
+                    name="valorReembolso"
+                    defaultValue={selectedRow.valorReembolso}
+                    step="0.01"
+                    min="0"
+                    placeholder="R$ 0,00"
+                    style={{
+                      width: "100%",
+                      padding: "8px",
+                      marginTop: "4px",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: "4px",
+                      fontSize: "0.9rem",
+                      boxSizing: "border-box"
+                    }}
+                  />
+                </label>
+                <label style={{ fontSize: "0.9rem", fontWeight: "500" }}>
+                  Valor de Assistência
+                  <input
+                    type="number"
+                    name="valorAssistencia"
+                    defaultValue={selectedRow.valorAssistencia ?? 0}
+                    step="0.01"
+                    min="0"
+                    placeholder="R$ 0,00"
+                    style={{
+                      width: "100%",
+                      padding: "8px",
+                      marginTop: "4px",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: "4px",
+                      fontSize: "0.9rem",
+                      boxSizing: "border-box"
+                    }}
+                  />
+                </label>
+              </div>
+
+              <label style={{ fontSize: "0.9rem", fontWeight: "500" }}>
+                Valor de Coleta, Envio ou Peças
+                <input
+                  type="number"
+                  name="valorColetaEnvioPecas"
+                  defaultValue={selectedRow.valorColetaEnvioPecas}
+                  step="0.01"
+                  min="0"
+                  placeholder="R$ 0,00"
+                  style={{
+                    width: "100%",
+                    padding: "8px",
+                    marginTop: "4px",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "4px",
+                    fontSize: "0.9rem",
+                    boxSizing: "border-box"
+                  }}
+                />
+              </label>
+
+              <button
+                type="submit"
+                className="btn btn-primary btn-block"
+                disabled={isSaving}
+                style={{ marginTop: "8px" }}
+              >
+                {isSaving ? "Salvando..." : "Salvar Alterações"}
+              </button>
+            </form>
+
+            {/* Upload Section */}
+            <div style={{ marginTop: "16px", paddingTop: "16px", borderTop: "1px solid #e2e8f0" }}>
+              <h4 style={{ margin: "0 0 12px 0", fontSize: "0.95rem", fontWeight: "500" }}>
+                {selectedRow.anexo ? "Substituir Anexo" : "Adicionar Anexo"}
+              </h4>
+              <form onSubmit={handleUploadAttachment} style={{ display: "grid", gap: "8px" }}>
+                <input
+                  type="file"
+                  accept="image/*,application/pdf"
+                  style={{
+                    padding: "8px",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "4px",
+                    fontSize: "0.9rem"
+                  }}
+                />
+                <button
+                  type="submit"
+                  className="btn btn-secondary btn-block"
+                >
+                  Fazer Upload
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
