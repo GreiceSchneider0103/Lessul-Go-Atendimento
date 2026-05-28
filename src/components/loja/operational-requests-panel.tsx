@@ -60,8 +60,8 @@ export function OperationalRequestsPanel({ data, perfil }: { data: Row[]; perfil
   const renderAnexoThumbnail = (row: Row) => {
     if (!row.anexo?.fileUrl) return <span style={{ color: '#999', fontSize: '0.85rem' }}>Sem anexo</span>;
 
-    const isImage = row.anexo.mimeType?.startsWith("image/") || /\.(jpg|jpeg|png|webp|gif)$/i.test(row.anexo.fileUrl);
-    const isPDF = row.anexo.mimeType === "application/pdf" || row.anexo.fileUrl.toLowerCase().endsWith(".pdf");
+    const isImage = row.anexo.mimeType?.startsWith("image/");
+    const isPDF = row.anexo.mimeType === "application/pdf";
 
     return (
       <a href={row.anexo.fileUrl} target="_blank" rel="noopener noreferrer" title={row.anexo.fileName || "Ver anexo"}>
@@ -345,13 +345,13 @@ export function OperationalRequestsPanel({ data, perfil }: { data: Row[]; perfil
                 </legend>
                 {selectedRow.anexo?.fileUrl ? (
                   <div style={{ marginBottom: "8px", textAlign: "center" }}>
-                    {selectedRow.anexo.mimeType?.startsWith("image/") || /\.(jpg|jpeg|png|webp|gif)$/i.test(selectedRow.anexo.fileUrl) ? (
+                    {selectedRow.anexo.mimeType?.startsWith("image/") ? (
                       <img 
                         src={selectedRow.anexo.fileUrl}
                         alt="Anexo"
                         style={{ maxWidth: "100%", maxHeight: "200px", borderRadius: "4px", border: "1px solid #e2e8f0" }}
                       />
-                    ) : selectedRow.anexo.mimeType === "application/pdf" || selectedRow.anexo.fileUrl.endsWith(".pdf") ? (
+                    ) : selectedRow.anexo.mimeType === "application/pdf" ? (
                       <div style={{
                         padding: "24px",
                         backgroundColor: "#f8f9fa",

@@ -609,20 +609,10 @@ export async function uploadTicketAttachment(id: string, user: Usuario, file: Fi
     throw new AppError("Falha no upload do anexo", 500, "UPLOAD_FAILED");
   }
 
-  const { data: signedData, error: signedUrlError } = await supabase.storage.from(bucket).createSignedUrl(path, 60 * 60);
-
-  if (signedUrlError) {
-    logError("Falha ao gerar signed URL do anexo", {
-      ticketId: id,
-      path,
-      message: signedUrlError.message
-    });
-  }
-
   const updated = await prisma.ticket.update({
     where: { id },
     data: {
-      anexoUrl: signedData?.signedUrl ?? null,
+      anexoUrl: `/api/tickets/${id}/attachment/view`,
       anexoPath: path,
       anexoNome: file.name,
       anexoMimeType: file.type,
