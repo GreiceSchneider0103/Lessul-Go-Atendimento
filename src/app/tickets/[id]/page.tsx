@@ -58,15 +58,39 @@ function getAcaoOperacionalLabel(value: string | null | undefined) {
   return labels[value ?? "NENHUMA"] ?? formatEnumLabel(value ?? "NENHUMA");
 }
 
-function getAnexoFromTicket(ticket: {
-  anexoUrl?: string | null;
-  anexoNome?: string | null;
-  anexoMimeType?: string | null;
-}): AnexoTicket | null {
-  if (!ticket.anexoUrl) return null;
+function getStatusOperacionalLabel(value: string | null | undefined) {
+  const labels: Record<string, string> = {
+    EM_ABERTO: "Em aberto",
+    ASSISTENCIA_ENVIADA: "Assistência enviada",
+    ASSISTENCIA_A_CAMINHO: "Assistência a caminho",
+    ASSISTENCIA_ENTREGUE: "Assistência entregue",
+    COLETA_SOLICITADA: "Coleta solicitada",
+    COLETA_FEITA: "Coleta feita",
+    DEVOLUCAO_SOLICITADA: "Devolução solicitada",
+    DEVOLUCAO_A_CAMINHO: "Devolução a caminho",
+    DEVOLUCAO_REALIZADA: "Devolução realizada",
+    REEMBOLSO_PENDENTE: "Reembolso pendente",
+    REEMBOLSO_REALIZADO: "Reembolso realizado",
+    AGUARDANDO_ATENDENTE: "Aguardando atendente",
+    CONCLUIDA: "Concluída"
+  };
+
+  return labels[value ?? ""] ?? formatEnumLabel(value ?? "");
+}
+
+function getAnexoFromTicket(
+  ticketId: string,
+  ticket: {
+    anexoPath?: string | null;
+    anexoUrl?: string | null;
+    anexoNome?: string | null;
+    anexoMimeType?: string | null;
+  }
+): AnexoTicket | null {
+  if (!ticket.anexoPath && !ticket.anexoUrl) return null;
 
   return {
-    url: ticket.anexoUrl,
+    url: `/api/tickets/${ticketId}/attachment/view`,
     nome: ticket.anexoNome ?? "Anexo",
     mimeType: ticket.anexoMimeType ?? null
   };
@@ -154,6 +178,7 @@ function ComentarioBubble({ comentario }: { comentario: ComentarioOperacional })
           {perfil} • {toDateTime(comentario.criadoEm)}
         </span>
       </div>
+
       <div style={{ whiteSpace: "pre-wrap" }}>{comentario.comentario}</div>
     </div>
   );
@@ -164,20 +189,16 @@ export default async function TicketDetail({ params }: { params: Promise<{ id: s
   const { id } = await params;
   const { ticket, error } = await getTicket(id, user);
 
-  const operacionais = ticket
-    ? await prisma.operationalRequest.findMany({
-        where: { ticketId: ticket.id },
-        include: { anexos: true },
-        orderBy: { createdAt: "desc" }
-      })
-    : [];
-
   if (error || !ticket) {
-    throw new Error(error ?? "Ticket não encontrado"); // Deixe o Next.js lidar com error.tsx
+    throw new Error(error ?? "Ticket não encontrado");
   }
 
-  // Sugestão: Tipar o retorno do getTicketById corretamente no service 
-  // para evitar o cast 'as typeof ticket & ...'
+  const operacionais = await prisma.operationalRequest.findMany({
+    where: { ticketId: ticket.id },
+    include: { anexos: true },
+    orderBy: { createdAt: "desc" }
+  });
+
   const ticketComExtras = ticket as typeof ticket & {
     valorAssistencia?: unknown;
     valorColetaEnvioPecas?: unknown;
@@ -185,18 +206,33 @@ export default async function TicketDetail({ params }: { params: Promise<{ id: s
     statusOperacionalLoja?: string | null;
     comentarioLoja?: string | null;
     comentariosOperacionais?: ComentarioOperacional[];
+    anexoPath?: string | null;
     anexoUrl?: string | null;
     anexoNome?: string | null;
     anexoMimeType?: string | null;
   };
 
   const comentariosOperacionais = ticketComExtras.comentariosOperacionais ?? [];
-  const anexo = getAnexoFromTicket(ticketComExtras);
+  const comentarioLojaMaisRecente = comentariosOperacionais[0]?.comentario ?? ticketComExtras.comentarioLoja ?? "-";
+  const anexo = getAnexoFromTicket(ticket.id, ticketComExtras);
+
+  const latestOperationalRequest = operacionais[0];
+
+  const tipoOperacional =
+    ticket.acaoOperacionalLoja && ticket.acaoOperacionalLoja !== "NENHUMA"
+      ? ticket.acaoOperacionalLoja
+      : latestOperationalRequest?.tipoAcao ?? "NENHUMA";
+
+  const statusOperacional = ticketComExtras.statusOperacionalLoja ?? latestOperationalRequest?.status ?? null;
+
+  const prazoOperacional = ticket.prazoConclusao ?? latestOperationalRequest?.prazoOperacional ?? null;
+
+  const backHref = user.perfil === "LOJA" ? "/loja/solicitacoes" : "/tickets";
 
   return (
     <section className="page">
-      <Link href="/tickets" className="ticket-back-link">
-        ← Voltar para tickets
+      <Link href={backHref} className="ticket-back-link">
+        ← Voltar
       </Link>
 
       <div className="ticket-detail-header">
@@ -216,9 +252,10 @@ export default async function TicketDetail({ params }: { params: Promise<{ id: s
 
       <div className="ticket-detail-grid">
         <article className="card">
-          <div style={{ display: 'grid', gap: '24px' }}>
+          <div style={{ display: "grid", gap: "24px" }}>
             <section>
               <h2 style={{ marginTop: 0 }}>Dados do cliente</h2>
+
               <div className="ticket-info-list">
                 <InfoRow label="Nome" value={ticket.nomeCliente} />
                 <InfoRow label="CPF" value={ticket.cpf} />
@@ -227,12 +264,13 @@ export default async function TicketDetail({ params }: { params: Promise<{ id: s
               </div>
             </section>
 
-            <section style={{ paddingTop: '16px', borderTop: '1px solid #f1f5f9' }}>
+            <section style={{ paddingTop: "16px", borderTop: "1px solid #f1f5f9" }}>
               <h2>Valores e rastreabilidade</h2>
+
               <div className="ticket-info-list">
                 <InfoRow label="Reembolso" value={toCurrency(ticket.valorReembolso)} />
                 <InfoRow label="Valor de assistência" value={toCurrency(ticketComExtras.valorAssistencia)} />
-                <InfoRow label="Coleta, envio ou peças" value={toCurrency(ticketComExtras.valorColetaEnvioPecas ?? ticket.valorColeta)} />
+                <InfoRow label="Coleta, envio ou peças" value={toCurrency(ticketComExtras.valorColetaEnvioPecas)} />
                 <InfoRow label="Código de rastreio" value={ticketComExtras.codigoRastreio || "Sem rastreio"} />
                 <InfoRow label="Custos totais" value={<strong>{toCurrency(ticket.custosTotais)}</strong>} />
               </div>
@@ -293,15 +331,17 @@ export default async function TicketDetail({ params }: { params: Promise<{ id: s
 
       <article className="card">
         <h2>Comentários</h2>
-        
-        <div style={{ marginBottom: '20px' }}>
-          <h3 style={{ fontSize: '14px', color: '#64748b', marginBottom: '8px' }}>Interno</h3>
+
+        <div style={{ marginBottom: "20px" }}>
+          <h3 style={{ fontSize: "14px", color: "#64748b", marginBottom: "8px" }}>Interno</h3>
+
           <div style={{ border: "1px solid #e2e8f0", borderRadius: 12, padding: 12, background: "#f8fafc", whiteSpace: "pre-wrap" }}>
             {ticket.comentarioInterno || "Sem comentário interno."}
           </div>
         </div>
 
-        <h3 style={{ fontSize: '14px', color: '#64748b', marginBottom: '8px' }}>Operacionais</h3>
+        <h3 style={{ fontSize: "14px", color: "#64748b", marginBottom: "8px" }}>Operacionais</h3>
+
         {comentariosOperacionais.length ? (
           <div style={{ display: "grid", gap: 10 }}>
             {comentariosOperacionais.map((comentario) => (
@@ -313,58 +353,39 @@ export default async function TicketDetail({ params }: { params: Promise<{ id: s
         )}
       </article>
 
-      {operacionais.length ? (
-        <article className="card">
-          <h2>Solicitação operacional da loja</h2>
+      <article className="card">
+        <h2>Solicitação operacional da loja</h2>
 
-          <div className="ticket-detail-grid">
-            {operacionais.map((op) => (
-              <div
-                key={op.id}
-                style={{
-                  border: "1px solid #e2e8f0",
-                  padding: 14,
-                  borderRadius: 12,
-                  background: "#f8fafc"
-                }}
-              >
-                <div className="ticket-info-list">
-                  <InfoRow label="Tipo" value={formatEnumLabel(op.tipoAcao)} />
-                  <InfoRow label="Status" value={formatEnumLabel(op.status)} />
-                  <InfoRow label="Empresa" value={formatEnumLabel(op.empresa)} />
-                  <InfoRow label="Prazo" value={toDate(op.prazoOperacional)} />
-                  <InfoRow label="Comentário atendente" value={op.comentarioAtendente ?? "-"} />
-                  <InfoRow label="Comentário loja" value={op.comentarioLoja ?? "-"} />
-                  <InfoRow label="Reembolso" value={toCurrency(op.valorReembolso)} />
-                  <InfoRow label="CTE" value={toCurrency(op.valorCte)} />
-                  <InfoRow label="Coleta/envio/peças" value={toCurrency(op.valorColetaEnvioPecas)} />
-                  <InfoRow label="Código rastreio" value={op.codigoRastreio ?? "-"} />
-                  <InfoRow label="Criado em" value={toDateTime(op.createdAt)} />
-                  <InfoRow label="Atualizado em" value={toDateTime(op.updatedAt)} />
-                  <InfoRow label="Concluído em" value={toDateTime(op.completedAt)} />
+        <div
+          style={{
+            border: "1px solid #e2e8f0",
+            padding: 14,
+            borderRadius: 12,
+            background: "#f8fafc"
+          }}
+        >
+          <div className="ticket-info-list">
+            <InfoRow label="Tipo" value={getAcaoOperacionalLabel(tipoOperacional)} />
+            <InfoRow label="Status" value={getStatusOperacionalLabel(statusOperacional)} />
+            <InfoRow label="Empresa" value={formatEnumLabel(ticket.empresa)} />
+            <InfoRow label="Prazo" value={toDate(prazoOperacional)} />
 
-                  <InfoRow
-                    label="Anexos antigos"
-                    value={
-                      op.anexos.length ? (
-                        <div style={{ display: "grid", gap: 6 }}>
-                          {op.anexos.map((a) => (
-                            <a key={a.id} href={a.fileUrl ?? "#"} target="_blank" rel="noopener noreferrer">
-                              {a.fileName} ({formatEnumLabel(a.tipoAnexo)})
-                            </a>
-                          ))}
-                        </div>
-                      ) : (
-                        "-"
-                      )
-                    }
-                  />
-                </div>
-              </div>
-            ))}
+            <InfoRow label="Comentário atendente" value={ticket.comentarioInterno || "-"} />
+            <InfoRow label="Comentário loja" value={comentarioLojaMaisRecente} />
+
+            <InfoRow label="Reembolso" value={toCurrency(ticket.valorReembolso)} />
+            <InfoRow label="Valor de assistência" value={toCurrency(ticketComExtras.valorAssistencia)} />
+            <InfoRow label="Coleta/envio/peças" value={toCurrency(ticketComExtras.valorColetaEnvioPecas)} />
+            <InfoRow label="Código rastreio" value={ticketComExtras.codigoRastreio || "-"} />
+
+            <InfoRow label="Criado em" value={toDateTime(latestOperationalRequest?.createdAt ?? ticket.criadoEm)} />
+            <InfoRow label="Atualizado em" value={toDateTime(latestOperationalRequest?.updatedAt ?? ticket.atualizadoEm)} />
+            <InfoRow label="Concluído em" value={toDateTime(latestOperationalRequest?.completedAt ?? null)} />
+
+            <InfoRow label="Anexo" value={<AttachmentPreview anexo={anexo} />} />
           </div>
-        </article>
-      ) : null}
+        </div>
+      </article>
 
       {user.perfil === "ADMIN" ? (
         <details className="audit-accordion">

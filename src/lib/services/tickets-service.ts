@@ -24,12 +24,6 @@ function normalizeOptionalText(value?: string | null) {
 
 function assertCanEditFields(user: Usuario, payload: Partial<TicketInput>) {
   if (user.perfil === "LOJA") {
-    const forbidden = ["valorColeta", "prazoConclusao"] as const;
-
-    if (forbidden.some((field) => payload[field] !== undefined)) {
-      throw new ForbiddenError("Perfil LOJA não pode editar campos administrativos");
-    }
-
     if (payload.statusOperacionalLoja === "CONCLUIDA") {
       throw new ForbiddenError("LOJA não pode concluir operação");
     }
@@ -42,6 +36,17 @@ function assertCanEditFields(user: Usuario, payload: Partial<TicketInput>) {
   if (touchingSensitive && !hasPermission(user.perfil, "ticket.update_sensitive")) {
     throw new ForbiddenError("Seu perfil não pode editar campos sensíveis");
   }
+}
+
+function sanitizePayloadForLoja(user: Usuario, payload: Partial<TicketInput>) {
+  if (user.perfil !== "LOJA") return payload;
+
+  const sanitized = { ...payload };
+
+  delete sanitized.valorColeta;
+  delete sanitized.prazoConclusao;
+
+  return sanitized;
 }
 
 function getDateRange(startDate?: string, endDate?: string) {
@@ -385,12 +390,6 @@ export async function getTicketById(id: string, user: Usuario) {
         orderBy: {
           criadoEm: "desc"
         }
-      },
-      operationalRequests: {
-        orderBy: {
-          createdAt: "desc"
-        },
-        take: 1
       }
     }
   });
@@ -402,7 +401,7 @@ export async function getTicketById(id: string, user: Usuario) {
   return ticket;
 }
 
-export async function updateTicket(id: string, payload: Partial<TicketInput>, user: Usuario) {
+export async function updateTicket(id: string, rawPayload: Partial<TicketInput>, user: Usuario) {
   const before = await prisma.ticket.findFirstOrThrow({
     where: {
       id,
@@ -410,6 +409,8 @@ export async function updateTicket(id: string, payload: Partial<TicketInput>, us
       ...getTicketScopeWhere(user)
     }
   });
+
+  const payload = sanitizePayloadForLoja(user, rawPayload);
 
   assertCanEditFields(user, payload);
 
