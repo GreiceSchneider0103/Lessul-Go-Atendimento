@@ -101,7 +101,9 @@ function toNumber(value: unknown): number {
 
 function isOverdue(prazoOperacional: string | null, status: string) {
   if (!prazoOperacional) return false;
-  if (status === "CONCLUIDA") return false;
+  // Atualizado para considerar novos status finalizados como não atrasados
+  const nonOverdueStatuses = ["CONCLUIDA", "ASSISTENCIA_ENTREGUE", "REEMBOLSO_REALIZADO"];
+  if (nonOverdueStatuses.includes(status)) return false;
 
   const prazo = new Date(prazoOperacional);
   const hoje = new Date();
@@ -208,10 +210,16 @@ export default async function LojaSolicitacoesPage({ searchParams }: PageProps) 
     };
   });
 
+  // Definir status para as novas regras dos cards
+  const openStatuses = ["EM_ABERTO"];
+  const finalizedStatuses = ["CONCLUIDA", "ASSISTENCIA_ENTREGUE", "REEMBOLSO_REALIZADO"];
+
   const total = mappedData.length;
-  const concluidas = mappedData.filter((item) => item.status === "CONCLUIDA").length;
+  const emAberto = mappedData.filter((item) => openStatuses.includes(item.status)).length;
+  const concluidas = mappedData.filter((item) => finalizedStatuses.includes(item.status)).length;
+  // Em andamento: qualquer status que não seja "Em aberto" e não seja "Concluída" (finalized)
+  const emAndamento = mappedData.filter((item) => !openStatuses.includes(item.status) && !finalizedStatuses.includes(item.status)).length;
   const atrasadas = mappedData.filter((item) => isOverdue(item.prazoOperacional, item.status)).length;
-  const emAberto = mappedData.filter((item) => item.status !== "CONCLUIDA").length;
 
   const stats = [
     {
@@ -223,6 +231,11 @@ export default async function LojaSolicitacoesPage({ searchParams }: PageProps) 
       key: "EM_ABERTO",
       label: "Em aberto",
       value: emAberto
+    },
+    {
+      key: "EM_ANDAMENTO", // Novo card "Em andamento"
+      label: "Em andamento",
+      value: emAndamento
     },
     {
       key: "CONCLUIDAS",
@@ -295,7 +308,8 @@ export default async function LojaSolicitacoesPage({ searchParams }: PageProps) 
         </form>
       </div>
 
-      <div className="grid grid-4">
+      {/* Objetivo 4: Layout dos cards */}
+      <div className="grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: '16px', marginBottom: '16px' }}>
         {stats.map((item) => (
           <article className="card" key={item.key}>
             <strong>{item.label}</strong>

@@ -93,6 +93,11 @@ export function OperationalRequestsPanel({ data, perfil }: { data: Row[]; perfil
       const fd = new FormData(e.currentTarget);
       const payload = Object.fromEntries(fd.entries());
       
+      // Objetivo 2: Concluir ticket automaticamente se statusOperacionalLoja for REEMBOLSO_REALIZADO ou ASSISTENCIA_ENTREGUE
+      if (payload.statusOperacionalLoja === "REEMBOLSO_REALIZADO" || payload.statusOperacionalLoja === "ASSISTENCIA_ENTREGUE") {
+        payload.statusTicket = "CONCLUIDO";
+      }
+
       // Remove empty strings
       Object.keys(payload).forEach(key => {
         if (payload[key] === "") delete payload[key];

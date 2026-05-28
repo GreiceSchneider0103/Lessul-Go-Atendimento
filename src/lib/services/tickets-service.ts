@@ -407,6 +407,8 @@ export async function updateTicket(id: string, payload: Partial<TicketInput>, us
 
   assertCanEditFields(user, payload);
 
+  let resolvedStatusTicket = payload.statusTicket ?? before.statusTicket;
+
   const resolvedPrazoConclusao =
     payload.prazoConclusao !== undefined
       ? payload.prazoConclusao
@@ -414,7 +416,10 @@ export async function updateTicket(id: string, payload: Partial<TicketInput>, us
         : null
       : before.prazoConclusao;
 
-  const resolvedStatusTicket = payload.statusTicket ?? before.statusTicket;
+  // Objetivo 3: Concluir ticket automaticamente se statusOperacionalLoja for REEMBOLSO_REALIZADO ou ASSISTENCIA_ENTREGUE
+  if (payload.statusOperacionalLoja === "REEMBOLSO_REALIZADO" || payload.statusOperacionalLoja === "ASSISTENCIA_ENTREGUE") {
+    resolvedStatusTicket = "CONCLUIDO";
+  }
 
   assertSlaConsistency(resolvedStatusTicket, resolvedPrazoConclusao);
 
@@ -451,7 +456,7 @@ export async function updateTicket(id: string, payload: Partial<TicketInput>, us
     ...(payload.canalMarketplace !== undefined ? { canalMarketplace: payload.canalMarketplace } : {}),
     ...(payload.empresa !== undefined ? { empresa: payload.empresa } : {}),
     ...(payload.motivo !== undefined ? { motivo: payload.motivo } : {}),
-    ...(payload.statusTicket !== undefined ? { statusTicket: payload.statusTicket } : {}),
+    statusTicket: resolvedStatusTicket, // Aplicar statusTicket resolvido
     ...(payload.statusReclamacao !== undefined ? { statusReclamacao: payload.statusReclamacao } : {}),
     ...(payload.acaoOperacionalLoja !== undefined ? { acaoOperacionalLoja: payload.acaoOperacionalLoja } : {}),
     ...(payload.statusOperacionalLoja !== undefined ? { statusOperacionalLoja: payload.statusOperacionalLoja } : {}),
@@ -500,7 +505,7 @@ export async function updateTicket(id: string, payload: Partial<TicketInput>, us
     data
   });
 
-  const action = payload.statusTicket && payload.statusTicket !== before.statusTicket ? "STATUS_CHANGE" : "UPDATE";
+  const action = resolvedStatusTicket !== before.statusTicket ? "STATUS_CHANGE" : "UPDATE"; // Usar resolvedStatusTicket para auditoria
 
   await registerTicketAudit({
     ticketId: id,
