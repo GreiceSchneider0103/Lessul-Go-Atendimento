@@ -385,6 +385,12 @@ export async function getTicketById(id: string, user: Usuario) {
         orderBy: {
           criadoEm: "desc"
         }
+      },
+      operationalRequests: {
+        orderBy: {
+          createdAt: "desc"
+        },
+        take: 1
       }
     }
   });
@@ -407,7 +413,11 @@ export async function updateTicket(id: string, payload: Partial<TicketInput>, us
 
   assertCanEditFields(user, payload);
 
-  let resolvedStatusTicket = payload.statusTicket ?? before.statusTicket;
+  const shouldCloseTicket =
+    payload.statusOperacionalLoja === "REEMBOLSO_REALIZADO" ||
+    payload.statusOperacionalLoja === "ASSISTENCIA_ENTREGUE";
+
+  const resolvedStatusTicket = shouldCloseTicket ? "CONCLUIDO" : payload.statusTicket ?? before.statusTicket;
 
   const resolvedPrazoConclusao =
     payload.prazoConclusao !== undefined
@@ -415,11 +425,6 @@ export async function updateTicket(id: string, payload: Partial<TicketInput>, us
         ? new Date(payload.prazoConclusao)
         : null
       : before.prazoConclusao;
-
-  // Objetivo 3: Concluir ticket automaticamente se statusOperacionalLoja for REEMBOLSO_REALIZADO ou ASSISTENCIA_ENTREGUE
-  if (payload.statusOperacionalLoja === "REEMBOLSO_REALIZADO" || payload.statusOperacionalLoja === "ASSISTENCIA_ENTREGUE") {
-    resolvedStatusTicket = "CONCLUIDO";
-  }
 
   assertSlaConsistency(resolvedStatusTicket, resolvedPrazoConclusao);
 
@@ -456,10 +461,12 @@ export async function updateTicket(id: string, payload: Partial<TicketInput>, us
     ...(payload.canalMarketplace !== undefined ? { canalMarketplace: payload.canalMarketplace } : {}),
     ...(payload.empresa !== undefined ? { empresa: payload.empresa } : {}),
     ...(payload.motivo !== undefined ? { motivo: payload.motivo } : {}),
-    statusTicket: resolvedStatusTicket, // Aplicar statusTicket resolvido
     ...(payload.statusReclamacao !== undefined ? { statusReclamacao: payload.statusReclamacao } : {}),
     ...(payload.acaoOperacionalLoja !== undefined ? { acaoOperacionalLoja: payload.acaoOperacionalLoja } : {}),
     ...(payload.statusOperacionalLoja !== undefined ? { statusOperacionalLoja: payload.statusOperacionalLoja } : {}),
+
+    statusTicket: resolvedStatusTicket,
+    slaStatus: calculateSla(resolvedStatusTicket, resolvedPrazoConclusao),
 
     ...(payload.dataCompra !== undefined ? { dataCompra: new Date(payload.dataCompra) } : {}),
 
@@ -471,13 +478,7 @@ export async function updateTicket(id: string, payload: Partial<TicketInput>, us
         }
       : {}),
 
-    ...(payload.prazoConclusao !== undefined
-      ? {
-          prazoConclusao: resolvedPrazoConclusao
-        }
-      : {}),
-
-    slaStatus: calculateSla(resolvedStatusTicket, resolvedPrazoConclusao),
+    ...(payload.prazoConclusao !== undefined ? { prazoConclusao: resolvedPrazoConclusao } : {}),
 
     ...(payload.linkPedido !== undefined ? { linkPedido: normalizeOptionalText(payload.linkPedido) } : {}),
     ...(payload.fabricante !== undefined ? { fabricante: normalizeOptionalText(payload.fabricante) } : {}),
@@ -505,7 +506,7 @@ export async function updateTicket(id: string, payload: Partial<TicketInput>, us
     data
   });
 
-  const action = resolvedStatusTicket !== before.statusTicket ? "STATUS_CHANGE" : "UPDATE"; // Usar resolvedStatusTicket para auditoria
+  const action = resolvedStatusTicket !== before.statusTicket ? "STATUS_CHANGE" : "UPDATE";
 
   await registerTicketAudit({
     ticketId: id,

@@ -393,7 +393,7 @@ export function TicketForm({
           </label>
 
           <label>
-            Valor de coleta, envio ou peças operacional
+            Valor de coleta, envio ou peças
             <input {...register("valorColetaEnvioPecas", { valueAsNumber: true })} type="number" step="0.01" placeholder="R$ 0,00" />
           </label>
 
@@ -421,17 +421,6 @@ export function TicketForm({
                 Concluída
               </option>
             </select>
-          </label>
-
-          <label>
-            Valor de coleta, envio ou peças
-            <input
-              {...register("valorColeta", { valueAsNumber: true })}
-              type="number"
-              step="0.01"
-              placeholder="Valor coleta, envio ou peças"
-              disabled={!canEditSensitive}
-            />
           </label>
         </div>
 
