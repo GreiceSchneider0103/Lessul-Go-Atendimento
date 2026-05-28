@@ -58,17 +58,18 @@ export function OperationalRequestsPanel({ data, perfil }: { data: Row[]; perfil
   const [isSaving, setIsSaving] = useState(false);
 
   const renderAnexoThumbnail = (row: Row) => {
-    if (!row.anexo?.fileUrl) return <span style={{ color: '#999', fontSize: '0.85rem' }}>Sem anexo</span>;
+    if (!row.anexo) return <span style={{ color: '#999', fontSize: '0.85rem' }}>Sem anexo</span>;
 
     const isImage = row.anexo.mimeType?.startsWith("image/");
     const isPDF = row.anexo.mimeType === "application/pdf";
+    const attachmentViewUrl = `/api/tickets/${row.ticketId}/attachment/view`;
 
     return (
-      <a href={row.anexo.fileUrl} target="_blank" rel="noopener noreferrer" title={row.anexo.fileName || "Ver anexo"}>
+      <a href={attachmentViewUrl} target="_blank" rel="noopener noreferrer" title="Ver anexo">
         {isImage ? (
           <img 
-            src={row.anexo.fileUrl} 
-            alt={row.anexo.fileName || "Anexo"} 
+            src={attachmentViewUrl} 
+            alt="Anexo" 
             style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 4, border: '1px solid #ddd' }}
           />
         ) : (
@@ -166,7 +167,6 @@ export function OperationalRequestsPanel({ data, perfil }: { data: Row[]; perfil
               <th>Status</th>
               <th>Prazo</th>
               <th>Anexo</th>
-              <th>Atualizado</th>
               <th>Ações</th>
             </tr>
           </thead>
@@ -204,7 +204,6 @@ export function OperationalRequestsPanel({ data, perfil }: { data: Row[]; perfil
                     ) : '-'}
                   </td>
                   <td>{renderAnexoThumbnail(row)}</td>
-                  <td style={{ fontSize: '0.85rem', color: '#666' }}>{formatDateTimeBR(new Date(row.updatedAt))}</td>
                   <td>
                     <button 
                       className="btn btn-sm" 
@@ -343,11 +342,11 @@ export function OperationalRequestsPanel({ data, perfil }: { data: Row[]; perfil
                 <legend style={{ paddingInline: "4px", fontSize: "0.85rem", fontWeight: "bold", color: "#666" }}>
                   Anexo
                 </legend>
-                {selectedRow.anexo?.fileUrl ? (
+                {selectedRow.anexo ? (
                   <div style={{ marginBottom: "8px", textAlign: "center" }}>
                     {selectedRow.anexo.mimeType?.startsWith("image/") ? (
                       <img 
-                        src={selectedRow.anexo.fileUrl}
+                        src={`/api/tickets/${selectedRow.ticketId}/attachment/view`}
                         alt="Anexo"
                         style={{ maxWidth: "100%", maxHeight: "200px", borderRadius: "4px", border: "1px solid #e2e8f0" }}
                       />

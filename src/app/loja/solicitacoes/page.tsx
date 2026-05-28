@@ -32,6 +32,7 @@ type OperationalRequestWithTicket = {
   ticket: {
     nomeCliente: string;
     numeroVenda: string;
+    prazoConclusao: Date | null;
     linkPedido: string | null;
     anexoUrl: string | null;
     anexoNome: string | null;
@@ -142,6 +143,7 @@ export default async function LojaSolicitacoesPage({ searchParams }: PageProps) 
           nomeCliente: true,
           numeroVenda: true,
           linkPedido: true,
+          prazoConclusao: true,
           anexoUrl: true,
           anexoNome: true,
           anexoPath: true,
@@ -175,7 +177,7 @@ export default async function LojaSolicitacoesPage({ searchParams }: PageProps) 
       ticketId: row.ticketId,
       tipoAcao: displayTipoAcao,
       status: displayStatus,
-      prazoOperacional: row.prazoOperacional?.toISOString() ?? null,
+      prazoOperacional: row.ticket.prazoConclusao?.toISOString() ?? null,
       updatedAt: row.updatedAt.toISOString(),
       comentarioLoja: row.ticket.comentarioLoja ?? row.comentarioLoja ?? null,
       comentarioAtendente: row.comentarioAtendente ?? null,
