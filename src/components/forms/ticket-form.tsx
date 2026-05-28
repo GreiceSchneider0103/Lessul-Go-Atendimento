@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -11,6 +11,8 @@ import { TicketFormInput, ticketFormSchema } from "@/lib/validation/ticket";
 type AssignableUser = { id: string; nome: string };
 
 type UserPerfil = "ATENDENTE" | "SUPERVISOR" | "ADMIN" | "LOJA";
+
+type EmpresaValue = (typeof EMPRESAS)[number];
 
 type TicketAttachment = {
   fileUrl?: string | null;
@@ -30,6 +32,10 @@ type TicketFormProps = {
   cancelHref?: "/tickets" | `/tickets/${string}` | "/loja/solicitacoes";
   userPerfil?: UserPerfil;
   ticketAttachment?: TicketAttachment;
+  currentUser?: {
+    perfil?: UserPerfil;
+    empresasVinculadas?: EmpresaValue[] | null;
+  } | null;
 };
 
 function toText(value: unknown): string {
@@ -84,6 +90,10 @@ function toIsoDate(value: unknown): string | null {
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
+function isEmpresaValue(value: unknown): value is EmpresaValue {
+  return typeof value === "string" && (EMPRESAS as readonly string[]).includes(value);
+}
+
 export function TicketForm({
   ticketId,
   initialValues,
@@ -91,9 +101,40 @@ export function TicketForm({
   assignableUsers = [],
   cancelHref,
   userPerfil,
-  ticketAttachment
+  ticketAttachment,
+  currentUser
 }: TicketFormProps) {
   const router = useRouter();
+
+  const perfilAtual = currentUser?.perfil ?? userPerfil;
+
+  const empresasDisponiveis = useMemo<EmpresaValue[]>(() => {
+    const empresasVinculadas = Array.isArray(currentUser?.empresasVinculadas)
+      ? currentUser.empresasVinculadas.filter(isEmpresaValue)
+      : [];
+
+    if (perfilAtual === "LOJA" && empresasVinculadas.length > 0) {
+      return empresasVinculadas;
+    }
+
+    const empresaInicial = initialValues?.empresa;
+
+    if (perfilAtual === "LOJA" && isEmpresaValue(empresaInicial)) {
+      return [empresaInicial];
+    }
+
+    return [...EMPRESAS];
+  }, [currentUser?.empresasVinculadas, perfilAtual, initialValues?.empresa]);
+
+  const empresaInicial = useMemo<EmpresaValue>(() => {
+    const empresaDoTicket = initialValues?.empresa;
+
+    if (isEmpresaValue(empresaDoTicket) && empresasDisponiveis.includes(empresaDoTicket)) {
+      return empresaDoTicket;
+    }
+
+    return empresasDisponiveis[0] ?? ("LESSUL" as EmpresaValue);
+  }, [empresasDisponiveis, initialValues?.empresa]);
 
   const [requestError, setRequestError] = useState<string | null>(null);
   const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
@@ -105,6 +146,8 @@ export function TicketForm({
   const {
     register,
     handleSubmit,
+    setValue,
+    watch,
     formState: { errors, isSubmitting }
   } = useForm<TicketFormInput>({
     resolver: zodResolver(ticketFormSchema),
@@ -113,10 +156,10 @@ export function TicketForm({
       dataCompra: toDateInput(initialValues?.dataCompra),
       numeroVenda: toText(initialValues?.numeroVenda),
       linkPedido: toText(initialValues?.linkPedido),
-      uf: toText(initialValues?.uf),
+      uf: toText(initialValues?.uf).toUpperCase(),
       cpf: toText(initialValues?.cpf),
       canalMarketplace: toText(initialValues?.canalMarketplace) || "MERCADO_LIVRE",
-      empresa: toText(initialValues?.empresa) || "LESSUL",
+      empresa: empresaInicial,
       produto: toText(initialValues?.produto),
       sku: toText(initialValues?.sku),
       fabricante: toText(initialValues?.fabricante),
@@ -133,12 +176,27 @@ export function TicketForm({
       codigoRastreio: toText(initialValues?.codigoRastreio),
       statusOperacionalLoja: toText(initialValues?.statusOperacionalLoja) || "EM_ABERTO",
       comentarioLoja: toText(initialValues?.comentarioLoja),
+      comentarioInterno: toText(initialValues?.comentarioInterno),
       statusTicket: toText(initialValues?.statusTicket) || "ABERTO",
       prazoConclusao: toDateInput(initialValues?.prazoConclusao),
-      responsavelId: toNullableText(initialValues?.responsavelId),
+      responsavelId: toNullableText(initialValues?.responsavelId) || undefined,
       acaoOperacionalLoja: toText(initialValues?.acaoOperacionalLoja) || "NENHUMA"
     } as Partial<TicketFormInput>
   });
+
+  const empresaSelecionada = watch("empresa");
+
+  useEffect(() => {
+    if (!empresasDisponiveis.length) return;
+
+    if (!isEmpresaValue(empresaSelecionada) || !empresasDisponiveis.includes(empresaSelecionada)) {
+      setValue("empresa", empresasDisponiveis[0], {
+        shouldDirty: false,
+        shouldTouch: false,
+        shouldValidate: true
+      });
+    }
+  }, [empresaSelecionada, empresasDisponiveis, setValue]);
 
   async function onSubmit(values: TicketFormInput) {
     setRequestError(null);
@@ -151,8 +209,14 @@ export function TicketForm({
       return;
     }
 
+    if (!isEmpresaValue(values.empresa)) {
+      setRequestError("Selecione uma empresa válida para o ticket.");
+      return;
+    }
+
     const payload = {
       ...values,
+      empresa: values.empresa,
       uf: toText(values.uf).toUpperCase(),
       dataCompra,
       dataReclamacao,
@@ -163,6 +227,7 @@ export function TicketForm({
       detalhesCliente: toText(values.detalhesCliente),
       codigoRastreio: toText(values.codigoRastreio),
       comentarioLoja: toText(values.comentarioLoja),
+      comentarioInterno: toText(values.comentarioInterno),
       responsavelId: toNullableText(values.responsavelId),
       resolucao: toNullableText(values.resolucao),
       valorReembolso: toNumberValue(values.valorReembolso),
@@ -211,6 +276,8 @@ export function TicketForm({
   function errorFor(field: keyof TicketFormInput) {
     return errors[field]?.message;
   }
+
+  const semEmpresaDisponivel = empresasDisponiveis.length === 0;
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="panel ticket-form">
@@ -269,13 +336,20 @@ export function TicketForm({
 
           <label>
             Empresa
-            <select {...register("empresa")}>
-              {EMPRESAS.map((item) => (
-                <option key={item} value={item}>
-                  {formatEnumLabel(item)}
-                </option>
-              ))}
+            <select {...register("empresa")} disabled={semEmpresaDisponivel}>
+              {semEmpresaDisponivel ? (
+                <option value="">Nenhuma empresa vinculada</option>
+              ) : (
+                empresasDisponiveis.map((item) => (
+                  <option key={item} value={item}>
+                    {formatEnumLabel(item)}
+                  </option>
+                ))
+              )}
             </select>
+            {perfilAtual === "LOJA" && empresasDisponiveis.length === 1 ? (
+              <small className="muted">Empresa selecionada automaticamente pelo vínculo do usuário.</small>
+            ) : null}
           </label>
 
           <label>
@@ -571,6 +645,7 @@ export function TicketForm({
       </section>
 
       {!canEditSensitive ? <p className="muted">Seu perfil não pode editar campos administrativos.</p> : null}
+      {semEmpresaDisponivel ? <p className="field-error">Nenhuma empresa vinculada ao usuário atual.</p> : null}
       {requestError ? <p className="field-error">{requestError}</p> : null}
 
       <div className="ticket-form-actions">
@@ -580,7 +655,7 @@ export function TicketForm({
           </button>
         ) : null}
 
-        <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+        <button type="submit" className="btn btn-primary" disabled={isSubmitting || semEmpresaDisponivel}>
           {isSubmitting ? "Salvando..." : "Salvar"}
         </button>
       </div>
