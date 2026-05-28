@@ -7,6 +7,8 @@ import { prisma } from "@/lib/db/prisma";
 import { Perfil } from "@prisma/client";
 import { TicketFormInput } from "@/lib/validation/ticket";
 
+type BackHref = "/loja/solicitacoes" | `/tickets/${string}`;
+
 export default async function TicketEditPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const user = await requireCurrentUser();
@@ -32,6 +34,10 @@ export default async function TicketEditPage({ params }: { params: Promise<{ id:
 
   const isLoja = user.perfil === Perfil.LOJA;
 
+  const backHref: BackHref = isLoja
+    ? "/loja/solicitacoes"
+    : `/tickets/${id}`;
+
   const initialValues: Partial<TicketFormInput> = {
     ...(ticket as unknown as Partial<TicketFormInput>),
 
@@ -55,19 +61,21 @@ export default async function TicketEditPage({ params }: { params: Promise<{ id:
     transportadora: ticket.transportadora ?? "",
     detalhesCliente: ticket.detalhesCliente ?? "",
     responsavelId: ticket.responsavelId ?? "",
-    resolucao: ticket.resolucao ?? ""
+    resolucao: ticket.resolucao ?? "",
+    acaoOperacionalLoja: ticket.acaoOperacionalLoja ?? "NENHUMA",
+    statusOperacionalLoja: ticket.statusOperacionalLoja ?? "EM_ABERTO"
   };
 
   return (
     <section className="page ticket-edit-page">
       <div className="page-header" style={{ marginBottom: 24 }}>
         <div className="ticket-edit-topbar">
-          <Link href={`/tickets/${id}`} className="btn btn-secondary">
-            ← Voltar para o Ticket
+          <Link href={backHref} className="btn btn-secondary">
+            ← Voltar
           </Link>
 
           <div className="ticket-edit-actions">
-            <Link href={`/tickets/${id}`} className="btn btn-secondary">
+            <Link href={backHref} className="btn btn-secondary">
               Cancelar
             </Link>
 
@@ -97,12 +105,12 @@ export default async function TicketEditPage({ params }: { params: Promise<{ id:
         <p className="muted">ID: {ticket.id}</p>
       </div>
 
-       <TicketForm
+      <TicketForm
         ticketId={id}
         initialValues={initialValues}
         canEditSensitive={!isLoja}
         assignableUsers={assignableUsers}
-        cancelHref={`/tickets/${id}`}
+        cancelHref={backHref}
         userPerfil={user.perfil}
         ticketAttachment={{
           fileUrl: ticket.anexoUrl,

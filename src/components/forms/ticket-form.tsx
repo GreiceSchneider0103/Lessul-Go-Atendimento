@@ -27,7 +27,7 @@ type TicketFormProps = {
   initialValues?: Partial<TicketFormInput>;
   canEditSensitive?: boolean;
   assignableUsers?: AssignableUser[];
-  cancelHref?: "/tickets" | `/tickets/${string}`;
+  cancelHref?: "/tickets" | `/tickets/${string}` | "/loja/solicitacoes";
   userPerfil?: UserPerfil;
   ticketAttachment?: TicketAttachment;
 };
@@ -131,6 +131,8 @@ export function TicketForm({
       valorAssistencia: toNumberValue(initialValues?.valorAssistencia),
       valorColetaEnvioPecas: toNumberValue(initialValues?.valorColetaEnvioPecas),
       codigoRastreio: toText(initialValues?.codigoRastreio),
+      statusOperacionalLoja: toText(initialValues?.statusOperacionalLoja) || "EM_ABERTO",
+      comentarioLoja: toText(initialValues?.comentarioLoja),
       statusTicket: toText(initialValues?.statusTicket) || "ABERTO",
       prazoConclusao: toDateInput(initialValues?.prazoConclusao),
       responsavelId: toNullableText(initialValues?.responsavelId),
@@ -160,6 +162,7 @@ export function TicketForm({
       transportadora: toText(values.transportadora),
       detalhesCliente: toText(values.detalhesCliente),
       codigoRastreio: toText(values.codigoRastreio),
+      comentarioLoja: toText(values.comentarioLoja),
       responsavelId: toNullableText(values.responsavelId),
       resolucao: toNullableText(values.resolucao),
       valorReembolso: toNumberValue(values.valorReembolso),
@@ -201,7 +204,7 @@ export function TicketForm({
       });
     }
 
-    router.push("/tickets");
+    router.push(userPerfil === "LOJA" ? "/loja/solicitacoes" : cancelHref ?? "/tickets");
     router.refresh();
   }
 
@@ -358,7 +361,7 @@ export function TicketForm({
 
           <label>
             Resolução
-            <select {...register("resolucao")} disabled={!canEditSensitive}>
+            <select {...register("resolucao")}>
               <option value="">Sem resolução</option>
               {RESOLUCOES.map((item) => (
                 <option key={item} value={item}>
@@ -370,7 +373,7 @@ export function TicketForm({
 
           <label>
             Valor de reembolso
-            <input {...register("valorReembolso", { valueAsNumber: true })} type="number" step="0.01" placeholder="Valor reembolso" disabled={!canEditSensitive} />
+            <input {...register("valorReembolso", { valueAsNumber: true })} type="number" step="0.01" placeholder="Valor reembolso" />
           </label>
 
           <label>
@@ -414,13 +417,21 @@ export function TicketForm({
               <option value="REEMBOLSO_PENDENTE">Reembolso pendente</option>
               <option value="REEMBOLSO_REALIZADO">Reembolso realizado</option>
               <option value="AGUARDANDO_ATENDENTE">Aguardando atendente</option>
-              <option value="CONCLUIDA">Concluída</option>
+              <option value="CONCLUIDA" disabled={userPerfil === "LOJA"}>
+                Concluída
+              </option>
             </select>
           </label>
 
           <label>
             Valor de coleta, envio ou peças
-            <input {...register("valorColeta", { valueAsNumber: true })} type="number" step="0.01" placeholder="Valor coleta, envio ou peças" disabled={!canEditSensitive} />
+            <input
+              {...register("valorColeta", { valueAsNumber: true })}
+              type="number"
+              step="0.01"
+              placeholder="Valor coleta, envio ou peças"
+              disabled={!canEditSensitive}
+            />
           </label>
         </div>
 
@@ -570,7 +581,7 @@ export function TicketForm({
         )}
       </section>
 
-      {!canEditSensitive ? <p className="muted">Seu perfil não pode editar campos sensíveis.</p> : null}
+      {!canEditSensitive ? <p className="muted">Seu perfil não pode editar campos administrativos.</p> : null}
       {requestError ? <p className="field-error">{requestError}</p> : null}
 
       <div className="ticket-form-actions">

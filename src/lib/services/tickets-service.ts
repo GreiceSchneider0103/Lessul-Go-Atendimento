@@ -24,7 +24,7 @@ function normalizeOptionalText(value?: string | null) {
 
 function assertCanEditFields(user: Usuario, payload: Partial<TicketInput>) {
   if (user.perfil === "LOJA") {
-    const forbidden = ["valorColeta", "prazoConclusao", "resolucao"] as const;
+    const forbidden = ["valorColeta", "prazoConclusao"] as const;
 
     if (forbidden.some((field) => payload[field] !== undefined)) {
       throw new ForbiddenError("Perfil LOJA não pode editar campos administrativos");
