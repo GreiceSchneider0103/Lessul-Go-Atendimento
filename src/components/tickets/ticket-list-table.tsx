@@ -186,6 +186,17 @@ export function TicketListTable({ initialItems }: { initialItems: Ticket[] }) {
       }
 
       await response.json().catch(() => null);
+
+      // Notificar outros componentes/abas sobre mudança de status para sincronizar a listagem operacional
+      try {
+        if (field === "statusTicket") {
+          const bc = new BroadcastChannel("tickets-updates");
+          bc.postMessage({ type: "status_change", ticketId, newStatus: value });
+          bc.close();
+        }
+      } catch (e) {
+        // Ignore se BroadcastChannel não estiver disponível
+      }
     } catch (updateError) {
       setItems(previousItems);
       setError(getErrorMessage(updateError));

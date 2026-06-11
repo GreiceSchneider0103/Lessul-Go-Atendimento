@@ -132,10 +132,15 @@ export default async function LojaSolicitacoesPage({ searchParams }: PageProps) 
         ? { empresa: empresaFiltro as Empresa }
         : {};
 
-  const where: Prisma.OperationalRequestWhereInput = {
-    ...baseWhere,
-    ...(statusFiltro ? { status: statusFiltro } : {})
-  };
+  let where: Prisma.OperationalRequestWhereInput = { ...baseWhere };
+
+  if (statusFiltro) {
+    // quando filtrar por status, considerar tanto o status da request quanto o status operacional armazenado no ticket
+    where = {
+      ...baseWhere,
+      OR: [{ status: statusFiltro }, { ticket: { statusOperacionalLoja: statusFiltro } }]
+    };
+  }
 
   const data = (await prisma.operationalRequest.findMany({
     where,
@@ -209,45 +214,32 @@ export default async function LojaSolicitacoesPage({ searchParams }: PageProps) 
         : undefined
     };
   });
-
   // Definir status para as novas regras dos cards
   const openStatuses = ["EM_ABERTO"];
   const finalizedStatuses = ["CONCLUIDA", "ASSISTENCIA_ENTREGUE", "REEMBOLSO_REALIZADO"];
 
-  const total = mappedData.length;
-  const emAberto = mappedData.filter((item) => openStatuses.includes(item.status)).length;
+  // Estatísticas devem considerar todos os registros (incluindo concluídos), porém a tabela
+  // exibirá, por padrão, apenas os não concluídos. Se houver um filtro explícito de status,
+  // a tabela mostra apenas esse status.
+  const totalAll = mappedData.length;
   const concluidas = mappedData.filter((item) => finalizedStatuses.includes(item.status)).length;
-  // Em andamento: qualquer status que não seja "Em aberto" e não seja "Concluída" (finalized)
+  const totalNotConcluded = mappedData.filter((item) => !finalizedStatuses.includes(item.status)).length;
+  const emAberto = mappedData.filter((item) => openStatuses.includes(item.status)).length;
   const emAndamento = mappedData.filter((item) => !openStatuses.includes(item.status) && !finalizedStatuses.includes(item.status)).length;
-  const atrasadas = mappedData.filter((item) => isOverdue(item.prazoOperacional, item.status)).length;
+  const atrasadas = mappedData.filter((item) => isOverdue(item.prazoOperacional, item.status) && !finalizedStatuses.includes(item.status)).length;
 
   const stats = [
-    {
-      key: "TOTAL",
-      label: "Total",
-      value: total
-    },
-    {
-      key: "EM_ABERTO",
-      label: "Em aberto",
-      value: emAberto
-    },
-    {
-      key: "EM_ANDAMENTO", // Novo card "Em andamento"
-      label: "Em andamento",
-      value: emAndamento
-    },
-    {
-      key: "CONCLUIDAS",
-      label: "Concluídas",
-      value: concluidas
-    },
-    {
-      key: "ATRASADAS",
-      label: "Atrasadas",
-      value: atrasadas
-    }
+    { key: "TOTAL", label: "Total", value: totalNotConcluded },
+    { key: "EM_ABERTO", label: "Em aberto", value: emAberto },
+    { key: "EM_ANDAMENTO", label: "Em andamento", value: emAndamento },
+    { key: "CONCLUIDAS", label: "Concluídas", value: concluidas },
+    { key: "ATRASADAS", label: "Atrasadas", value: atrasadas }
   ];
+
+  // Definir dados que serão mostrados na tabela aplicando o filtro padrão (excluir concluidas)
+  const displayData = statusFiltro
+    ? mappedData.filter((item) => item.status === statusFiltro)
+    : mappedData.filter((item) => !finalizedStatuses.includes(item.status));
 
   return (
     <section className="page">
@@ -318,7 +310,7 @@ export default async function LojaSolicitacoesPage({ searchParams }: PageProps) 
         ))}
       </div>
 
-      <OperationalRequestsPanel perfil={user.perfil} data={mappedData} />
+      <OperationalRequestsPanel perfil={user.perfil} data={displayData} />
     </section>
   );
 }

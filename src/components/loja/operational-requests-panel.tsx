@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { useEffect } from "react";
 import Link from "next/link";
 import { Perfil, StatusOperacional } from "@prisma/client";
 import { formatDateBR, formatDateTimeBR, formatEnumLabel } from "@/lib/formatters/display";
@@ -56,6 +57,36 @@ const acoesLabels: Record<string, string> = {
 export function OperationalRequestsPanel({ data, perfil }: { data: Row[]; perfil: Perfil }) {
   const [selectedRow, setSelectedRow] = useState<Row | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [rows, setRows] = useState<Row[]>(data);
+
+  useEffect(() => {
+    // Escuta atualizações vindas de outras abas/componentes (ex: Tickets) para sincronizar exibição
+    try {
+      const bc = new BroadcastChannel("tickets-updates");
+
+      bc.onmessage = (ev) => {
+        const msg = ev.data;
+        if (!msg || msg.type !== "status_change") return;
+
+        const { ticketId, newStatus } = msg as { ticketId?: string; newStatus?: string };
+        if (!ticketId) return;
+
+        // Se ticket foi concluído, remove da listagem atual (padrão não mostra concluídos)
+        if (newStatus === "CONCLUIDO") {
+          setRows((prev) => prev.filter((r) => r.ticketId !== ticketId));
+        } else {
+          // Caso contrário, atualiza o status operacional do ticket quando disponível
+          setRows((prev) =>
+            prev.map((r) => (r.ticketId === ticketId ? { ...r, ticket: { ...r.ticket, statusOperacionalLoja: msg.newOperacionalStatus ?? r.ticket.statusOperacionalLoja } } : r))
+          );
+        }
+      };
+
+      return () => bc.close();
+    } catch (e) {
+      // BroadcastChannel pode não estar disponível em alguns ambientes; falhar silenciosamente
+    }
+  }, []);
 
   const renderAnexoThumbnail = (row: Row) => {
     if (!row.anexo) return <span style={{ color: '#999', fontSize: '0.85rem' }}>Sem anexo</span>;
@@ -176,7 +207,7 @@ export function OperationalRequestsPanel({ data, perfil }: { data: Row[]; perfil
             </tr>
           </thead>
           <tbody>
-            {data.map((row) => {
+            {rows.map((row) => {
               const isAtrasado = row.prazoOperacional && new Date(row.prazoOperacional) < new Date() && row.status !== "CONCLUIDA";
               
               return (

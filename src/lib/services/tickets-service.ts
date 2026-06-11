@@ -502,6 +502,13 @@ export async function updateTicket(id: string, rawPayload: Partial<TicketInput>,
       : {})
   };
 
+  // Se o ticket foi concluído via statusTicket e o payload não setou statusOperacionalLoja,
+  // sincroniza o status operacional para `CONCLUIDA` para manter a listagem operacional consistente.
+  if (payload.statusOperacionalLoja === undefined && resolvedStatusTicket === "CONCLUIDO") {
+    // usar asserção any para evitar conflito de tipos estritos do Prisma aqui
+    (data as any).statusOperacionalLoja = "CONCLUIDA";
+  }
+
   const updated = await prisma.ticket.update({
     where: { id },
     data
