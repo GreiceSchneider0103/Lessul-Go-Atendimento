@@ -346,7 +346,8 @@ export async function createTicket(input: TicketInput, userId: string) {
       statusOperacionalLoja: input.statusOperacionalLoja ?? "EM_ABERTO",
       codigoRastreio: normalizeOptionalText(input.codigoRastreio),
       comentarioLoja: normalizeOptionalText(input.comentarioLoja),
-      slaStatus: calculateSla(input.statusTicket, prazoConclusao)
+      slaStatus: calculateSla(input.statusTicket, prazoConclusao),
+      ...(input.statusTicket === "CONCLUIDO" ? { concluidoEm: new Date() } : {})
     }
   });
 
@@ -507,6 +508,18 @@ export async function updateTicket(id: string, rawPayload: Partial<TicketInput>,
   if (payload.statusOperacionalLoja === undefined && resolvedStatusTicket === "CONCLUIDO") {
     // usar asserção any para evitar conflito de tipos estritos do Prisma aqui
     (data as any).statusOperacionalLoja = "CONCLUIDA";
+  }
+
+  // Preencher ou limpar `concluidoEm` conforme transições de status:
+  // - Quando passa para CONCLUIDO e anteriormente não estava concluído, setar agora.
+  // - Quando sai de CONCLUIDO para outro status, limpar (null).
+  const wasConcluded = before.statusTicket === "CONCLUIDO";
+  const willBeConcluded = resolvedStatusTicket === "CONCLUIDO";
+
+  if (!wasConcluded && willBeConcluded) {
+    (data as any).concluidoEm = new Date();
+  } else if (wasConcluded && !willBeConcluded) {
+    (data as any).concluidoEm = null;
   }
 
   const updated = await prisma.ticket.update({

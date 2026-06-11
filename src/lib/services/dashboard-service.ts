@@ -26,37 +26,50 @@ export async function getDashboardData(filters: DashboardFilters, user: { id: st
     ...(getDateRange(filters.startDate, filters.endDate) ? { dataReclamacao: getDateRange(filters.startDate, filters.endDate) } : {})
   };
 
-  const [total, abertos, atrasados, agregados, porEmpresa, porMotivo, porStatus, porMarketplace, custosPorMarketplace, custosPorProduto, reembolsosPorEmpresa, ticketsPorMes, ticketsPorSkuRaw, motivosPorSkuRaw] = await Promise.all([
+  // Para cálculos financeiros (custos, reembolsos, coletas) usamos a data de conclusão do ticket (`concluidoEm`).
+  const concludedDateRange = getDateRange(filters.startDate, filters.endDate);
+  const concludedWhere: Prisma.TicketWhereInput = {
+    ativo: true,
+    ...getTicketScopeWhere(user),
+    ...(filters.empresa ? { empresa: filters.empresa } : {}),
+    ...(filters.canalMarketplace ? { canalMarketplace: filters.canalMarketplace } : {}),
+    ...(filters.sku ? { sku: { contains: filters.sku, mode: "insensitive" } } : {}),
+    ...(concludedDateRange ? { concluidoEm: concludedDateRange } : {}),
+    statusTicket: "CONCLUIDO"
+  };
+
+  const [total, abertos, atrasados, agregados, porEmpresa, porMotivo, porStatus, porMarketplace, custosPorMarketplace, custosPorProduto, reembolsosPorEmpresa, ticketsPorMes, ticketsPorSkuRaw, motivosPorSkuRaw, custosBySkuRaw] = await Promise.all([
     prisma.ticket.count({ where }),
     prisma.ticket.count({ where: { ...where, statusTicket: { not: "CONCLUIDO" } } }),
     prisma.ticket.count({ where: { ...where, statusTicket: { not: "CONCLUIDO" }, prazoConclusao: { lt: new Date() } } }),
-    prisma.ticket.aggregate({ _sum: { custosTotais: true, valorReembolso: true, valorColeta: true }, where }),
+    // Agregados financeiros baseados em concluidoEm
+    prisma.ticket.aggregate({ _sum: { custosTotais: true, valorReembolso: true, valorColeta: true }, where: concludedWhere }),
     prisma.ticket.groupBy({ by: ["empresa"], where, _count: true }),
     prisma.ticket.groupBy({ by: ["motivo"], where, _count: true }),
     prisma.ticket.groupBy({ by: ["statusTicket"], where, _count: true }),
     prisma.ticket.groupBy({ by: ["canalMarketplace"], where, _count: true }),
-    prisma.ticket.groupBy({ by: ["canalMarketplace"], where, _sum: { custosTotais: true } }),
-    prisma.ticket.groupBy({ by: ["produto"], where, _sum: { custosTotais: true } }),
-    prisma.ticket.groupBy({ by: ["empresa"], where, _sum: { valorReembolso: true } }),
+    // Custos por marketplace / produto considerando concluidoEm
+    prisma.ticket.groupBy({ by: ["canalMarketplace"], where: concludedWhere, _sum: { custosTotais: true } }),
+    prisma.ticket.groupBy({ by: ["produto"], where: concludedWhere, _sum: { custosTotais: true } }),
+    prisma.ticket.groupBy({ by: ["empresa"], where: concludedWhere, _sum: { valorReembolso: true } }),
     prisma.ticket.groupBy({ by: ["anoReclamacao", "mesReclamacao"], where, _count: true }),
-    prisma.ticket.groupBy({
-      by: ["sku"],
-      where,
-      _count: true,
-      _sum: { custosTotais: true }
-    }),
-    prisma.ticket.groupBy({
-      by: ["sku", "motivo"],
-      where,
-      _count: true
-    })
+    // ticketsPorSku: contagens por sku (where), custos por sku (concludedWhere) serão mesclados
+    prisma.ticket.groupBy({ by: ["sku"], where, _count: true }),
+    prisma.ticket.groupBy({ by: ["sku", "motivo"], where, _count: true }),
+    prisma.ticket.groupBy({ by: ["sku"], where: concludedWhere, _sum: { custosTotais: true } })
   ]);
+
+  // Construir mapa de custos por SKU baseado em concludedWhere
+  const custosBySkuMap = (custosBySkuRaw as any[]).reduce<Record<string, number>>((acc, row) => {
+    acc[String(row.sku)] = Number(row?._sum?.custosTotais ?? 0);
+    return acc;
+  }, {});
 
   const ticketsPorSku = ticketsPorSkuRaw
     .map((item: any) => ({
       name: item.sku,
       tickets: Number(item?._count?._all ?? item?._count ?? 0),
-      custo: Number(item?._sum?.custosTotais ?? 0),
+      custo: Number(custosBySkuMap[String(item.sku)] ?? 0),
       abertos: 0,
       concluidos: 0,
       atrasados: 0,

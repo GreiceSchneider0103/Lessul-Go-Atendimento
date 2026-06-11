@@ -60,6 +60,7 @@ model Ticket {
   atualizadoEm                  DateTime                       @updatedAt
   prazoConclusao                DateTime?
   ativo                         Boolean                        @default(true)
+  concluidoEm                   DateTime?
   mesReclamacao                 Int
   anoReclamacao                 Int
   slaStatus                     String                         @default("NO_PRAZO")
