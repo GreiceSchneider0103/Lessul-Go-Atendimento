@@ -14,7 +14,9 @@ function getDateRange(startDate?: string, endDate?: string) {
 }
 
 export async function getDashboardData(filters: DashboardFilters, user: { id: string; perfil: Perfil }) {
-  const where: Prisma.TicketWhereInput = {
+  const dateRange = getDateRange(filters.startDate, filters.endDate);
+
+  const baseWhere: Prisma.TicketWhereInput = {
     ativo: true,
     ...getTicketScopeWhere(user),
     ...(filters.empresa ? { empresa: filters.empresa } : {}),
@@ -22,44 +24,72 @@ export async function getDashboardData(filters: DashboardFilters, user: { id: st
     ...(filters.statusTicket ? { statusTicket: filters.statusTicket } : {}),
     ...(filters.statusReclamacao ? { statusReclamacao: filters.statusReclamacao } : {}),
     ...(filters.motivo ? { motivo: filters.motivo } : {}),
-    ...(filters.sku ? { sku: { contains: filters.sku, mode: "insensitive" } } : {}),
-    ...(getDateRange(filters.startDate, filters.endDate) ? { dataReclamacao: getDateRange(filters.startDate, filters.endDate) } : {})
+    ...(filters.sku ? { sku: { contains: filters.sku, mode: "insensitive" } } : {})
   };
 
-  // Para cálculos financeiros (custos, reembolsos, coletas) usamos a data de conclusão do ticket (`concluidoEm`).
-  const concludedDateRange = getDateRange(filters.startDate, filters.endDate);
-  const concludedWhere: Prisma.TicketWhereInput = {
-    ativo: true,
-    ...getTicketScopeWhere(user),
-    ...(filters.empresa ? { empresa: filters.empresa } : {}),
-    ...(filters.canalMarketplace ? { canalMarketplace: filters.canalMarketplace } : {}),
-    ...(filters.sku ? { sku: { contains: filters.sku, mode: "insensitive" } } : {}),
-    ...(concludedDateRange ? { concluidoEm: concludedDateRange } : {}),
-    statusTicket: "CONCLUIDO"
+  const where: Prisma.TicketWhereInput = {
+    ...baseWhere,
+    ...(dateRange ? { dataReclamacao: dateRange } : {})
   };
 
-  const [total, abertos, atrasados, agregados, porEmpresa, porMotivo, porStatus, porMarketplace, custosPorMarketplace, custosPorProduto, reembolsosPorEmpresa, ticketsPorMes, ticketsPorSkuRaw, motivosPorSkuRaw, custosBySkuRaw] = await Promise.all([
+  const custoWhere: Prisma.TicketWhereInput = {
+    ...baseWhere,
+    OR: [
+      {
+        statusTicket: { not: "CONCLUIDO" },
+        ...(dateRange ? { dataReclamacao: dateRange } : {})
+      },
+      {
+        statusTicket: "CONCLUIDO",
+        concluidoEm: { not: null },
+        ...(dateRange ? { concluidoEm: dateRange } : {})
+      },
+      {
+        statusTicket: "CONCLUIDO",
+        concluidoEm: null,
+        ...(dateRange ? { dataReclamacao: dateRange } : {})
+      }
+    ]
+  };
+
+  const [
+    total,
+    abertos,
+    atrasados,
+    custoAgregado,
+    reembolsoAgregado,
+    coletaAgregado,
+    porEmpresa,
+    porMotivo,
+    porStatus,
+    porMarketplace,
+    custosPorMarketplace,
+    custosPorProduto,
+    reembolsosPorEmpresa,
+    ticketsPorMes,
+    ticketsPorSkuRaw,
+    custosBySkuRaw,
+    motivosPorSkuRaw
+  ] = await Promise.all([
     prisma.ticket.count({ where }),
     prisma.ticket.count({ where: { ...where, statusTicket: { not: "CONCLUIDO" } } }),
     prisma.ticket.count({ where: { ...where, statusTicket: { not: "CONCLUIDO" }, prazoConclusao: { lt: new Date() } } }),
-    // Agregados financeiros baseados em concluidoEm
-    prisma.ticket.aggregate({ _sum: { custosTotais: true, valorReembolso: true, valorColeta: true }, where: concludedWhere }),
+    prisma.ticket.aggregate({ _sum: { custosTotais: true }, where: custoWhere }),
+    prisma.ticket.aggregate({ _sum: { valorReembolso: true }, where }),
+    prisma.ticket.aggregate({ _sum: { valorColeta: true }, where }),
     prisma.ticket.groupBy({ by: ["empresa"], where, _count: true }),
     prisma.ticket.groupBy({ by: ["motivo"], where, _count: true }),
     prisma.ticket.groupBy({ by: ["statusTicket"], where, _count: true }),
     prisma.ticket.groupBy({ by: ["canalMarketplace"], where, _count: true }),
-    // Custos por marketplace / produto considerando concluidoEm
-    prisma.ticket.groupBy({ by: ["canalMarketplace"], where: concludedWhere, _sum: { custosTotais: true } }),
-    prisma.ticket.groupBy({ by: ["produto"], where: concludedWhere, _sum: { custosTotais: true } }),
-    prisma.ticket.groupBy({ by: ["empresa"], where: concludedWhere, _sum: { valorReembolso: true } }),
+    prisma.ticket.groupBy({ by: ["canalMarketplace"], where: custoWhere, _sum: { custosTotais: true } }),
+    prisma.ticket.groupBy({ by: ["produto"], where: custoWhere, _sum: { custosTotais: true } }),
+    prisma.ticket.groupBy({ by: ["empresa"], where, _sum: { valorReembolso: true } }),
     prisma.ticket.groupBy({ by: ["anoReclamacao", "mesReclamacao"], where, _count: true }),
-    // ticketsPorSku: contagens por sku (where), custos por sku (concludedWhere) serão mesclados
     prisma.ticket.groupBy({ by: ["sku"], where, _count: true }),
-    prisma.ticket.groupBy({ by: ["sku", "motivo"], where, _count: true }),
-    prisma.ticket.groupBy({ by: ["sku"], where: concludedWhere, _sum: { custosTotais: true } })
+    prisma.ticket.groupBy({ by: ["sku"], where: custoWhere, _sum: { custosTotais: true } }),
+    prisma.ticket.groupBy({ by: ["sku", "motivo"], where, _count: true })
   ]);
 
-  // Construir mapa de custos por SKU baseado em concludedWhere
   const custosBySkuMap = (custosBySkuRaw as any[]).reduce<Record<string, number>>((acc, row) => {
     acc[String(row.sku)] = Number(row?._sum?.custosTotais ?? 0);
     return acc;
@@ -69,7 +99,7 @@ export async function getDashboardData(filters: DashboardFilters, user: { id: st
     .map((item: any) => ({
       name: item.sku,
       tickets: Number(item?._count?._all ?? item?._count ?? 0),
-      custo: Number(custosBySkuMap[String(item.sku)] ?? 0),
+      custo: custosBySkuMap[String(item.sku)] ?? 0,
       abertos: 0,
       concluidos: 0,
       atrasados: 0,
@@ -115,9 +145,9 @@ export async function getDashboardData(filters: DashboardFilters, user: { id: st
       totalTickets: total,
       ticketsAbertos: abertos,
       ticketsAtrasados: atrasados,
-      custoTotal: Number((agregados as any)?._sum?.custosTotais ?? 0),
-      reembolsoTotal: Number((agregados as any)?._sum?.valorReembolso ?? 0),
-      coletaTotal: Number((agregados as any)?._sum?.valorColeta ?? 0)
+      custoTotal: Number((custoAgregado as any)?._sum?.custosTotais ?? 0),
+      reembolsoTotal: Number((reembolsoAgregado as any)?._sum?.valorReembolso ?? 0),
+      coletaTotal: Number((coletaAgregado as any)?._sum?.valorColeta ?? 0)
     },
     charts: {
       porEmpresa: porEmpresa.map((item: any) => ({ name: item.empresa, value: Number(item?._count?._all ?? item?._count ?? 0) })),

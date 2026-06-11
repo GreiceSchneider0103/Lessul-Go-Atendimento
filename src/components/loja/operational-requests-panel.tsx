@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useEffect } from "react";
 import Link from "next/link";
 import { Perfil, StatusOperacional } from "@prisma/client";
-import { formatDateBR, formatDateTimeBR, formatEnumLabel } from "@/lib/formatters/display";
+import { formatDateBR, formatEnumLabel } from "@/lib/formatters/display";
 
 type Row = { 
   id: string; 
@@ -83,7 +83,7 @@ export function OperationalRequestsPanel({ data, perfil }: { data: Row[]; perfil
       };
 
       return () => bc.close();
-    } catch (e) {
+    } catch {
       // BroadcastChannel pode não estar disponível em alguns ambientes; falhar silenciosamente
     }
   }, []);

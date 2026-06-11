@@ -194,7 +194,7 @@ export function TicketListTable({ initialItems }: { initialItems: Ticket[] }) {
           bc.postMessage({ type: "status_change", ticketId, newStatus: value });
           bc.close();
         }
-      } catch (e) {
+      } catch {
         // Ignore se BroadcastChannel não estiver disponível
       }
     } catch (updateError) {

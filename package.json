@@ -9,7 +9,7 @@
     "dev": "next dev",
     "build": "prisma generate && next build && cp -r .next/static .next/standalone/.next/static && if [ -d public ]; then cp -r public .next/standalone/public; fi",
     "start": "HOSTNAME=0.0.0.0 node .next/standalone/server.js",
-    "lint": "next lint",
+    "lint": "eslint src tests --ext .ts,.tsx",
     "typecheck": "tsc --noEmit",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate deploy",
@@ -22,6 +22,7 @@
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
     "@prisma/client": "^5.22.0",
+    "@supabase/ssr": "file:vendor/supabase-ssr",
     "@supabase/supabase-js": "^2.49.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
@@ -31,15 +32,16 @@
     "react-hook-form": "^7.54.2",
     "recharts": "^2.15.1",
     "xlsx": "^0.18.5",
-    "zod": "^3.24.2",
-    "@supabase/ssr": "file:vendor/supabase-ssr"
+    "zod": "^3.24.2"
   },
   "devDependencies": {
     "@types/node": "^22.19.15",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
+    "@typescript-eslint/eslint-plugin": "^8.61.0",
+    "@typescript-eslint/parser": "^8.61.0",
     "autoprefixer": "^10.4.20",
-    "eslint": "^9.22.0",
+    "eslint": "^9.37.0",
     "eslint-config-next": "^15.2.0",
     "postcss": "^8.5.3",
     "prisma": "^5.22.0",

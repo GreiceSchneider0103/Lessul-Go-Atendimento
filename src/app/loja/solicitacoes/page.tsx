@@ -221,7 +221,6 @@ export default async function LojaSolicitacoesPage({ searchParams }: PageProps) 
   // Estatísticas devem considerar todos os registros (incluindo concluídos), porém a tabela
   // exibirá, por padrão, apenas os não concluídos. Se houver um filtro explícito de status,
   // a tabela mostra apenas esse status.
-  const totalAll = mappedData.length;
   const concluidas = mappedData.filter((item) => finalizedStatuses.includes(item.status)).length;
   const totalNotConcluded = mappedData.filter((item) => !finalizedStatuses.includes(item.status)).length;
   const emAberto = mappedData.filter((item) => openStatuses.includes(item.status)).length;
