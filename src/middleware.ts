@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { createServerClient } from "@/lib/supabase/ssr";
+import { createServerClient } from "@supabase/ssr";
 import { getSupabasePublicKey, getSupabaseUrl, hasSupabaseClientEnv } from "@/lib/supabase/config";
 
 const publicRoutes = ["/", "/login", "/auth/callback", "/api/health", "/indisponivel"];

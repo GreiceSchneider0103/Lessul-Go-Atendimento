@@ -22,7 +22,7 @@
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
     "@prisma/client": "^5.22.0",
-    "@supabase/ssr": "file:vendor/supabase-ssr",
+    "@supabase/ssr": "^0.12.4",
     "@supabase/supabase-js": "^2.49.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
