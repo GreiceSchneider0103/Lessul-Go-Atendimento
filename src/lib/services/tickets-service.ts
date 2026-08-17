@@ -220,7 +220,7 @@ export async function listTickets(
   query: TicketFiltersInput,
   user: {
     id: string;
-    perfil: "ATENDENTE" | "SUPERVISOR" | "ADMIN" | "LOJA";
+    perfil: "ATENDENTE" | "SUPERVISOR" | "ADMIN" | "LOJA" | "MASTER";
     empresaVinculada?: "LESSUL" | "MS_DECOR" | "VIVA_VIDA" | "MOVELBENTO" | "MODIFIKA" | null;
   }
 ) {

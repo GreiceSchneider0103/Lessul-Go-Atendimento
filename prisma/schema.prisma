@@ -134,6 +134,7 @@ enum Perfil {
   SUPERVISOR
   ADMIN
   LOJA
+  MASTER
 }
 
 enum Empresa {

@@ -10,7 +10,7 @@ import { TicketFormInput, ticketFormSchema } from "@/lib/validation/ticket";
 
 type AssignableUser = { id: string; nome: string };
 
-type UserPerfil = "ATENDENTE" | "SUPERVISOR" | "ADMIN" | "LOJA";
+type UserPerfil = "ATENDENTE" | "SUPERVISOR" | "ADMIN" | "LOJA" | "MASTER";
 
 type EmpresaValue = (typeof EMPRESAS)[number];
 

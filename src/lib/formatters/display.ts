@@ -40,6 +40,7 @@ const LABEL_MAP: Record<string, string> = {
   CONCLUIDA: "Concluída",
   AFETANDO: "Afetando",
   REMOVIDA: "Removida",
+  MASTER: "Master",
   DESISTENCIA: "Desistência",
   PROBLEMA: "Problema",
   LESSUL: "Lessul",
