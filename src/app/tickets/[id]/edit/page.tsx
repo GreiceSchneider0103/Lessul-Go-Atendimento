@@ -6,6 +6,7 @@ import { TicketForm } from "@/components/forms/ticket-form";
 import { prisma } from "@/lib/db/prisma";
 import { Perfil } from "@prisma/client";
 import { TicketFormInput } from "@/lib/validation/ticket";
+import { assertPermission, hasPermission } from "@/lib/rbac/permissions";
 
 type BackHref = "/loja/solicitacoes" | `/tickets/${string}`;
 
@@ -20,7 +21,7 @@ export default async function TicketEditPage({ params }: { params: Promise<{ id:
     where: {
       ativo: true,
       perfil: {
-        in: ["ATENDENTE", "SUPERVISOR", "ADMIN"]
+        in: ["ATENDENTE", "SUPERVISOR", "ADMIN", "MASTER"]
       }
     },
     orderBy: {
@@ -79,12 +80,14 @@ export default async function TicketEditPage({ params }: { params: Promise<{ id:
               Cancelar
             </Link>
 
-            {!isLoja ? (
+            {hasPermission(user.perfil, "ticket.soft_delete") ? (
               <form
                 action={async () => {
                   "use server";
 
-                  await softDeleteTicket(id, user);
+                  const actor = await requireCurrentUser();
+                  assertPermission(actor.perfil, "ticket.soft_delete");
+                  await softDeleteTicket(id, actor);
                   redirect("/tickets");
                 }}
               >
@@ -108,7 +111,7 @@ export default async function TicketEditPage({ params }: { params: Promise<{ id:
       <TicketForm
         ticketId={id}
         initialValues={initialValues}
-        canEditSensitive={!isLoja}
+        canEditSensitive={hasPermission(user.perfil, "ticket.update_sensitive")}
         assignableUsers={assignableUsers}
         cancelHref={backHref}
         userPerfil={user.perfil}

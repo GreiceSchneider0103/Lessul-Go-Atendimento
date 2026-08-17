@@ -47,35 +47,11 @@ function toDateTime(value: Date | string | null | undefined) {
 }
 
 function getAcaoOperacionalLabel(value: string | null | undefined) {
-  const labels: Record<string, string> = {
-    NENHUMA: "Nenhuma",
-    ASSISTENCIA: "Assistência",
-    COLETA: "Coleta",
-    DEVOLUCAO: "Devolução",
-    REEMBOLSO: "Reembolso"
-  };
-
-  return labels[value ?? "NENHUMA"] ?? formatEnumLabel(value ?? "NENHUMA");
+  return formatEnumLabel(value ?? "NENHUMA");
 }
 
 function getStatusOperacionalLabel(value: string | null | undefined) {
-  const labels: Record<string, string> = {
-    EM_ABERTO: "Em aberto",
-    ASSISTENCIA_ENVIADA: "Assistência enviada",
-    ASSISTENCIA_A_CAMINHO: "Assistência a caminho",
-    ASSISTENCIA_ENTREGUE: "Assistência entregue",
-    COLETA_SOLICITADA: "Coleta solicitada",
-    COLETA_FEITA: "Coleta feita",
-    DEVOLUCAO_SOLICITADA: "Devolução solicitada",
-    DEVOLUCAO_A_CAMINHO: "Devolução a caminho",
-    DEVOLUCAO_REALIZADA: "Devolução realizada",
-    REEMBOLSO_PENDENTE: "Reembolso pendente",
-    REEMBOLSO_REALIZADO: "Reembolso realizado",
-    AGUARDANDO_ATENDENTE: "Aguardando atendente",
-    CONCLUIDA: "Concluída"
-  };
-
-  return labels[value ?? ""] ?? formatEnumLabel(value ?? "");
+  return formatEnumLabel(value ?? "");
 }
 
 function getAnexoFromTicket(

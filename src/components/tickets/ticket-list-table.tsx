@@ -29,21 +29,6 @@ const STATUS_TICKET = [
 
 const STATUS_RECLAMACAO = ["AFETANDO", "NAO_AFETANDO", "REMOVIDA"] as const;
 
-const STATUS_TICKET_LABELS: Record<string, string> = {
-  ABERTO: "Aberto",
-  AGUARDANDO_CLIENTE: "Aguardando Cliente",
-  AGUARDANDO_DEVOLUCAO: "Aguardando Devolução",
-  AGUARDANDO_ASSISTENCIA: "Aguardando Assistência",
-  AGUARDANDO_MARKETPLACE: "Aguardando Marketplace",
-  CONCLUIDO: "Concluído"
-};
-
-const STATUS_RECLAMACAO_LABELS: Record<string, string> = {
-  AFETANDO: "Afetando",
-  NAO_AFETANDO: "Não afetando",
-  REMOVIDA: "Removida"
-};
-
 const STATUS_RECLAMACAO_CONFIG: Record<string, { color: string; bg: string; border: string }> = {
   AFETANDO: {
     color: "#b42318",
@@ -60,15 +45,6 @@ const STATUS_RECLAMACAO_CONFIG: Record<string, { color: string; bg: string; bord
     bg: "#f2f4f7",
     border: "#d0d5dd"
   }
-};
-
-const MARKETPLACE_LABELS: Record<string, string> = {
-  MERCADO_LIVRE: "Mercado Livre",
-  MAGALU: "Magalu",
-  AMAZON: "Amazon",
-  SHOPEE: "Shopee",
-  SITE_PROPRIO: "Site próprio",
-  OUTRO: "Outro"
 };
 
 const MARKETPLACE_CONFIG: Record<string, { color: string; bg: string; border: string }> = {
@@ -103,43 +79,6 @@ const MARKETPLACE_CONFIG: Record<string, { color: string; bg: string; border: st
     border: "#d9d9d9"
   }
 };
-
-const EMPRESA_LABELS: Record<string, string> = {
-  LESSUL: "Lessul",
-  MS_DECOR: "MS Decor",
-  VIVA_VIDA: "Viva Vida",
-  MOVELBENTO: "Movelbento",
-  MODIFIKA: "Modifika"
-};
-
-const MOTIVO_LABELS: Record<string, string> = {
-  DESISTENCIA: "Desistência",
-  DEFEITO_FABRICACAO: "Defeito Fabricação",
-  PRODUTO_INCORRETO: "Produto Incorreto",
-  FALTANDO_ITENS: "Faltando Itens",
-  PRODUTO_DANIFICADO: "Produto Danificado",
-  PROBLEMA: "Problema"
-};
-
-function getMarketplaceLabel(value: string) {
-  return MARKETPLACE_LABELS[value] ?? formatEnumLabel(value);
-}
-
-function getEmpresaLabel(value: string) {
-  return EMPRESA_LABELS[value] ?? formatEnumLabel(value);
-}
-
-function getMotivoLabel(value: string) {
-  return MOTIVO_LABELS[value] ?? formatEnumLabel(value);
-}
-
-function getStatusTicketLabel(value: string) {
-  return STATUS_TICKET_LABELS[value] ?? formatEnumLabel(value);
-}
-
-function getStatusReclamacaoLabel(value: string) {
-  return STATUS_RECLAMACAO_LABELS[value] ?? formatEnumLabel(value);
-}
 
 function getErrorMessage(error: unknown) {
   if (error instanceof Error) return error.message;
@@ -285,7 +224,7 @@ export function TicketListTable({ initialItems }: { initialItems: Ticket[] }) {
                       )}
                     </td>
 
-                    <td>{getEmpresaLabel(ticket.empresa)}</td>
+                    <td>{formatEnumLabel(ticket.empresa)}</td>
 
                     <td>
                       <span
@@ -302,7 +241,7 @@ export function TicketListTable({ initialItems }: { initialItems: Ticket[] }) {
                           whiteSpace: "nowrap"
                         }}
                       >
-                        {getMarketplaceLabel(ticket.canalMarketplace)}
+                        {formatEnumLabel(ticket.canalMarketplace)}
                       </span>
                     </td>
 
@@ -318,11 +257,11 @@ export function TicketListTable({ initialItems }: { initialItems: Ticket[] }) {
                           minWidth: 132,
                           maxWidth: 150
                         }}
-                        title={getMotivoLabel(ticket.motivo)}
+                        title={formatEnumLabel(ticket.motivo)}
                       >
                         {MOTIVOS.map((motivo) => (
                           <option key={motivo} value={motivo}>
-                            {getMotivoLabel(motivo)}
+                            {formatEnumLabel(motivo)}
                           </option>
                         ))}
                       </select>
@@ -340,11 +279,11 @@ export function TicketListTable({ initialItems }: { initialItems: Ticket[] }) {
                           minWidth: 150,
                           maxWidth: 170
                         }}
-                        title={getStatusTicketLabel(ticket.statusTicket)}
+                        title={formatEnumLabel(ticket.statusTicket)}
                       >
                         {STATUS_TICKET.map((status) => (
                           <option key={status} value={status}>
-                            {getStatusTicketLabel(status)}
+                            {formatEnumLabel(status)}
                           </option>
                         ))}
                       </select>
@@ -367,11 +306,11 @@ export function TicketListTable({ initialItems }: { initialItems: Ticket[] }) {
                           borderRadius: 8,
                           fontWeight: 600
                         }}
-                        title={getStatusReclamacaoLabel(ticket.statusReclamacao)}
+                        title={formatEnumLabel(ticket.statusReclamacao)}
                       >
                         {STATUS_RECLAMACAO.map((status) => (
                           <option key={status} value={status}>
-                            {getStatusReclamacaoLabel(status)}
+                            {formatEnumLabel(status)}
                           </option>
                         ))}
                       </select>

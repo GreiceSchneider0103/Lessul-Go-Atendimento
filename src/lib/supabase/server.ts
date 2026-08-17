@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { createServerClient } from "@/lib/supabase/ssr";
+import { createServerClient } from "@supabase/ssr";
 import { getSupabasePublicKey, getSupabaseUrl } from "@/lib/supabase/config";
 
 function getSupabaseConfig() {

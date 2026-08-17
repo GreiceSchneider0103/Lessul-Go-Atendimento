@@ -10,7 +10,7 @@ import { TicketFormInput, ticketFormSchema } from "@/lib/validation/ticket";
 
 type AssignableUser = { id: string; nome: string };
 
-type UserPerfil = "ATENDENTE" | "SUPERVISOR" | "ADMIN" | "LOJA";
+type UserPerfil = "ATENDENTE" | "SUPERVISOR" | "ADMIN" | "LOJA" | "MASTER";
 
 type EmpresaValue = (typeof EMPRESAS)[number];
 
@@ -435,7 +435,7 @@ export function TicketForm({
 
           <label>
             Resolução
-            <select {...register("resolucao")}>
+            <select {...register("resolucao")} disabled={!canEditSensitive}>
               <option value="">Sem resolução</option>
               {RESOLUCOES.map((item) => (
                 <option key={item} value={item}>
@@ -448,6 +448,17 @@ export function TicketForm({
           <label>
             Valor de reembolso
             <input {...register("valorReembolso", { valueAsNumber: true })} type="number" step="0.01" placeholder="Valor reembolso" />
+          </label>
+
+          <label>
+            Valor de coleta
+            <input
+              {...register("valorColeta", { valueAsNumber: true })}
+              type="number"
+              step="0.01"
+              placeholder="R$ 0,00"
+              disabled={!canEditSensitive}
+            />
           </label>
 
           <label>
@@ -487,6 +498,7 @@ export function TicketForm({
               <option value="COLETA_FEITA">Coleta feita</option>
               <option value="DEVOLUCAO_SOLICITADA">Devolução solicitada</option>
               <option value="DEVOLUCAO_A_CAMINHO">Devolução a caminho</option>
+              <option value="DEVOLUCAO_RECEBIDA">Devolução recebida (aguardando cobrança)</option>
               <option value="DEVOLUCAO_REALIZADA">Devolução realizada</option>
               <option value="REEMBOLSO_PENDENTE">Reembolso pendente</option>
               <option value="REEMBOLSO_REALIZADO">Reembolso realizado</option>

@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { requireCurrentUser } from "@/lib/auth/require-user";
 import { TicketForm } from "@/components/forms/ticket-form";
 import { hasPermission } from "@/lib/rbac/permissions";
@@ -5,8 +6,18 @@ import { prisma } from "@/lib/db/prisma";
 
 export default async function NewTicketPage() {
   const user = await requireCurrentUser();
+
+  if (!hasPermission(user.perfil, "ticket.create")) {
+    redirect("/loja/solicitacoes");
+  }
+
   const assignableUsers = await prisma.usuario.findMany({
-    where: { ativo: true },
+    where: {
+      ativo: true,
+      perfil: {
+        in: ["ATENDENTE", "SUPERVISOR", "ADMIN", "MASTER"]
+      }
+    },
     orderBy: { nome: "asc" },
     select: { id: true, nome: true }
   });

@@ -1,8 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { createServerClient } from "@/lib/supabase/ssr";
+import { createServerClient } from "@supabase/ssr";
 import { getSupabasePublicKey, getSupabaseUrl, hasSupabaseClientEnv } from "@/lib/supabase/config";
 
-const publicRoutes = ["/", "/login", "/auth/callback", "/api/health", "/indisponivel"];
+const publicRoutes = ["/", "/login", "/auth/callback", "/api/health", "/indisponivel", "/reset-password"];
 const AUTH_TIMEOUT_MS = Number(process.env.AUTH_TIMEOUT_MS ?? 8000);
 
 function isPublicRoute(pathname: string) {

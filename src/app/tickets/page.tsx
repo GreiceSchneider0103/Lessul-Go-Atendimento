@@ -183,12 +183,12 @@ export default async function TicketsPage({
 
         <label>
           Data inicial
-          <input name="dateFrom" type="date" defaultValue={normalizedQuery.dateFrom} style={{ width: "100%" }} />
+          <input name="startDate" type="date" defaultValue={normalizedQuery.startDate} style={{ width: "100%" }} />
         </label>
 
         <label>
           Data final
-          <input name="dateTo" type="date" defaultValue={normalizedQuery.dateTo} style={{ width: "100%" }} />
+          <input name="endDate" type="date" defaultValue={normalizedQuery.endDate} style={{ width: "100%" }} />
         </label>
 
         <label>

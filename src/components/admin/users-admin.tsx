@@ -4,7 +4,9 @@ import { FormEvent, useMemo, useState } from "react";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { EMPRESAS } from "@/config/domains";
 
-type Perfil = "ATENDENTE" | "SUPERVISOR" | "ADMIN" | "LOJA";
+type Perfil = "ATENDENTE" | "SUPERVISOR" | "ADMIN" | "LOJA" | "MASTER";
+
+const DEFAULT_PERFIL_OPTIONS: Perfil[] = ["ATENDENTE", "SUPERVISOR", "ADMIN", "LOJA"];
 
 type AdminUser = {
   id: string;
@@ -14,13 +16,28 @@ type AdminUser = {
   perfil: Perfil;
   ativo: boolean;
   empresaVinculada?: (typeof EMPRESAS)[number] | null;
+  empresasVinculadas?: Array<(typeof EMPRESAS)[number]>;
 };
 
 function getSafeUsers(input: unknown): AdminUser[] {
   return Array.isArray(input) ? (input as AdminUser[]) : [];
 }
 
-export function UsersAdmin({ initialUsers, initialError }: { initialUsers: unknown; initialError?: string | null }) {
+type UsersAdminProps = {
+  initialUsers: unknown;
+  initialError?: string | null;
+  perfilOptions?: Perfil[];
+  showPasswordReset?: boolean;
+  allowMultiEmpresa?: boolean;
+};
+
+export function UsersAdmin({
+  initialUsers,
+  initialError,
+  perfilOptions = DEFAULT_PERFIL_OPTIONS,
+  showPasswordReset = false,
+  allowMultiEmpresa = false
+}: UsersAdminProps) {
   const [users, setUsers] = useState<AdminUser[]>(() => getSafeUsers(initialUsers));
   const [error, setError] = useState<string | null>(initialError ?? null);
 
@@ -29,8 +46,10 @@ export function UsersAdmin({ initialUsers, initialError }: { initialUsers: unkno
   const [email, setEmail] = useState("");
   const [perfil, setPerfil] = useState<Perfil>("ATENDENTE");
   const [empresaVinculada, setEmpresaVinculada] = useState<string>("");
+  const [empresasVinculadas, setEmpresasVinculadas] = useState<string[]>([]);
   const [enviarConvite, setEnviarConvite] = useState(false);
   const [senhaTemporaria, setSenhaTemporaria] = useState("");
+  const [resetPasswordState, setResetPasswordState] = useState<Record<string, "loading" | "sent" | "error">>({});
 
   const hasUsers = useMemo(() => Array.isArray(users) && users.length > 0, [users]);
 
@@ -40,6 +59,7 @@ export function UsersAdmin({ initialUsers, initialError }: { initialUsers: unkno
     setEmail("");
     setPerfil("ATENDENTE");
     setEmpresaVinculada("");
+    setEmpresasVinculadas([]);
     setEnviarConvite(false);
     setSenhaTemporaria("");
   }
@@ -51,8 +71,15 @@ export function UsersAdmin({ initialUsers, initialError }: { initialUsers: unkno
     setEmail(user.email ?? "");
     setPerfil(user.perfil);
     setEmpresaVinculada(user.empresaVinculada ?? "");
+    setEmpresasVinculadas(user.empresasVinculadas ?? (user.empresaVinculada ? [user.empresaVinculada] : []));
     setEnviarConvite(false);
     setSenhaTemporaria("");
+  }
+
+  function toggleEmpresaVinculada(empresa: string) {
+    setEmpresasVinculadas((prev) =>
+      prev.includes(empresa) ? prev.filter((item) => item !== empresa) : [...prev, empresa]
+    );
   }
 
   async function createOrUpdateUser(event: FormEvent<HTMLFormElement>) {
@@ -63,7 +90,8 @@ export function UsersAdmin({ initialUsers, initialError }: { initialUsers: unkno
       nome,
       email,
       perfil,
-      empresaVinculada: empresaVinculada || null,
+      empresaVinculada: allowMultiEmpresa ? (empresasVinculadas[0] || null) : (empresaVinculada || null),
+      empresasVinculadas: allowMultiEmpresa ? empresasVinculadas : undefined,
       senhaTemporaria: senhaTemporaria || undefined,
       enviarConvite
     };
@@ -77,7 +105,8 @@ export function UsersAdmin({ initialUsers, initialError }: { initialUsers: unkno
       body: JSON.stringify(editingUserId ? {
         nome: payload.nome,
         perfil: payload.perfil,
-        empresaVinculada: payload.empresaVinculada
+        empresaVinculada: payload.empresaVinculada,
+        empresasVinculadas: payload.empresasVinculadas
       } : payload)
     });
 
@@ -114,6 +143,22 @@ export function UsersAdmin({ initialUsers, initialError }: { initialUsers: unkno
     setUsers((prev) => prev.map((user) => (user.id === userId ? { ...user, ativo: !ativo } : user)));
   }
 
+  async function sendPasswordReset(userId: string) {
+    setError(null);
+    setResetPasswordState((prev) => ({ ...prev, [userId]: "loading" }));
+
+    const response = await fetch(`/api/users/${userId}/reset-password`, { method: "POST" });
+    const body = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      setResetPasswordState((prev) => ({ ...prev, [userId]: "error" }));
+      setError(body.message ?? "Erro ao enviar e-mail de redefinição de senha");
+      return;
+    }
+
+    setResetPasswordState((prev) => ({ ...prev, [userId]: "sent" }));
+  }
+
   return (
     <section className="grid">
       <form onSubmit={createOrUpdateUser} className="panel form-grid cols-4">
@@ -121,16 +166,33 @@ export function UsersAdmin({ initialUsers, initialError }: { initialUsers: unkno
         <input name="email" placeholder="Email" required type="email" value={email} onChange={(e) => setEmail(e.target.value)} disabled={Boolean(editingUserId)} />
 
         <select name="perfil" value={perfil} onChange={(e) => setPerfil(e.target.value as Perfil)}>
-          <option value="ATENDENTE">ATENDENTE</option>
-          <option value="SUPERVISOR">SUPERVISOR</option>
-          <option value="ADMIN">ADMIN</option>
-          <option value="LOJA">LOJA</option>
+          {perfilOptions.map((option) => (
+            <option key={option} value={option}>{option}</option>
+          ))}
         </select>
 
-        <select name="empresaVinculada" required={perfil === "LOJA"} value={empresaVinculada} onChange={(e) => setEmpresaVinculada(e.target.value)}>
-          <option value="">Sem empresa vinculada</option>
-          {EMPRESAS.map((emp) => <option key={emp} value={emp}>{emp}</option>)}
-        </select>
+        {allowMultiEmpresa ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <span className="muted" style={{ fontSize: 12 }}>Empresas vinculadas{perfil === "LOJA" ? " (obrigatório para LOJA)" : ""}</span>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+              {EMPRESAS.map((emp) => (
+                <label key={emp} style={{ display: "flex", gap: 4, alignItems: "center", fontWeight: "normal" }}>
+                  <input
+                    type="checkbox"
+                    checked={empresasVinculadas.includes(emp)}
+                    onChange={() => toggleEmpresaVinculada(emp)}
+                  />
+                  {emp}
+                </label>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <select name="empresaVinculada" required={perfil === "LOJA"} value={empresaVinculada} onChange={(e) => setEmpresaVinculada(e.target.value)}>
+            <option value="">Sem empresa vinculada</option>
+            {EMPRESAS.map((emp) => <option key={emp} value={emp}>{emp}</option>)}
+          </select>
+        )}
 
         {!editingUserId ? (
           <>
@@ -157,19 +219,39 @@ export function UsersAdmin({ initialUsers, initialError }: { initialUsers: unkno
           <table className="table">
             <thead><tr><th>Nome</th><th>Email</th><th>Perfil</th><th>Empresa</th><th>Ativo</th><th>Ação</th></tr></thead>
             <tbody>
-              {users.map((user) => (
-                <tr key={user.id}>
-                  <td>{user.nome}</td>
-                  <td>{user.email}</td>
-                  <td><StatusBadge value={user.perfil} /></td>
-                  <td>{user.empresaVinculada ?? "-"}</td>
-                  <td>{user.ativo ? "Sim" : "Não"}</td>
-                  <td style={{ display: "flex", gap: 8 }}>
-                    <button className="btn btn-secondary" onClick={() => handleEditUser(user)}>Editar</button>
-                    <button className="btn btn-secondary" onClick={() => toggleAtivo(user.id, user.ativo)}>{user.ativo ? "Inativar" : "Ativar"}</button>
-                  </td>
-                </tr>
-              ))}
+              {users.map((user) => {
+                const resetState = resetPasswordState[user.id];
+
+                return (
+                  <tr key={user.id}>
+                    <td>{user.nome}</td>
+                    <td>{user.email}</td>
+                    <td><StatusBadge value={user.perfil} /></td>
+                    <td>
+                      {allowMultiEmpresa
+                        ? user.empresasVinculadas?.length
+                          ? user.empresasVinculadas.join(", ")
+                          : "-"
+                        : user.empresaVinculada ?? "-"}
+                    </td>
+                    <td>{user.ativo ? "Sim" : "Não"}</td>
+                    <td style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                      <button className="btn btn-secondary" onClick={() => handleEditUser(user)}>Editar</button>
+                      <button className="btn btn-secondary" onClick={() => toggleAtivo(user.id, user.ativo)}>{user.ativo ? "Inativar" : "Ativar"}</button>
+                      {showPasswordReset ? (
+                        <button
+                          type="button"
+                          className="btn btn-secondary"
+                          disabled={resetState === "loading"}
+                          onClick={() => sendPasswordReset(user.id)}
+                        >
+                          {resetState === "loading" ? "Enviando..." : resetState === "sent" ? "E-mail enviado" : "Redefinir senha"}
+                        </button>
+                      ) : null}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}
