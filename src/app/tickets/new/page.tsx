@@ -12,7 +12,12 @@ export default async function NewTicketPage() {
   }
 
   const assignableUsers = await prisma.usuario.findMany({
-    where: { ativo: true },
+    where: {
+      ativo: true,
+      perfil: {
+        in: ["ATENDENTE", "SUPERVISOR", "ADMIN", "MASTER"]
+      }
+    },
     orderBy: { nome: "asc" },
     select: { id: true, nome: true }
   });

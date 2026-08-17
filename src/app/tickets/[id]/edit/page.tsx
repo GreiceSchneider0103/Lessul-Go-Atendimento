@@ -21,7 +21,7 @@ export default async function TicketEditPage({ params }: { params: Promise<{ id:
     where: {
       ativo: true,
       perfil: {
-        in: ["ATENDENTE", "SUPERVISOR", "ADMIN"]
+        in: ["ATENDENTE", "SUPERVISOR", "ADMIN", "MASTER"]
       }
     },
     orderBy: {
@@ -111,7 +111,7 @@ export default async function TicketEditPage({ params }: { params: Promise<{ id:
       <TicketForm
         ticketId={id}
         initialValues={initialValues}
-        canEditSensitive={!isLoja}
+        canEditSensitive={hasPermission(user.perfil, "ticket.update_sensitive")}
         assignableUsers={assignableUsers}
         cancelHref={backHref}
         userPerfil={user.perfil}

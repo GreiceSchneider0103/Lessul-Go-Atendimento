@@ -26,10 +26,6 @@ button { border: 0; border-radius: 10px; padding: 10px 14px; cursor: pointer; }
 .app-header { background: #fff; border-bottom: 1px solid #dbe1ea; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; }
 .header-left h2 { margin: 0; font-size: 20px; }
 .header-right { display: flex; align-items: center; gap: 10px; }
-.search-box { width: 260px; display: flex; gap: 8px; align-items: center; background: #f8fafc; border: 1px solid #dbe1ea; border-radius: 10px; padding: 0 10px; }
-.search-box input { border: 0; background: transparent; padding: 9px 0; }
-.search-box input:focus { outline: none; }
-.icon-btn { width: 36px; height: 36px; border: 1px solid #dbe1ea; background: #fff; color: #64748b; border-radius: 10px; }
 .user-chip { display: flex; gap: 8px; align-items: center; }
 .user-name { font-weight: 600; font-size: 14px; }
 .user-role { color: #64748b; font-size: 12px; text-align: right; }
@@ -105,7 +101,6 @@ button { border: 0; border-radius: 10px; padding: 10px 14px; cursor: pointer; }
 }
 @media (max-width: 700px) {
   .header-right { width: 100%; flex-wrap: wrap; justify-content: flex-start; }
-  .search-box { width: 100%; }
   .grid-4, .cols-4 { grid-template-columns: 1fr; }
   .ticket-form-grid { grid-template-columns: 1fr; }
 }

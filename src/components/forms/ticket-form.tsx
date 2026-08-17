@@ -435,7 +435,7 @@ export function TicketForm({
 
           <label>
             Resolução
-            <select {...register("resolucao")}>
+            <select {...register("resolucao")} disabled={!canEditSensitive}>
               <option value="">Sem resolução</option>
               {RESOLUCOES.map((item) => (
                 <option key={item} value={item}>
@@ -448,6 +448,17 @@ export function TicketForm({
           <label>
             Valor de reembolso
             <input {...register("valorReembolso", { valueAsNumber: true })} type="number" step="0.01" placeholder="Valor reembolso" />
+          </label>
+
+          <label>
+            Valor de coleta
+            <input
+              {...register("valorColeta", { valueAsNumber: true })}
+              type="number"
+              step="0.01"
+              placeholder="R$ 0,00"
+              disabled={!canEditSensitive}
+            />
           </label>
 
           <label>

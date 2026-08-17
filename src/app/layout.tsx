@@ -78,11 +78,6 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             <header className="app-header">
               <div className="header-left"><h2>Painel interno</h2></div>
               <div className="header-right">
-                <div className="search-box">
-                  <span>⌕</span>
-                  <input placeholder="Buscar..." />
-                </div>
-                <button className="icon-btn" aria-label="Notificações">◔</button>
                 <div className="user-chip">
                   <div>
                     <div className="user-name">{currentUser.nome}</div>
