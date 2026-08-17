@@ -6,15 +6,8 @@ import { userCreateSchema, userUpdateSchema } from "@/lib/validation/user";
 import { registerUserAudit } from "@/lib/audit/user-audit";
 import { AppError } from "@/lib/errors";
 import { createSupabaseAdminClient, hasSupabaseAdminEnv } from "@/lib/supabase/admin";
+import { listUsuariosComEmpresas } from "@/lib/services/users-service";
 import { Empresa, Perfil, Prisma } from "@prisma/client";
-
-type UsuarioEmpresaRow = {
-  id: string;
-  usuario_id: string;
-  empresa: Empresa;
-  role: string | null;
-  created_at: Date;
-};
 
 type CreateUserPayload = {
   nome: string;
@@ -39,7 +32,7 @@ type UpdateUserPayload = {
   ativo?: boolean;
 };
 
-type RawDb = Pick<typeof prisma, "$queryRaw" | "$executeRaw">;
+type Db = Pick<typeof prisma, "usuarioEmpresa">;
 
 function isEmpresa(value: unknown): value is Empresa {
   return typeof value === "string" && Object.values(Empresa).includes(value as Empresa);
@@ -66,49 +59,38 @@ function normalizeEmpresas(payload: {
   return Array.from(empresas);
 }
 
-async function getUsuarioEmpresas(db: RawDb, usuarioIds: string[]) {
+async function getUsuarioEmpresas(db: Db, usuarioIds: string[]) {
   if (usuarioIds.length === 0) {
-    return [] as UsuarioEmpresaRow[];
+    return [];
   }
 
-  return db.$queryRaw<UsuarioEmpresaRow[]>`
-    SELECT 
-      "id",
-      "usuario_id",
-      "empresa",
-      "role",
-      "created_at"
-    FROM "usuario_empresas"
-    WHERE "usuario_id" IN (${Prisma.join(usuarioIds)})
-    ORDER BY "created_at" ASC
-  `;
+  return db.usuarioEmpresa.findMany({
+    where: { usuarioId: { in: usuarioIds } },
+    orderBy: { createdAt: "asc" }
+  });
 }
 
-async function replaceUsuarioEmpresas(db: RawDb, usuarioId: string, empresas: Empresa[]) {
-  await db.$executeRaw`
-    DELETE FROM "usuario_empresas"
-    WHERE "usuario_id" = ${usuarioId}
-  `;
+async function replaceUsuarioEmpresas(db: Db, usuarioId: string, empresas: Empresa[]) {
+  await db.usuarioEmpresa.deleteMany({ where: { usuarioId } });
 
-  for (const empresa of empresas) {
-    await db.$executeRaw`
-      INSERT INTO "usuario_empresas" ("usuario_id", "empresa", "role")
-      VALUES (${usuarioId}, ${empresa}::"Empresa", ${"MEMBER"})
-      ON CONFLICT ("usuario_id", "empresa") DO NOTHING
-    `;
-  }
+  if (empresas.length === 0) return;
+
+  await db.usuarioEmpresa.createMany({
+    data: empresas.map((empresa) => ({ usuarioId, empresa, role: "MEMBER" })),
+    skipDuplicates: true
+  });
 }
 
 function attachEmpresasToUsuarios<T extends { id: string; empresaVinculada?: Empresa | null }>(
   usuarios: T[],
-  vinculos: UsuarioEmpresaRow[]
+  vinculos: Array<{ usuarioId: string; empresa: Empresa }>
 ) {
-  const vinculosPorUsuario = new Map<string, UsuarioEmpresaRow[]>();
+  const vinculosPorUsuario = new Map<string, Array<{ usuarioId: string; empresa: Empresa }>>();
 
   for (const vinculo of vinculos) {
-    const atuais = vinculosPorUsuario.get(vinculo.usuario_id) ?? [];
+    const atuais = vinculosPorUsuario.get(vinculo.usuarioId) ?? [];
     atuais.push(vinculo);
-    vinculosPorUsuario.set(vinculo.usuario_id, atuais);
+    vinculosPorUsuario.set(vinculo.usuarioId, atuais);
   }
 
   return usuarios.map((usuario) => {
@@ -123,7 +105,7 @@ function attachEmpresasToUsuarios<T extends { id: string; empresaVinculada?: Emp
 
     return {
       ...usuario,
-      usuario_empresas: usuarioEmpresas,
+      usuarioEmpresas,
       empresasVinculadas
     };
   });
@@ -164,16 +146,7 @@ export async function GET() {
     const user = await getCurrentApiUser();
     assertPermission(user.perfil, "user.manage");
 
-    const usuarios = await prisma.usuario.findMany({
-      orderBy: { criadoEm: "desc" }
-    });
-
-    const vinculos = await getUsuarioEmpresas(
-      prisma,
-      usuarios.map((usuario) => usuario.id)
-    );
-
-    const data = attachEmpresasToUsuarios(usuarios, vinculos);
+    const data = await listUsuariosComEmpresas();
 
     return {
       data,

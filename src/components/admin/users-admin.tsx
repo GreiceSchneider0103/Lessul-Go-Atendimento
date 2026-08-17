@@ -16,6 +16,7 @@ type AdminUser = {
   perfil: Perfil;
   ativo: boolean;
   empresaVinculada?: (typeof EMPRESAS)[number] | null;
+  empresasVinculadas?: Array<(typeof EMPRESAS)[number]>;
 };
 
 function getSafeUsers(input: unknown): AdminUser[] {
@@ -27,9 +28,16 @@ type UsersAdminProps = {
   initialError?: string | null;
   perfilOptions?: Perfil[];
   showPasswordReset?: boolean;
+  allowMultiEmpresa?: boolean;
 };
 
-export function UsersAdmin({ initialUsers, initialError, perfilOptions = DEFAULT_PERFIL_OPTIONS, showPasswordReset = false }: UsersAdminProps) {
+export function UsersAdmin({
+  initialUsers,
+  initialError,
+  perfilOptions = DEFAULT_PERFIL_OPTIONS,
+  showPasswordReset = false,
+  allowMultiEmpresa = false
+}: UsersAdminProps) {
   const [users, setUsers] = useState<AdminUser[]>(() => getSafeUsers(initialUsers));
   const [error, setError] = useState<string | null>(initialError ?? null);
 
@@ -38,6 +46,7 @@ export function UsersAdmin({ initialUsers, initialError, perfilOptions = DEFAULT
   const [email, setEmail] = useState("");
   const [perfil, setPerfil] = useState<Perfil>("ATENDENTE");
   const [empresaVinculada, setEmpresaVinculada] = useState<string>("");
+  const [empresasVinculadas, setEmpresasVinculadas] = useState<string[]>([]);
   const [enviarConvite, setEnviarConvite] = useState(false);
   const [senhaTemporaria, setSenhaTemporaria] = useState("");
   const [resetPasswordState, setResetPasswordState] = useState<Record<string, "loading" | "sent" | "error">>({});
@@ -50,6 +59,7 @@ export function UsersAdmin({ initialUsers, initialError, perfilOptions = DEFAULT
     setEmail("");
     setPerfil("ATENDENTE");
     setEmpresaVinculada("");
+    setEmpresasVinculadas([]);
     setEnviarConvite(false);
     setSenhaTemporaria("");
   }
@@ -61,8 +71,15 @@ export function UsersAdmin({ initialUsers, initialError, perfilOptions = DEFAULT
     setEmail(user.email ?? "");
     setPerfil(user.perfil);
     setEmpresaVinculada(user.empresaVinculada ?? "");
+    setEmpresasVinculadas(user.empresasVinculadas ?? (user.empresaVinculada ? [user.empresaVinculada] : []));
     setEnviarConvite(false);
     setSenhaTemporaria("");
+  }
+
+  function toggleEmpresaVinculada(empresa: string) {
+    setEmpresasVinculadas((prev) =>
+      prev.includes(empresa) ? prev.filter((item) => item !== empresa) : [...prev, empresa]
+    );
   }
 
   async function createOrUpdateUser(event: FormEvent<HTMLFormElement>) {
@@ -73,7 +90,8 @@ export function UsersAdmin({ initialUsers, initialError, perfilOptions = DEFAULT
       nome,
       email,
       perfil,
-      empresaVinculada: empresaVinculada || null,
+      empresaVinculada: allowMultiEmpresa ? (empresasVinculadas[0] || null) : (empresaVinculada || null),
+      empresasVinculadas: allowMultiEmpresa ? empresasVinculadas : undefined,
       senhaTemporaria: senhaTemporaria || undefined,
       enviarConvite
     };
@@ -87,7 +105,8 @@ export function UsersAdmin({ initialUsers, initialError, perfilOptions = DEFAULT
       body: JSON.stringify(editingUserId ? {
         nome: payload.nome,
         perfil: payload.perfil,
-        empresaVinculada: payload.empresaVinculada
+        empresaVinculada: payload.empresaVinculada,
+        empresasVinculadas: payload.empresasVinculadas
       } : payload)
     });
 
@@ -152,10 +171,28 @@ export function UsersAdmin({ initialUsers, initialError, perfilOptions = DEFAULT
           ))}
         </select>
 
-        <select name="empresaVinculada" required={perfil === "LOJA"} value={empresaVinculada} onChange={(e) => setEmpresaVinculada(e.target.value)}>
-          <option value="">Sem empresa vinculada</option>
-          {EMPRESAS.map((emp) => <option key={emp} value={emp}>{emp}</option>)}
-        </select>
+        {allowMultiEmpresa ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <span className="muted" style={{ fontSize: 12 }}>Empresas vinculadas{perfil === "LOJA" ? " (obrigatório para LOJA)" : ""}</span>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+              {EMPRESAS.map((emp) => (
+                <label key={emp} style={{ display: "flex", gap: 4, alignItems: "center", fontWeight: "normal" }}>
+                  <input
+                    type="checkbox"
+                    checked={empresasVinculadas.includes(emp)}
+                    onChange={() => toggleEmpresaVinculada(emp)}
+                  />
+                  {emp}
+                </label>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <select name="empresaVinculada" required={perfil === "LOJA"} value={empresaVinculada} onChange={(e) => setEmpresaVinculada(e.target.value)}>
+            <option value="">Sem empresa vinculada</option>
+            {EMPRESAS.map((emp) => <option key={emp} value={emp}>{emp}</option>)}
+          </select>
+        )}
 
         {!editingUserId ? (
           <>
@@ -190,7 +227,13 @@ export function UsersAdmin({ initialUsers, initialError, perfilOptions = DEFAULT
                     <td>{user.nome}</td>
                     <td>{user.email}</td>
                     <td><StatusBadge value={user.perfil} /></td>
-                    <td>{user.empresaVinculada ?? "-"}</td>
+                    <td>
+                      {allowMultiEmpresa
+                        ? user.empresasVinculadas?.length
+                          ? user.empresasVinculadas.join(", ")
+                          : "-"
+                        : user.empresaVinculada ?? "-"}
+                    </td>
                     <td>{user.ativo ? "Sim" : "Não"}</td>
                     <td style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                       <button className="btn btn-secondary" onClick={() => handleEditUser(user)}>Editar</button>

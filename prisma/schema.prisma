@@ -27,6 +27,20 @@ model Usuario {
   operacionaisCriadas     OperationalRequest[]           @relation("operacionais_criadas")
   operacionaisAtualizadas OperationalRequest[]           @relation("operacionais_atualizadas")
   anexosOperacionais      OperationalRequestAttachment[] @relation("anexos_operacionais_usuario")
+  usuarioEmpresas         UsuarioEmpresa[]
+}
+
+model UsuarioEmpresa {
+  id        String   @id @default(uuid())
+  usuarioId String   @map("usuario_id")
+  empresa   Empresa
+  role      String   @default("MEMBER")
+  createdAt DateTime @default(now()) @map("created_at")
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@unique([usuarioId, empresa])
+  @@index([usuarioId])
+  @@map("usuario_empresas")
 }
 
 model Ticket {
