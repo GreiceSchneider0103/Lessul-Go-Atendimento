@@ -11,16 +11,13 @@ const navByPerfil: Record<string, NavItem[]> = {
     { label: "Dashboard", href: "/dashboard" },
     { label: "Tickets", href: "/tickets" },
     { label: "Relatórios", href: "/reports" },
-    { label: "Usuários", href: "/users" },
     { label: "Administração", href: "/admin" },
     { label: "Operacional Loja", href: "/loja/solicitacoes" }
   ],
   DEFAULT: [
     { label: "Dashboard", href: "/dashboard" },
     { label: "Tickets", href: "/tickets" },
-    { label: "Relatórios", href: "/reports" },
-    { label: "Usuários", href: "/users" },
-    { label: "Administração", href: "/admin" }
+    { label: "Relatórios", href: "/reports" }
   ]
 };
 

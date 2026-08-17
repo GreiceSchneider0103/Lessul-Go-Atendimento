@@ -48,7 +48,6 @@ export default async function AdminPage() {
       </div>
 
       <div className="panel" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <Link className="btn btn-secondary" href="/users">Abrir gestão de usuários</Link>
         <Link className="btn btn-secondary" href="/reports">Abrir relatórios</Link>
         <Link className="btn btn-primary" href="/dashboard">Abrir dashboard</Link>
       </div>
