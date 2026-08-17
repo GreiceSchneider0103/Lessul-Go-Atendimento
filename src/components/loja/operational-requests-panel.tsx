@@ -35,24 +35,8 @@ type Row = {
 };
 
 const statusOptions = ["EM_ABERTO","ASSISTENCIA_ENVIADA","ASSISTENCIA_A_CAMINHO","ASSISTENCIA_ENTREGUE","COLETA_SOLICITADA","COLETA_FEITA","DEVOLUCAO_SOLICITADA","DEVOLUCAO_A_CAMINHO","DEVOLUCAO_REALIZADA","REEMBOLSO_PENDENTE","REEMBOLSO_REALIZADO","AGUARDANDO_ATENDENTE","CONCLUIDA"];
-const STATUS_OPERACIONAL_LABELS: Record<string, string> = { EM_ABERTO:"Em aberto", ASSISTENCIA_ENVIADA:"Assistência enviada", ASSISTENCIA_A_CAMINHO:"Assistência a caminho", ASSISTENCIA_ENTREGUE:"Assistência entregue", COLETA_SOLICITADA:"Coleta solicitada", COLETA_FEITA:"Coleta feita", DEVOLUCAO_SOLICITADA:"Devolução solicitada", DEVOLUCAO_A_CAMINHO:"Devolução a caminho", DEVOLUCAO_REALIZADA:"Devolução realizada", REEMBOLSO_PENDENTE:"Reembolso pendente", REEMBOLSO_REALIZADO:"Reembolso realizado", AGUARDANDO_ATENDENTE:"Aguardando atendente", CONCLUIDA:"Concluída" };
-
 const resolucoesOptions = ["ASSISTENCIA", "DEVOLUCAO", "REEMBOLSO", "RESOLVIDO"];
-const resolucoesLabels: Record<string, string> = {
-  ASSISTENCIA: "Assistência",
-  DEVOLUCAO: "Devolução",
-  REEMBOLSO: "Reembolso",
-  RESOLVIDO: "Resolvido"
-};
-
 const acoesOptions = ["NENHUMA", "ASSISTENCIA", "COLETA", "DEVOLUCAO", "REEMBOLSO"];
-const acoesLabels: Record<string, string> = {
-  NENHUMA: "Nenhuma",
-  ASSISTENCIA: "Assistência",
-  COLETA: "Coleta",
-  DEVOLUCAO: "Devolução",
-  REEMBOLSO: "Reembolso"
-};
 
 export function OperationalRequestsPanel({ data, perfil }: { data: Row[]; perfil: Perfil }) {
   const [selectedRow, setSelectedRow] = useState<Row | null>(null);
@@ -223,7 +207,7 @@ export function OperationalRequestsPanel({ data, perfil }: { data: Row[]; perfil
                     ) : row.ticket.numeroVenda}
                   </td>
                   <td><span className="badge">{formatEnumLabel(row.tipoAcao)}</span></td>
-                  <td>{STATUS_OPERACIONAL_LABELS[row.status] ?? formatEnumLabel(row.status)}</td>
+                  <td>{formatEnumLabel(row.status)}</td>
                   <td>
                     {row.prazoOperacional ? (
                       <span style={{ 
@@ -472,7 +456,7 @@ export function OperationalRequestsPanel({ data, perfil }: { data: Row[]; perfil
                 >
                   {acoesOptions.map((opcao) => (
                     <option key={opcao} value={opcao}>
-                      {acoesLabels[opcao]}
+                      {formatEnumLabel(opcao)}
                     </option>
                   ))}
                 </select>
@@ -496,7 +480,7 @@ export function OperationalRequestsPanel({ data, perfil }: { data: Row[]; perfil
                   <option value="">Sem resolução</option>
                   {resolucoesOptions.map((opcao) => (
                     <option key={opcao} value={opcao}>
-                      {resolucoesLabels[opcao]}
+                      {formatEnumLabel(opcao)}
                     </option>
                   ))}
                 </select>
@@ -523,7 +507,7 @@ export function OperationalRequestsPanel({ data, perfil }: { data: Row[]; perfil
                       value={status}
                       disabled={perfil === Perfil.LOJA && status === "CONCLUIDA"}
                     >
-                      {STATUS_OPERACIONAL_LABELS[status] ?? formatEnumLabel(status)}
+                      {formatEnumLabel(status)}
                     </option>
                   ))}
                 </select>

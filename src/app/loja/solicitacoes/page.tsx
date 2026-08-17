@@ -54,22 +54,6 @@ type OperationalRequestWithTicket = {
 
 const statusOptions = Object.values(StatusOperacional) as StatusOperacional[];
 
-const statusLabel: Record<string, string> = {
-  EM_ABERTO: "Em aberto",
-  ASSISTENCIA_ENVIADA: "Assistência enviada",
-  ASSISTENCIA_A_CAMINHO: "Assistência a caminho",
-  ASSISTENCIA_ENTREGUE: "Assistência entregue",
-  COLETA_SOLICITADA: "Coleta solicitada",
-  COLETA_FEITA: "Coleta feita",
-  DEVOLUCAO_SOLICITADA: "Devolução solicitada",
-  DEVOLUCAO_A_CAMINHO: "Devolução a caminho",
-  DEVOLUCAO_REALIZADA: "Devolução realizada",
-  REEMBOLSO_PENDENTE: "Reembolso pendente",
-  REEMBOLSO_REALIZADO: "Reembolso realizado",
-  AGUARDANDO_ATENDENTE: "Aguardando atendente",
-  CONCLUIDA: "Concluídas"
-};
-
 function isEmpresa(value: string | undefined): value is EmpresaValue {
   return Boolean(value && EMPRESAS.includes(value as EmpresaValue));
 }
@@ -270,7 +254,7 @@ export default async function LojaSolicitacoesPage({ searchParams }: PageProps) 
               <option value="">Todos os status</option>
               {statusOptions.map((status) => (
                 <option key={status} value={status}>
-                  {statusLabel[status] ?? formatEnumLabel(status)}
+                  {formatEnumLabel(status)}
                 </option>
               ))}
             </select>
