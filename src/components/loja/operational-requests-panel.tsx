@@ -42,6 +42,7 @@ export function OperationalRequestsPanel({ data, perfil }: { data: Row[]; perfil
   const [selectedRow, setSelectedRow] = useState<Row | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [rows, setRows] = useState<Row[]>(data);
+  const [notice, setNotice] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   useEffect(() => {
     // Escuta atualizações vindas de outras abas/componentes (ex: Tickets) para sincronizar exibição
@@ -104,6 +105,7 @@ export function OperationalRequestsPanel({ data, perfil }: { data: Row[]; perfil
     if (!selectedRow) return;
 
     setIsSaving(true);
+    setNotice(null);
     try {
       const fd = new FormData(e.currentTarget);
       const payload = Object.fromEntries(fd.entries());
@@ -114,7 +116,7 @@ export function OperationalRequestsPanel({ data, perfil }: { data: Row[]; perfil
       }
 
       if (payload.statusOperacionalLoja === "DEVOLUCAO_RECEBIDA" && !selectedRow.anexo) {
-        alert("Anexe uma foto do produto recebido antes de marcar como devolução recebida.");
+        setNotice({ type: "error", message: "Anexe uma foto do produto recebido antes de marcar como devolução recebida." });
         setIsSaving(false);
         return;
       }
@@ -131,16 +133,25 @@ export function OperationalRequestsPanel({ data, perfil }: { data: Row[]; perfil
       });
 
       if (!response.ok) {
-        const error = await response.text();
-        alert("Falha ao atualizar: " + error);
+        const body = await response.json().catch(() => null);
+        setNotice({ type: "error", message: body?.message ?? "Falha ao atualizar os dados." });
         return;
       }
 
-      alert("Dados salvos com sucesso!");
+      const updatedTicket = await response.json();
+      setRows((current) => current.map((row) => row.ticketId === selectedRow.ticketId ? {
+        ...row,
+        status: updatedTicket.statusOperacionalLoja ?? row.status,
+        codigoRastreio: updatedTicket.codigoRastreio ?? null,
+        valorReembolso: Number(updatedTicket.valorReembolso ?? row.valorReembolso),
+        valorAssistencia: Number(updatedTicket.valorAssistencia ?? row.valorAssistencia ?? 0),
+        valorColetaEnvioPecas: Number(updatedTicket.valorColetaEnvioPecas ?? row.valorColetaEnvioPecas),
+        ticket: { ...row.ticket, ...updatedTicket }
+      } : row));
+      setNotice({ type: "success", message: "Dados salvos com sucesso!" });
       setSelectedRow(null);
-      location.reload();
     } catch (error) {
-      alert("Erro ao salvar: " + (error instanceof Error ? error.message : String(error)));
+      setNotice({ type: "error", message: "Erro ao salvar: " + (error instanceof Error ? error.message : String(error)) });
     } finally {
       setIsSaving(false);
     }
@@ -152,10 +163,11 @@ export function OperationalRequestsPanel({ data, perfil }: { data: Row[]; perfil
 
     const file = (e.currentTarget.querySelector('input[type="file"]') as HTMLInputElement)?.files?.[0];
     if (!file) {
-      alert("Selecione um arquivo");
+      setNotice({ type: "error", message: "Selecione um arquivo." });
       return;
     }
 
+    setNotice(null);
     try {
       const fd = new FormData();
       fd.append("file", file);
@@ -166,21 +178,44 @@ export function OperationalRequestsPanel({ data, perfil }: { data: Row[]; perfil
       });
 
       if (!response.ok) {
-        const error = await response.text();
-        alert("Falha no upload: " + error);
+        const body = await response.json().catch(() => null);
+        setNotice({ type: "error", message: body?.message ?? "Falha no upload." });
         return;
       }
 
-      alert("Anexo enviado com sucesso!");
+      const body = await response.json() as { data: { anexoUrl?: string | null; anexoNome?: string | null; anexoPath?: string | null; anexoMimeType?: string | null } };
+      const anexo = {
+        fileUrl: body.data.anexoUrl ?? null,
+        fileName: body.data.anexoNome ?? file.name,
+        filePath: body.data.anexoPath ?? null,
+        mimeType: body.data.anexoMimeType ?? file.type
+      };
+      setRows((current) => current.map((row) => row.ticketId === selectedRow.ticketId ? { ...row, anexo } : row));
+      setNotice({ type: "success", message: "Anexo enviado com sucesso!" });
       setSelectedRow(null);
-      location.reload();
     } catch (error) {
-      alert("Erro no upload: " + (error instanceof Error ? error.message : String(error)));
+      setNotice({ type: "error", message: "Erro no upload: " + (error instanceof Error ? error.message : String(error)) });
     }
   };
 
   return (
     <>
+      {notice ? (
+        <div
+          role={notice.type === "error" ? "alert" : "status"}
+          className={notice.type === "error" ? "field-error" : undefined}
+          style={{
+            marginBottom: 12,
+            padding: "10px 12px",
+            borderRadius: 8,
+            border: `1px solid ${notice.type === "error" ? "#fecaca" : "#bbf7d0"}`,
+            background: notice.type === "error" ? "#fff1f2" : "#f0fdf4",
+            color: notice.type === "error" ? "#b42318" : "#166534"
+          }}
+        >
+          {notice.message}
+        </div>
+      ) : null}
       <div className="panel table-wrap">
         <table className="table">
           <thead>

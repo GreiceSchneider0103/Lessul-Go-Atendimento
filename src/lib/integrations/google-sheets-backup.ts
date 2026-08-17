@@ -3,6 +3,10 @@ import { createSign } from "node:crypto";
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const GOOGLE_SHEETS_SCOPE = "https://www.googleapis.com/auth/spreadsheets";
 const GOOGLE_SHEETS_API_BASE = "https://sheets.googleapis.com/v4/spreadsheets";
+const TOKEN_EXPIRY_MARGIN_MS = 60_000;
+
+let cachedAccessToken: { value: string; expiresAt: number } | null = null;
+let accessTokenRequest: Promise<string> | null = null;
 
 type TicketBackupRow = {
   id: string;
@@ -67,6 +71,22 @@ function getSheetsEnv() {
 }
 
 async function getGoogleAccessToken() {
+  if (cachedAccessToken && cachedAccessToken.expiresAt - TOKEN_EXPIRY_MARGIN_MS > Date.now()) {
+    return cachedAccessToken.value;
+  }
+
+  if (accessTokenRequest) return accessTokenRequest;
+
+  accessTokenRequest = requestGoogleAccessToken();
+
+  try {
+    return await accessTokenRequest;
+  } finally {
+    accessTokenRequest = null;
+  }
+}
+
+async function requestGoogleAccessToken() {
   const env = getSheetsEnv();
   if (!env) throw new Error(getGoogleSheetsBackupConfigError() ?? "Integração Google Sheets não configurada");
 
@@ -97,7 +117,11 @@ async function getGoogleAccessToken() {
     throw new Error(`Falha ao obter token Google: ${body}`);
   }
 
-  const tokenPayload = await tokenResponse.json() as { access_token: string };
+  const tokenPayload = await tokenResponse.json() as { access_token: string; expires_in?: number };
+  cachedAccessToken = {
+    value: tokenPayload.access_token,
+    expiresAt: Date.now() + (tokenPayload.expires_in ?? 3600) * 1000
+  };
   return tokenPayload.access_token;
 }
 
