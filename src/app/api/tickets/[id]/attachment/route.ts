@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth/session";
+import { getCurrentApiUser } from "@/lib/auth/session";
 import { uploadTicketAttachment, removeTicketAttachment } from "@/lib/services/tickets-service";
 import { AppError } from "@/lib/errors";
 
@@ -8,7 +8,7 @@ type Params = Promise<{ id: string }>;
 export async function POST(req: NextRequest, { params }: { params: Params }) {
   try {
     const { id } = await params;
-    const user = await getCurrentUser();
+    const user = await getCurrentApiUser();
 
     const formData = await req.formData();
     const file = formData.get("file");
@@ -36,7 +36,7 @@ export async function POST(req: NextRequest, { params }: { params: Params }) {
 export async function DELETE(_req: NextRequest, { params }: { params: Params }) {
   try {
     const { id } = await params;
-    const user = await getCurrentUser();
+    const user = await getCurrentApiUser();
 
     const updatedTicket = await removeTicketAttachment(id, user);
 

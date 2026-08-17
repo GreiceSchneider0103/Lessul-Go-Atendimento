@@ -14,6 +14,7 @@ import {
 import { logError } from "@/lib/logger";
 import { createSupabaseAdmin } from "@/lib/supabase/service-role";
 import { sendEmail } from "@/lib/services/email-service";
+import { after } from "next/server";
 
 const RETURNS_NOTIFICATION_EMAIL = "atendimento@lessul.com.br";
 
@@ -365,7 +366,7 @@ export async function createTicket(input: TicketInput, userId: string) {
     after: toAuditJson(ticket as unknown as Record<string, unknown>)
   });
 
-  await syncTicketCreateBackup(ticket.id);
+  after(() => syncTicketCreateBackup(ticket.id));
 
   return ticket;
 }
@@ -548,7 +549,7 @@ export async function updateTicket(id: string, rawPayload: Partial<TicketInput>,
     after: toAuditJson(updated as unknown as Record<string, unknown>)
   });
 
-  await syncTicketUpdateBackup(id);
+  after(() => syncTicketUpdateBackup(id));
 
   if (before.statusOperacionalLoja !== "DEVOLUCAO_RECEBIDA" && updated.statusOperacionalLoja === "DEVOLUCAO_RECEBIDA") {
     await sendEmail({
@@ -592,7 +593,7 @@ export async function softDeleteTicket(id: string, user: Usuario) {
     after: toAuditJson(updated as unknown as Record<string, unknown>)
   });
 
-  await syncTicketUpdateBackup(id);
+  after(() => syncTicketUpdateBackup(id));
 
   return { ok: true };
 }
