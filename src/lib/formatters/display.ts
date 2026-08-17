@@ -33,6 +33,7 @@ const LABEL_MAP: Record<string, string> = {
   COLETA_FEITA: "Coleta feita",
   DEVOLUCAO_SOLICITADA: "Devolução solicitada",
   DEVOLUCAO_A_CAMINHO: "Devolução a caminho",
+  DEVOLUCAO_RECEBIDA: "Devolução recebida (aguardando cobrança)",
   DEVOLUCAO_REALIZADA: "Devolução realizada",
   REEMBOLSO_PENDENTE: "Reembolso pendente",
   REEMBOLSO_REALIZADO: "Reembolso realizado",

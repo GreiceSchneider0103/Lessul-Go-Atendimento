@@ -34,7 +34,7 @@ type Row = {
   anexo?: { fileUrl: string | null; fileName?: string; filePath?: string | null; mimeType?: string | null } 
 };
 
-const statusOptions = ["EM_ABERTO","ASSISTENCIA_ENVIADA","ASSISTENCIA_A_CAMINHO","ASSISTENCIA_ENTREGUE","COLETA_SOLICITADA","COLETA_FEITA","DEVOLUCAO_SOLICITADA","DEVOLUCAO_A_CAMINHO","DEVOLUCAO_REALIZADA","REEMBOLSO_PENDENTE","REEMBOLSO_REALIZADO","AGUARDANDO_ATENDENTE","CONCLUIDA"];
+const statusOptions = ["EM_ABERTO","ASSISTENCIA_ENVIADA","ASSISTENCIA_A_CAMINHO","ASSISTENCIA_ENTREGUE","COLETA_SOLICITADA","COLETA_FEITA","DEVOLUCAO_SOLICITADA","DEVOLUCAO_A_CAMINHO","DEVOLUCAO_RECEBIDA","DEVOLUCAO_REALIZADA","REEMBOLSO_PENDENTE","REEMBOLSO_REALIZADO","AGUARDANDO_ATENDENTE","CONCLUIDA"];
 const resolucoesOptions = ["ASSISTENCIA", "DEVOLUCAO", "REEMBOLSO", "RESOLVIDO"];
 const acoesOptions = ["NENHUMA", "ASSISTENCIA", "COLETA", "DEVOLUCAO", "REEMBOLSO"];
 
@@ -111,6 +111,12 @@ export function OperationalRequestsPanel({ data, perfil }: { data: Row[]; perfil
       // Objetivo 2: Concluir ticket automaticamente se statusOperacionalLoja for REEMBOLSO_REALIZADO ou ASSISTENCIA_ENTREGUE
       if (payload.statusOperacionalLoja === "REEMBOLSO_REALIZADO" || payload.statusOperacionalLoja === "ASSISTENCIA_ENTREGUE") {
         payload.statusTicket = "CONCLUIDO";
+      }
+
+      if (payload.statusOperacionalLoja === "DEVOLUCAO_RECEBIDA" && !selectedRow.anexo) {
+        alert("Anexe uma foto do produto recebido antes de marcar como devolução recebida.");
+        setIsSaving(false);
+        return;
       }
 
       // Remove empty strings

@@ -13,6 +13,9 @@ import {
 } from "@/lib/integrations/google-sheets-backup";
 import { logError } from "@/lib/logger";
 import { createSupabaseAdmin } from "@/lib/supabase/service-role";
+import { sendEmail } from "@/lib/services/email-service";
+
+const RETURNS_NOTIFICATION_EMAIL = "atendimento@lessul.com.br";
 
 const sensitiveFields = ["valorColeta", "prazoConclusao", "resolucao"] as const;
 
@@ -415,6 +418,14 @@ export async function updateTicket(id: string, rawPayload: Partial<TicketInput>,
 
   assertCanEditFields(user, payload);
 
+  if (payload.statusOperacionalLoja === "DEVOLUCAO_RECEBIDA" && !before.anexoPath) {
+    throw new AppError(
+      "Anexe uma foto do produto recebido antes de marcar como devolução recebida",
+      400,
+      "RETURN_PHOTO_REQUIRED"
+    );
+  }
+
   const shouldCloseTicket =
     payload.statusOperacionalLoja === "REEMBOLSO_REALIZADO" ||
     payload.statusOperacionalLoja === "ASSISTENCIA_ENTREGUE";
@@ -538,6 +549,21 @@ export async function updateTicket(id: string, rawPayload: Partial<TicketInput>,
   });
 
   await syncTicketUpdateBackup(id);
+
+  if (before.statusOperacionalLoja !== "DEVOLUCAO_RECEBIDA" && updated.statusOperacionalLoja === "DEVOLUCAO_RECEBIDA") {
+    await sendEmail({
+      to: RETURNS_NOTIFICATION_EMAIL,
+      subject: `Devolução recebida — ${updated.nomeCliente} (pedido ${updated.numeroVenda})`,
+      text:
+        `A loja confirmou o recebimento de um produto de devolução. Confira a foto e os dados do pedido para realizar a cobrança do marketplace.\n\n` +
+        `Ticket: ${updated.id}\n` +
+        `Cliente: ${updated.nomeCliente}\n` +
+        `Pedido: ${updated.numeroVenda}\n` +
+        `Empresa: ${updated.empresa}\n` +
+        `Marketplace: ${updated.canalMarketplace}\n\n` +
+        `Acesse o ticket: ${process.env.APP_BASE_URL ?? ""}/tickets/${updated.id}`
+    });
+  }
 
   return updated;
 }

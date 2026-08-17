@@ -487,6 +487,7 @@ export function TicketForm({
               <option value="COLETA_FEITA">Coleta feita</option>
               <option value="DEVOLUCAO_SOLICITADA">Devolução solicitada</option>
               <option value="DEVOLUCAO_A_CAMINHO">Devolução a caminho</option>
+              <option value="DEVOLUCAO_RECEBIDA">Devolução recebida (aguardando cobrança)</option>
               <option value="DEVOLUCAO_REALIZADA">Devolução realizada</option>
               <option value="REEMBOLSO_PENDENTE">Reembolso pendente</option>
               <option value="REEMBOLSO_REALIZADO">Reembolso realizado</option>
