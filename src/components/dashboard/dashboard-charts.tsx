@@ -12,8 +12,8 @@ function formatChartData(items: Array<{ name: string; value: number }>) {
 
 function ChartCard({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <article className="card" style={{ minHeight: 320, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-      <h3 style={{ marginBottom: 12 }}>{title}</h3>
+    <article className="card flex flex-col overflow-hidden" style={{ minHeight: 320 }}>
+      <h3 className="mb-3 text-[14px] font-bold text-slate-800">{title}</h3>
       <div style={{ flex: 1, minHeight: 260 }}>{children}</div>
     </article>
   );

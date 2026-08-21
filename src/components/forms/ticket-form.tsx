@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { Paperclip, Trash2, ExternalLink } from "lucide-react";
 import { CANAIS_MARKETPLACE, EMPRESAS, MOTIVOS, RESOLUCOES, STATUS_RECLAMACAO, STATUS_TICKET } from "@/config/domains";
 import { formatEnumLabel } from "@/lib/formatters/display";
 import { TicketFormInput, ticketFormSchema } from "@/lib/validation/ticket";
@@ -546,7 +547,7 @@ export function TicketForm({
               </label>
             </div>
 
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 className="btn btn-secondary"
@@ -600,11 +601,18 @@ export function TicketForm({
                   }
                 }}
               >
+                <Paperclip size={14} strokeWidth={2.25} aria-hidden />
                 {currentAttachment?.fileUrl ? "Substituir anexo" : "Adicionar anexo"}
               </button>
 
               {currentAttachment?.fileUrl ? (
-                <a className="btn btn-link" href={currentAttachment.fileUrl} target="_blank" rel="noopener noreferrer">
+                <a
+                  className="btn btn-link inline-flex items-center gap-1.5"
+                  href={currentAttachment.fileUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <ExternalLink size={14} strokeWidth={2.25} aria-hidden />
                   {currentAttachment.fileName ?? "Visualizar anexo"}
                 </a>
               ) : null}
@@ -642,6 +650,7 @@ export function TicketForm({
                     }
                   }}
                 >
+                  <Trash2 size={14} strokeWidth={2.25} aria-hidden />
                   Remover anexo
                 </button>
               ) : null}
