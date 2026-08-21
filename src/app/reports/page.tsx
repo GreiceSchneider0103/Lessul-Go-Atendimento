@@ -1,11 +1,19 @@
 import Link from "next/link";
-import { Download, FileSpreadsheet } from "lucide-react";
+import { Download, FileSpreadsheet, Layers, Wallet, Banknote, PackageCheck, type LucideIcon } from "lucide-react";
 import { requireCurrentUser } from "@/lib/auth/require-user";
 import { CANAIS_MARKETPLACE, EMPRESAS } from "@/config/domains";
 import { ReportsResponse } from "@/lib/contracts";
 import { assertPermission } from "@/lib/rbac/permissions";
 import { ticketFiltersSchema } from "@/lib/validation/ticket";
 import { getReportsData } from "@/lib/services/reports-service";
+import { formatCurrencyBR } from "@/lib/formatters/display";
+
+const totalsConfig: Record<string, { label: string; icon: LucideIcon; money?: boolean }> = {
+  totalTickets: { label: "Total de tickets", icon: Layers },
+  totalCustos: { label: "Custo total", icon: Wallet, money: true },
+  totalReembolso: { label: "Valor de reembolso", icon: Banknote, money: true },
+  totalColeta: { label: "Total de coleta", icon: PackageCheck, money: true }
+};
 
 function getCurrentMonthRange() {
   const now = new Date();
@@ -73,19 +81,38 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         <p className="muted">Visualize estatísticas e exporte dados para análise.</p>
       </div>
 
-      <form className="panel form-grid cols-4" method="GET">
-        <input name="startDate" type="date" defaultValue={normalizedQuery.startDate} />
-        <input name="endDate" type="date" defaultValue={normalizedQuery.endDate} />
-        <select name="canalMarketplace" defaultValue={normalizedQuery.canalMarketplace ?? ""}>
-          <option value="">Todos os marketplaces</option>
-          {CANAIS_MARKETPLACE.map((item) => <option key={item} value={item}>{item.replaceAll("_", " ")}</option>)}
-        </select>
-        <select name="empresa" defaultValue={normalizedQuery.empresa ?? ""}>
-          <option value="">Todas as empresas</option>
-          {EMPRESAS.map((item) => <option key={item} value={item}>{item}</option>)}
-        </select>
-        <input name="sku" placeholder="SKU" defaultValue={normalizedQuery.sku} />
-        <button type="submit" className="btn btn-secondary">Filtrar</button>
+      <form
+        className="panel grid items-end gap-3"
+        method="GET"
+        style={{ gridTemplateColumns: "repeat(auto-fit, minmax(148px, 1fr))" }}
+      >
+        <label>
+          Data inicial
+          <input name="startDate" type="date" defaultValue={normalizedQuery.startDate} />
+        </label>
+        <label>
+          Data final
+          <input name="endDate" type="date" defaultValue={normalizedQuery.endDate} />
+        </label>
+        <label>
+          Marketplace
+          <select name="canalMarketplace" defaultValue={normalizedQuery.canalMarketplace ?? ""}>
+            <option value="">Todos</option>
+            {CANAIS_MARKETPLACE.map((item) => <option key={item} value={item}>{item.replaceAll("_", " ")}</option>)}
+          </select>
+        </label>
+        <label>
+          Empresa
+          <select name="empresa" defaultValue={normalizedQuery.empresa ?? ""}>
+            <option value="">Todas</option>
+            {EMPRESAS.map((item) => <option key={item} value={item}>{item}</option>)}
+          </select>
+        </label>
+        <label>
+          SKU
+          <input name="sku" placeholder="SKU" defaultValue={normalizedQuery.sku} />
+        </label>
+        <button type="submit" className="btn btn-primary h-[42px]">Filtrar</button>
       </form>
 
       {data.error ? <div className="alert alert-error">{data.error}</div> : null}
@@ -96,16 +123,28 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
       ) : null}
 
       <div className="grid grid-4">
-        {Object.entries(data.totals).map(([k, v]) => (
-          <article key={k} className="card">
-            <strong className="text-xs font-bold uppercase tracking-wide text-slate-500">{k}</strong>
-            <p className="metric-value">{String(v)}</p>
-          </article>
-        ))}
+        {Object.entries(data.totals).map(([k, v]) => {
+          const config = totalsConfig[k] ?? { label: k, icon: Layers };
+          const Icon = config.icon;
+          return (
+            <article key={k} className="card flex items-center justify-between gap-3">
+              <div>
+                <p className="muted">{config.label}</p>
+                <p className="metric-value">{config.money ? formatCurrencyBR(Number(v)) : String(v)}</p>
+              </div>
+              <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] bg-slate-100 text-slate-600">
+                <Icon size={19} strokeWidth={2.25} />
+              </span>
+            </article>
+          );
+        })}
       </div>
 
-      <div className="panel flex items-center justify-between">
-        <h3 className="m-0 text-[15px] font-bold text-slate-800">Exportar Dados</h3>
+      <div className="panel flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h3 className="m-0 text-[15px] font-bold text-slate-800">Exportar dados</h3>
+          <p className="muted mt-1">Baixe os tickets filtrados em planilha para análise externa.</p>
+        </div>
         <div className="flex gap-2">
           <Link className="btn btn-secondary" href={`/api/reports/export?${params.toString()}&format=csv`}>
             <Download size={15} strokeWidth={2.25} aria-hidden />
@@ -122,14 +161,14 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         <div className="panel table-wrap">
           <h3 className="mb-3 text-[15px] font-bold text-slate-800">Resumo por Marketplace</h3>
           <table className="table"><thead><tr><th>Marketplace</th><th>Tickets</th><th>Custo Total</th></tr></thead><tbody>
-            {byMarketplace.map((row) => <tr key={row.name}><td>{row.name}</td><td>{row.tickets}</td><td>R$ {row.custo.toFixed(2)}</td></tr>)}
+            {byMarketplace.map((row) => <tr key={row.name}><td>{row.name}</td><td>{row.tickets}</td><td>{formatCurrencyBR(row.custo)}</td></tr>)}
           </tbody></table>
         </div>
 
         <div className="panel table-wrap">
           <h3 className="mb-3 text-[15px] font-bold text-slate-800">Resumo por Empresa</h3>
           <table className="table"><thead><tr><th>Empresa</th><th>Tickets</th><th>Custo Total</th></tr></thead><tbody>
-            {byEmpresa.map((row) => <tr key={row.name}><td>{row.name}</td><td>{row.tickets}</td><td>R$ {row.custo.toFixed(2)}</td></tr>)}
+            {byEmpresa.map((row) => <tr key={row.name}><td>{row.name}</td><td>{row.tickets}</td><td>{formatCurrencyBR(row.custo)}</td></tr>)}
           </tbody></table>
         </div>
       </div>
@@ -137,14 +176,14 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
       <div className="panel table-wrap">
         <h3 className="mb-3 text-[15px] font-bold text-slate-800">Resumo por Motivo</h3>
         <table className="table"><thead><tr><th>Motivo</th><th>Tickets</th><th>Custo Total</th></tr></thead><tbody>
-          {byMotivo.map((row) => <tr key={row.name}><td>{row.name}</td><td>{row.tickets}</td><td>R$ {row.custo.toFixed(2)}</td></tr>)}
+          {byMotivo.map((row) => <tr key={row.name}><td>{row.name}</td><td>{row.tickets}</td><td>{formatCurrencyBR(row.custo)}</td></tr>)}
         </tbody></table>
       </div>
 
       <div className="panel table-wrap">
         <h3 className="mb-3 text-[15px] font-bold text-slate-800">Resumo por SKU</h3>
         <table className="table"><thead><tr><th>SKU</th><th>Tickets</th><th>Custo Total</th></tr></thead><tbody>
-          {bySku.map((row) => <tr key={row.name}><td>{row.name}</td><td>{row.tickets}</td><td>R$ {row.custo.toFixed(2)}</td></tr>)}
+          {bySku.map((row) => <tr key={row.name}><td>{row.name}</td><td>{row.tickets}</td><td>{formatCurrencyBR(row.custo)}</td></tr>)}
         </tbody></table>
       </div>
     </section>

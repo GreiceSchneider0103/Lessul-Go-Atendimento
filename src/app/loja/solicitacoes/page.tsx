@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db/prisma";
 import { formatEnumLabel } from "@/lib/formatters/display";
 import { EMPRESAS } from "@/config/domains";
+import { hasPermission } from "@/lib/rbac/permissions";
 import { OperationalRequestsPanel } from "@/components/loja/operational-requests-panel";
 
 type PageProps = {
@@ -101,7 +102,7 @@ function isOverdue(prazoOperacional: string | null, status: string) {
 export default async function LojaSolicitacoesPage({ searchParams }: PageProps) {
   const user = await getCurrentUser();
 
-  if (user.perfil !== "LOJA" && user.perfil !== "ADMIN") {
+  if (user.perfil !== "LOJA" && !hasPermission(user.perfil, "operational.update")) {
     redirect("/dashboard");
   }
 
@@ -233,7 +234,7 @@ export default async function LojaSolicitacoesPage({ searchParams }: PageProps) 
 
       <div className="panel">
         <form action="/loja/solicitacoes" method="get" className="flex flex-wrap items-end gap-4">
-          {user.perfil === "ADMIN" ? (
+          {user.perfil !== "LOJA" ? (
             <label className="min-w-[220px]">
               Empresa
               <select name="empresa" defaultValue={empresaFiltro ?? ""}>

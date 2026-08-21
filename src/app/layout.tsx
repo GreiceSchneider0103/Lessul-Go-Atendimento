@@ -79,34 +79,29 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     <html lang="pt-BR" className={inter.variable}>
       <body>
         <div className="app-shell">
-          <aside className="app-sidebar">
-            <div className="brand-row">
-              <div className="brand-icon">
-                <Command size={16} strokeWidth={2.5} />
-              </div>
-              <span className="brand">GO Atendimento</span>
-            </div>
-            <SidebarNav perfil={currentUser.perfil} />
-            <div className="sidebar-footer">GO Atendimento v1.0</div>
-          </aside>
-
-          <div className="app-content">
-            <header className="app-header">
-              <div className="header-left"><h2>Painel interno</h2></div>
-              <div className="header-right">
-                <div className="user-chip">
-                  <div>
-                    <div className="user-name">{currentUser.nome}</div>
-                    <div className="user-role">{currentUser.perfil.toLowerCase()}</div>
-                  </div>
-                  <span className="avatar">{getInitials(currentUser.nome)}</span>
+          <header className="app-header">
+            <div className="header-left">
+              <div className="brand-row">
+                <div className="brand-icon">
+                  <Command size={16} strokeWidth={2.5} />
                 </div>
-                <LogoutButton />
+                <span className="brand">GO Atendimento</span>
               </div>
-            </header>
+              <SidebarNav perfil={currentUser.perfil} />
+            </div>
+            <div className="header-right">
+              <div className="user-chip">
+                <div>
+                  <div className="user-name">{currentUser.nome}</div>
+                  <div className="user-role">{currentUser.perfil.toLowerCase()}</div>
+                </div>
+                <span className="avatar">{getInitials(currentUser.nome)}</span>
+              </div>
+              <LogoutButton />
+            </div>
+          </header>
 
-            <main className="app-main">{children}</main>
-          </div>
+          <main className="app-main">{children}</main>
         </div>
       </body>
     </html>

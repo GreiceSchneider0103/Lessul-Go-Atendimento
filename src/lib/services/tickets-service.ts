@@ -238,7 +238,8 @@ export async function listTickets(
             { nomeCliente: { contains: query.search, mode: "insensitive" } },
             { numeroVenda: { contains: query.search, mode: "insensitive" } },
             { canalMarketplace: { contains: query.search, mode: "insensitive" } },
-            { produto: { contains: query.search, mode: "insensitive" } }
+            { produto: { contains: query.search, mode: "insensitive" } },
+            { sku: { contains: query.search, mode: "insensitive" } }
           ]
         }
       : {}),
