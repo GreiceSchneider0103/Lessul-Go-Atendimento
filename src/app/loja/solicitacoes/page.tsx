@@ -1,5 +1,6 @@
 import { StatusOperacional, Empresa, Prisma, StatusOperacionalLoja } from "@prisma/client";
 import Link from "next/link";
+import { Plus } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db/prisma";
@@ -110,12 +111,14 @@ export default async function LojaSolicitacoesPage({ searchParams }: PageProps) 
   const empresaFiltro = isEmpresa(params.empresa) ? params.empresa : undefined;
   const statusFiltro = isStatusOperacional(params.status) ? params.status : undefined;
 
-  const baseWhere: Prisma.OperationalRequestWhereInput =
-    user.perfil === "LOJA"
+  const baseWhere: Prisma.OperationalRequestWhereInput = {
+    ticket: { ativo: true },
+    ...(user.perfil === "LOJA"
       ? { empresa: user.empresaVinculada ?? undefined }
       : empresaFiltro
         ? { empresa: empresaFiltro as Empresa }
-        : {};
+        : {})
+  };
 
   let where: Prisma.OperationalRequestWhereInput = { ...baseWhere };
 
@@ -227,9 +230,18 @@ export default async function LojaSolicitacoesPage({ searchParams }: PageProps) 
 
   return (
     <section className="page">
-      <div className="page-header">
-        <h1>Solicitações da Loja</h1>
-        <p className="muted">Acompanhamento operacional das ações abertas pelas lojas.</p>
+      <div className="page-header flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1>Solicitações da Loja</h1>
+          <p className="muted">Acompanhamento operacional das ações abertas pelas lojas.</p>
+        </div>
+
+        {user.perfil === "LOJA" ? (
+          <Link href="/loja/devolucoes" className="btn btn-primary whitespace-nowrap">
+            <Plus size={16} strokeWidth={2.5} aria-hidden />
+            Devolução recebida sem ticket
+          </Link>
+        ) : null}
       </div>
 
       <div className="panel">

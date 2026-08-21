@@ -13,9 +13,9 @@ function formatChartData(items: Array<{ name: string; value: number }>) {
 
 function ChartCard({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <article className="card flex flex-col overflow-hidden" style={{ minHeight: 260 }}>
-      <h3 className="mb-2 text-[13px] font-bold text-slate-800">{title}</h3>
-      <div style={{ flex: 1, minHeight: 200 }}>{children}</div>
+    <article className="card flex flex-col overflow-hidden" style={{ minHeight: 220 }}>
+      <h3 className="mb-2 text-[12.5px] font-bold text-slate-800">{title}</h3>
+      <div style={{ flex: 1, minHeight: 165 }}>{children}</div>
     </article>
   );
 }
@@ -28,7 +28,7 @@ export function DashboardCharts({ charts }: { charts: Record<string, Array<{ nam
   const porSku = formatChartData(charts.ticketsPorSku ?? []).slice(0, 10);
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
       <ChartCard title="Reclamações por empresa">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={porEmpresa} margin={{ top: 8, right: 8, left: -14, bottom: 16 }}>
