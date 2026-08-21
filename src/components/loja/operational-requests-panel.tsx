@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useEffect } from "react";
 import Link from "next/link";
 import { Perfil, StatusOperacional } from "@prisma/client";
+import { X, FileText, Paperclip, Upload } from "lucide-react";
 import { formatDateBR, formatEnumLabel } from "@/lib/formatters/display";
 
 type Row = { 
@@ -74,7 +75,7 @@ export function OperationalRequestsPanel({ data, perfil }: { data: Row[]; perfil
   }, []);
 
   const renderAnexoThumbnail = (row: Row) => {
-    if (!row.anexo) return <span style={{ color: '#999', fontSize: '0.85rem' }}>Sem anexo</span>;
+    if (!row.anexo) return <span className="text-[0.85rem] text-slate-400">Sem anexo</span>;
 
     const isImage = row.anexo.mimeType?.startsWith("image/");
     const isPDF = row.anexo.mimeType === "application/pdf";
@@ -83,17 +84,17 @@ export function OperationalRequestsPanel({ data, perfil }: { data: Row[]; perfil
     return (
       <a href={attachmentViewUrl} target="_blank" rel="noopener noreferrer" title="Ver anexo">
         {isImage ? (
-          <img 
-            src={attachmentViewUrl} 
-            alt="Anexo" 
-            style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 4, border: '1px solid #ddd' }}
+          <img
+            src={attachmentViewUrl}
+            alt="Anexo"
+            className="h-10 w-10 rounded-md border border-slate-200 object-cover"
           />
         ) : (
-          <div style={{ 
-            width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', 
-            background: '#f8f9fa', borderRadius: 4, border: '1px solid #ddd', fontSize: 10, fontWeight: 'bold', color: isPDF ? '#d32f2f' : '#666'
-          }}>
-            {isPDF ? "PDF" : "FILE"}
+          <div
+            className="flex h-10 w-10 items-center justify-center rounded-md border border-slate-200 bg-slate-50"
+            style={{ color: isPDF ? "#d32f2f" : "#64748b" }}
+          >
+            {isPDF ? <FileText size={16} strokeWidth={2.25} /> : <Paperclip size={16} strokeWidth={2.25} />}
           </div>
         )}
       </a>
@@ -203,11 +204,8 @@ export function OperationalRequestsPanel({ data, perfil }: { data: Row[]; perfil
       {notice ? (
         <div
           role={notice.type === "error" ? "alert" : "status"}
-          className={notice.type === "error" ? "field-error" : undefined}
+          className="alert mb-3"
           style={{
-            marginBottom: 12,
-            padding: "10px 12px",
-            borderRadius: 8,
             border: `1px solid ${notice.type === "error" ? "#fecaca" : "#bbf7d0"}`,
             background: notice.type === "error" ? "#fff1f2" : "#f0fdf4",
             color: notice.type === "error" ? "#b42318" : "#166534"
@@ -247,27 +245,26 @@ export function OperationalRequestsPanel({ data, perfil }: { data: Row[]; perfil
                       </a>
                     ) : row.ticket.numeroVenda}
                   </td>
-                  <td><span className="badge">{formatEnumLabel(row.tipoAcao)}</span></td>
+                  <td><span className="badge badge-info">{formatEnumLabel(row.tipoAcao)}</span></td>
                   <td>{formatEnumLabel(row.status)}</td>
                   <td>
                     {row.prazoOperacional ? (
-                      <span style={{ 
-                        padding: '4px 8px', 
-                        borderRadius: '4px', 
-                        fontSize: '0.85rem',
-                        fontWeight: '500',
-                        backgroundColor: isAtrasado ? '#fff1f0' : '#f6ffed', 
-                        color: isAtrasado ? '#cf1322' : '#389e0d',
-                        border: `1px solid ${isAtrasado ? '#ffa39e' : '#b7eb8f'}`
-                      }}>
+                      <span
+                        className="rounded px-2 py-1 text-[0.85rem] font-medium"
+                        style={{
+                          backgroundColor: isAtrasado ? "#fff1f0" : "#f6ffed",
+                          color: isAtrasado ? "#cf1322" : "#389e0d",
+                          border: `1px solid ${isAtrasado ? "#ffa39e" : "#b7eb8f"}`
+                        }}
+                      >
                         {formatDateBR(new Date(row.prazoOperacional))}
                       </span>
                     ) : '-'}
                   </td>
                   <td>{renderAnexoThumbnail(row)}</td>
                   <td>
-                    <button 
-                      className="btn btn-sm" 
+                    <button
+                      className="btn btn-secondary px-3 py-1.5 text-xs"
                       onClick={() => setSelectedRow(row)}
                     >
                       Ações
@@ -282,17 +279,8 @@ export function OperationalRequestsPanel({ data, perfil }: { data: Row[]; perfil
 
       {/* Overlay */}
       {selectedRow && (
-        <div 
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "rgba(0, 0, 0, 0.5)",
-            zIndex: 999,
-            cursor: "pointer"
-          }}
+        <div
+          className="fixed inset-0 z-[999] cursor-pointer bg-black/50"
           onClick={() => setSelectedRow(null)}
         />
       )}
@@ -300,201 +288,122 @@ export function OperationalRequestsPanel({ data, perfil }: { data: Row[]; perfil
       {/* Drawer */}
       {selectedRow && (
         <div
-          style={{
-            position: "fixed",
-            right: 0,
-            top: 0,
-            height: "100vh",
-            width: "420px",
-            backgroundColor: "white",
-            borderLeft: "1px solid #e2e8f0",
-            boxShadow: "-2px 0 8px rgba(0, 0, 0, 0.1)",
-            zIndex: 1000,
-            overflowY: "auto",
-            display: "flex",
-            flexDirection: "column"
-          }}
+          className="fixed right-0 top-0 z-[1000] flex h-screen w-[420px] max-w-[92vw] flex-col overflow-y-auto border-l border-slate-200 bg-white shadow-[-2px_0_8px_rgba(0,0,0,0.1)]"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div
-            style={{
-              padding: "16px",
-              borderBottom: "1px solid #e2e8f0",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              position: "sticky",
-              top: 0,
-              backgroundColor: "white",
-              zIndex: 1001
-            }}
-          >
-            <h3 style={{ margin: 0, fontSize: "18px" }}>Dados Complementares</h3>
+          <div className="sticky top-0 z-[1001] flex items-center justify-between border-b border-slate-200 bg-white px-4 py-4">
+            <h3 className="m-0 text-lg font-bold text-slate-800">Dados Complementares</h3>
             <button
               type="button"
               onClick={() => setSelectedRow(null)}
-              style={{
-                background: "none",
-                border: "none",
-                fontSize: "24px",
-                cursor: "pointer",
-                color: "#666",
-                padding: 0,
-                width: "32px",
-                height: "32px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center"
-              }}
+              className="flex h-8 w-8 items-center justify-center rounded-md bg-transparent p-0 text-slate-500 hover:bg-slate-100"
             >
-              ×
+              <X size={18} strokeWidth={2.25} />
             </button>
           </div>
 
           {/* Content */}
-          <div style={{ flex: 1, padding: "16px", overflowY: "auto" }}>
-            <form onSubmit={handleSaveDrawer} style={{ display: "grid", gap: "12px" }}>
+          <div className="flex-1 overflow-y-auto p-4">
+            <form onSubmit={handleSaveDrawer} className="grid gap-3">
               {/* Client Info */}
-              <fieldset style={{ border: "1px solid #e2e8f0", padding: "12px", borderRadius: "4px" }}>
-                <legend style={{ paddingInline: "4px", fontSize: "0.85rem", fontWeight: "bold", color: "#666" }}>
+              <fieldset className="rounded-lg border border-slate-200 p-3">
+                <legend className="px-1 text-xs font-bold text-slate-500">
                   Informações do Cliente
                 </legend>
-                <div style={{ display: "grid", gap: "8px" }}>
-                  <div style={{ fontSize: "0.9rem" }}>
+                <div className="grid gap-2">
+                  <div className="text-sm">
                     <strong>Cliente:</strong> {selectedRow.ticket.nomeCliente}
                   </div>
-                  <div style={{ fontSize: "0.9rem" }}>
+                  <div className="text-sm">
                     <strong>Número do Pedido:</strong>
                     {selectedRow.ticket.linkPedido ? (
-                      <a 
-                        href={selectedRow.ticket.linkPedido} 
-                        target="_blank" 
+                      <a
+                        href={selectedRow.ticket.linkPedido}
+                        target="_blank"
                         rel="noopener noreferrer"
-                        style={{ marginLeft: "8px" }}
-                        className="link"
+                        className="ml-2 font-semibold text-brand-700 hover:underline"
                       >
                         {selectedRow.ticket.numeroVenda}
                       </a>
                     ) : (
-                      <span style={{ marginLeft: "8px" }}>{selectedRow.ticket.numeroVenda}</span>
+                      <span className="ml-2">{selectedRow.ticket.numeroVenda}</span>
                     )}
                   </div>
                 </div>
               </fieldset>
 
               {/* Product Info */}
-              <fieldset style={{ border: "1px solid #e2e8f0", padding: "12px", borderRadius: "4px" }}>
-                <legend style={{ paddingInline: "4px", fontSize: "0.85rem", fontWeight: "bold", color: "#666" }}>
+              <fieldset className="rounded-lg border border-slate-200 p-3">
+                <legend className="px-1 text-xs font-bold text-slate-500">
                   Informações do Produto
                 </legend>
-                <div style={{ display: "grid", gap: "8px" }}>
-                  <div style={{ fontSize: "0.9rem" }}>
+                <div className="grid gap-2">
+                  <div className="text-sm">
                     <strong>SKU:</strong> {selectedRow.ticket.sku}
                   </div>
-                  <div style={{ fontSize: "0.9rem" }}>
+                  <div className="text-sm">
                     <strong>Produto:</strong> {selectedRow.ticket.produto}
                   </div>
                 </div>
               </fieldset>
 
               {/* Attachment */}
-              <fieldset style={{ border: "1px solid #e2e8f0", padding: "12px", borderRadius: "4px" }}>
-                <legend style={{ paddingInline: "4px", fontSize: "0.85rem", fontWeight: "bold", color: "#666" }}>
+              <fieldset className="rounded-lg border border-slate-200 p-3">
+                <legend className="px-1 text-xs font-bold text-slate-500">
                   Anexo
                 </legend>
                 {selectedRow.anexo ? (
-                  <div style={{ marginBottom: "8px", textAlign: "center" }}>
+                  <div className="mb-2 text-center">
                     {selectedRow.anexo.mimeType?.startsWith("image/") ? (
-                      <img 
+                      <img
                         src={`/api/tickets/${selectedRow.ticketId}/attachment/view`}
                         alt="Anexo"
-                        style={{ maxWidth: "100%", maxHeight: "200px", borderRadius: "4px", border: "1px solid #e2e8f0" }}
+                        className="max-h-[200px] max-w-full rounded-md border border-slate-200"
                       />
                     ) : selectedRow.anexo.mimeType === "application/pdf" ? (
-                      <div style={{
-                        padding: "24px",
-                        backgroundColor: "#f8f9fa",
-                        borderRadius: "4px",
-                        border: "1px solid #e2e8f0",
-                        fontSize: "48px",
-                        color: "#d32f2f"
-                      }}>
-                        📄
+                      <div className="flex items-center justify-center rounded-md border border-slate-200 bg-slate-50 p-6 text-[#d32f2f]">
+                        <FileText size={40} strokeWidth={1.75} />
                       </div>
                     ) : (
-                      <div style={{
-                        padding: "24px",
-                        backgroundColor: "#f8f9fa",
-                        borderRadius: "4px",
-                        border: "1px solid #e2e8f0"
-                      }}>
+                      <div className="rounded-md border border-slate-200 bg-slate-50 p-6 text-sm">
                         Arquivo: {selectedRow.anexo.fileName}
                       </div>
                     )}
                   </div>
                 ) : (
-                  <div style={{ fontSize: "0.9rem", color: "#999", marginBottom: "8px" }}>
+                  <div className="mb-2 text-sm text-slate-400">
                     Sem anexo
                   </div>
                 )}
               </fieldset>
 
               {/* Details */}
-              <label style={{ fontSize: "0.9rem", fontWeight: "500" }}>
+              <label className="flex flex-col gap-1.5 text-sm font-semibold text-slate-600">
                 Detalhes do Cliente
                 <textarea
                   name="detalhesCliente"
                   defaultValue={selectedRow.ticket.detalhesCliente ?? ""}
                   rows={3}
                   placeholder="Observações sobre o cliente..."
-                  style={{
-                    width: "100%",
-                    padding: "8px",
-                    marginTop: "4px",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "4px",
-                    fontFamily: "inherit",
-                    fontSize: "0.9rem"
-                  }}
                 />
               </label>
 
               {/* Commentary */}
-              <label style={{ fontSize: "0.9rem", fontWeight: "500" }}>
+              <label className="flex flex-col gap-1.5 text-sm font-semibold text-slate-600">
                 Comentário da Loja
                 <textarea
                   name="comentarioLoja"
                   defaultValue={selectedRow.ticket.comentarioLoja ?? ""}
                   rows={3}
                   placeholder="Observações da loja..."
-                  style={{
-                    width: "100%",
-                    padding: "8px",
-                    marginTop: "4px",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "4px",
-                    fontFamily: "inherit",
-                    fontSize: "0.9rem"
-                  }}
                 />
               </label>
 
               {/* Action */}
-              <label style={{ fontSize: "0.9rem", fontWeight: "500" }}>
+              <label className="flex flex-col gap-1.5 text-sm font-semibold text-slate-600">
                 Ação Operacional da Loja
-                <select
-                  name="acaoOperacionalLoja"
-                  defaultValue={selectedRow.ticket.acaoOperacionalLoja}
-                  style={{
-                    width: "100%",
-                    padding: "8px",
-                    marginTop: "4px",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "4px",
-                    fontSize: "0.9rem"
-                  }}
-                >
+                <select name="acaoOperacionalLoja" defaultValue={selectedRow.ticket.acaoOperacionalLoja}>
                   {acoesOptions.map((opcao) => (
                     <option key={opcao} value={opcao}>
                       {formatEnumLabel(opcao)}
@@ -504,20 +413,9 @@ export function OperationalRequestsPanel({ data, perfil }: { data: Row[]; perfil
               </label>
 
               {/* Resolution */}
-              <label style={{ fontSize: "0.9rem", fontWeight: "500" }}>
+              <label className="flex flex-col gap-1.5 text-sm font-semibold text-slate-600">
                 Resolução
-                <select
-                  name="resolucao"
-                  defaultValue={selectedRow.ticket.resolucao ?? ""}
-                  style={{
-                    width: "100%",
-                    padding: "8px",
-                    marginTop: "4px",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "4px",
-                    fontSize: "0.9rem"
-                  }}
-                >
+                <select name="resolucao" defaultValue={selectedRow.ticket.resolucao ?? ""}>
                   <option value="">Sem resolução</option>
                   {resolucoesOptions.map((opcao) => (
                     <option key={opcao} value={opcao}>
@@ -528,20 +426,9 @@ export function OperationalRequestsPanel({ data, perfil }: { data: Row[]; perfil
               </label>
 
               {/* Status */}
-              <label style={{ fontSize: "0.9rem", fontWeight: "500" }}>
+              <label className="flex flex-col gap-1.5 text-sm font-semibold text-slate-600">
                 Status Operacional da Loja
-                <select
-                  name="statusOperacionalLoja"
-                  defaultValue={selectedRow.ticket.statusOperacionalLoja}
-                  style={{
-                    width: "100%",
-                    padding: "8px",
-                    marginTop: "4px",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "4px",
-                    fontSize: "0.9rem"
-                  }}
-                >
+                <select name="statusOperacionalLoja" defaultValue={selectedRow.ticket.statusOperacionalLoja}>
                   {statusOptions.map((status) => (
                     <option
                       key={status}
@@ -555,28 +442,19 @@ export function OperationalRequestsPanel({ data, perfil }: { data: Row[]; perfil
               </label>
 
               {/* Tracking Code */}
-              <label style={{ fontSize: "0.9rem", fontWeight: "500" }}>
+              <label className="flex flex-col gap-1.5 text-sm font-semibold text-slate-600">
                 Código de Rastreio
                 <input
                   type="text"
                   name="codigoRastreio"
                   defaultValue={selectedRow.codigoRastreio ?? ""}
                   placeholder="Código de rastreio..."
-                  style={{
-                    width: "100%",
-                    padding: "8px",
-                    marginTop: "4px",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "4px",
-                    fontSize: "0.9rem",
-                    boxSizing: "border-box"
-                  }}
                 />
               </label>
 
               {/* Values */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-                <label style={{ fontSize: "0.9rem", fontWeight: "500" }}>
+              <div className="grid grid-cols-2 gap-2">
+                <label className="flex flex-col gap-1.5 text-sm font-semibold text-slate-600">
                   Valor de Reembolso
                   <input
                     type="number"
@@ -585,18 +463,9 @@ export function OperationalRequestsPanel({ data, perfil }: { data: Row[]; perfil
                     step="0.01"
                     min="0"
                     placeholder="R$ 0,00"
-                    style={{
-                      width: "100%",
-                      padding: "8px",
-                      marginTop: "4px",
-                      border: "1px solid #e2e8f0",
-                      borderRadius: "4px",
-                      fontSize: "0.9rem",
-                      boxSizing: "border-box"
-                    }}
                   />
                 </label>
-                <label style={{ fontSize: "0.9rem", fontWeight: "500" }}>
+                <label className="flex flex-col gap-1.5 text-sm font-semibold text-slate-600">
                   Valor de Assistência
                   <input
                     type="number"
@@ -605,20 +474,11 @@ export function OperationalRequestsPanel({ data, perfil }: { data: Row[]; perfil
                     step="0.01"
                     min="0"
                     placeholder="R$ 0,00"
-                    style={{
-                      width: "100%",
-                      padding: "8px",
-                      marginTop: "4px",
-                      border: "1px solid #e2e8f0",
-                      borderRadius: "4px",
-                      fontSize: "0.9rem",
-                      boxSizing: "border-box"
-                    }}
                   />
                 </label>
               </div>
 
-              <label style={{ fontSize: "0.9rem", fontWeight: "500" }}>
+              <label className="flex flex-col gap-1.5 text-sm font-semibold text-slate-600">
                 Valor de Coleta, Envio ou Peças
                 <input
                   type="number"
@@ -627,48 +487,23 @@ export function OperationalRequestsPanel({ data, perfil }: { data: Row[]; perfil
                   step="0.01"
                   min="0"
                   placeholder="R$ 0,00"
-                  style={{
-                    width: "100%",
-                    padding: "8px",
-                    marginTop: "4px",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "4px",
-                    fontSize: "0.9rem",
-                    boxSizing: "border-box"
-                  }}
                 />
               </label>
 
-              <button
-                type="submit"
-                className="btn btn-primary btn-block"
-                disabled={isSaving}
-                style={{ marginTop: "8px" }}
-              >
+              <button type="submit" className="btn btn-primary mt-2 w-full" disabled={isSaving}>
                 {isSaving ? "Salvando..." : "Salvar Alterações"}
               </button>
             </form>
 
             {/* Upload Section */}
-            <div style={{ marginTop: "16px", paddingTop: "16px", borderTop: "1px solid #e2e8f0" }}>
-              <h4 style={{ margin: "0 0 12px 0", fontSize: "0.95rem", fontWeight: "500" }}>
+            <div className="mt-4 border-t border-slate-200 pt-4">
+              <h4 className="mb-3 text-sm font-semibold text-slate-700">
                 {selectedRow.anexo ? "Substituir Anexo" : "Adicionar Anexo"}
               </h4>
-              <form onSubmit={handleUploadAttachment} style={{ display: "grid", gap: "8px" }}>
-                <input
-                  type="file"
-                  accept="image/*,application/pdf"
-                  style={{
-                    padding: "8px",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "4px",
-                    fontSize: "0.9rem"
-                  }}
-                />
-                <button
-                  type="submit"
-                  className="btn btn-secondary btn-block"
-                >
+              <form onSubmit={handleUploadAttachment} className="grid gap-2">
+                <input type="file" accept="image/*,application/pdf" className="text-sm" />
+                <button type="submit" className="btn btn-secondary w-full">
+                  <Upload size={15} strokeWidth={2.25} aria-hidden />
                   Fazer Upload
                 </button>
               </form>

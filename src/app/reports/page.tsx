@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Download, FileSpreadsheet } from "lucide-react";
 import { requireCurrentUser } from "@/lib/auth/require-user";
 import { CANAIS_MARKETPLACE, EMPRESAS } from "@/config/domains";
 import { ReportsResponse } from "@/lib/contracts";
@@ -96,28 +97,37 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
 
       <div className="grid grid-4">
         {Object.entries(data.totals).map(([k, v]) => (
-          <article key={k} className="card"><strong>{k}</strong><p className="metric-value">{String(v)}</p></article>
+          <article key={k} className="card">
+            <strong className="text-xs font-bold uppercase tracking-wide text-slate-500">{k}</strong>
+            <p className="metric-value">{String(v)}</p>
+          </article>
         ))}
       </div>
 
-      <div className="panel" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h3 style={{ margin: 0 }}>Exportar Dados</h3>
-        <div style={{ display: "flex", gap: 8 }}>
-          <Link className="btn btn-secondary" href={`/api/reports/export?${params.toString()}&format=csv`}>Exportar CSV</Link>
-          <Link className="btn btn-primary" href={`/api/reports/export?${params.toString()}&format=xlsx`}>Exportar XLSX</Link>
+      <div className="panel flex items-center justify-between">
+        <h3 className="m-0 text-[15px] font-bold text-slate-800">Exportar Dados</h3>
+        <div className="flex gap-2">
+          <Link className="btn btn-secondary" href={`/api/reports/export?${params.toString()}&format=csv`}>
+            <Download size={15} strokeWidth={2.25} aria-hidden />
+            Exportar CSV
+          </Link>
+          <Link className="btn btn-primary" href={`/api/reports/export?${params.toString()}&format=xlsx`}>
+            <FileSpreadsheet size={15} strokeWidth={2.25} aria-hidden />
+            Exportar XLSX
+          </Link>
         </div>
       </div>
 
       <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
         <div className="panel table-wrap">
-          <h3>Resumo por Marketplace</h3>
+          <h3 className="mb-3 text-[15px] font-bold text-slate-800">Resumo por Marketplace</h3>
           <table className="table"><thead><tr><th>Marketplace</th><th>Tickets</th><th>Custo Total</th></tr></thead><tbody>
             {byMarketplace.map((row) => <tr key={row.name}><td>{row.name}</td><td>{row.tickets}</td><td>R$ {row.custo.toFixed(2)}</td></tr>)}
           </tbody></table>
         </div>
 
         <div className="panel table-wrap">
-          <h3>Resumo por Empresa</h3>
+          <h3 className="mb-3 text-[15px] font-bold text-slate-800">Resumo por Empresa</h3>
           <table className="table"><thead><tr><th>Empresa</th><th>Tickets</th><th>Custo Total</th></tr></thead><tbody>
             {byEmpresa.map((row) => <tr key={row.name}><td>{row.name}</td><td>{row.tickets}</td><td>R$ {row.custo.toFixed(2)}</td></tr>)}
           </tbody></table>
@@ -125,14 +135,14 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
       </div>
 
       <div className="panel table-wrap">
-        <h3>Resumo por Motivo</h3>
+        <h3 className="mb-3 text-[15px] font-bold text-slate-800">Resumo por Motivo</h3>
         <table className="table"><thead><tr><th>Motivo</th><th>Tickets</th><th>Custo Total</th></tr></thead><tbody>
           {byMotivo.map((row) => <tr key={row.name}><td>{row.name}</td><td>{row.tickets}</td><td>R$ {row.custo.toFixed(2)}</td></tr>)}
         </tbody></table>
       </div>
 
       <div className="panel table-wrap">
-        <h3>Resumo por SKU</h3>
+        <h3 className="mb-3 text-[15px] font-bold text-slate-800">Resumo por SKU</h3>
         <table className="table"><thead><tr><th>SKU</th><th>Tickets</th><th>Custo Total</th></tr></thead><tbody>
           {bySku.map((row) => <tr key={row.name}><td>{row.name}</td><td>{row.tickets}</td><td>R$ {row.custo.toFixed(2)}</td></tr>)}
         </tbody></table>

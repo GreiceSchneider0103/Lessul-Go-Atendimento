@@ -59,7 +59,17 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     return (
       <html lang="pt-BR" className={inter.variable}>
         <body>
-          <main style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: 24 }}>{children}</main>
+          <main className="grid min-h-screen place-items-center p-6" style={{ background: "var(--color-bg)" }}>
+            <div className="grid gap-6 justify-items-center">
+              <div className="flex items-center gap-2.5">
+                <div className="brand-icon">
+                  <Command size={16} strokeWidth={2.5} />
+                </div>
+                <span className="text-[15px] font-bold tracking-tight text-slate-800">GO Atendimento</span>
+              </div>
+              {children}
+            </div>
+          </main>
         </body>
       </html>
     );
