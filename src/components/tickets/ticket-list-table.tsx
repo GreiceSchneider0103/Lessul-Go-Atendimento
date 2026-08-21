@@ -146,22 +146,9 @@ export function TicketListTable({ initialItems }: { initialItems: Ticket[] }) {
 
   return (
     <div className="ticket-list-table">
-      {error ? (
-        <div
-          className="field-error"
-          style={{
-            marginBottom: 12,
-            padding: "10px 12px",
-            border: "1px solid #fecaca",
-            borderRadius: 8,
-            background: "#fff1f2"
-          }}
-        >
-          {error}
-        </div>
-      ) : null}
+      {error ? <div className="alert alert-error mb-3">{error}</div> : null}
 
-      <div className="table-wrap" style={{ overflowX: "auto" }}>
+      <div className="table-wrap overflow-x-auto">
         <table className="table" style={{ minWidth: "980px" }}>
           <thead>
             <tr>
@@ -180,7 +167,7 @@ export function TicketListTable({ initialItems }: { initialItems: Ticket[] }) {
           <tbody>
             {items.length === 0 ? (
               <tr>
-                <td colSpan={9} className="muted" style={{ textAlign: "center", padding: 20 }}>
+                <td colSpan={9} className="muted text-center" style={{ padding: 20 }}>
                   Nenhum ticket encontrado com os filtros atuais.
                 </td>
               </tr>
@@ -197,11 +184,7 @@ export function TicketListTable({ initialItems }: { initialItems: Ticket[] }) {
                       <Link
                         href={`/tickets/${ticket.id}`}
                         title="Abrir ticket"
-                        style={{
-                          fontWeight: 700,
-                          color: "#1d4ed8",
-                          textDecoration: "none"
-                        }}
+                        className="font-bold text-brand-700 no-underline hover:underline"
                       >
                         {ticket.nomeCliente}
                       </Link>
@@ -213,9 +196,8 @@ export function TicketListTable({ initialItems }: { initialItems: Ticket[] }) {
                           href={ticket.linkPedido}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="link"
                           title="Abrir pedido no marketplace"
-                          style={{ fontWeight: 600 }}
+                          className="font-semibold text-brand-700 hover:underline"
                         >
                           {ticket.numeroVenda}
                         </a>
@@ -228,17 +210,11 @@ export function TicketListTable({ initialItems }: { initialItems: Ticket[] }) {
 
                     <td>
                       <span
+                        className="inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-bold"
                         style={{
                           backgroundColor: marketplaceConfig.bg,
                           color: marketplaceConfig.color,
-                          border: `1px solid ${marketplaceConfig.border}`,
-                          padding: "3px 10px",
-                          borderRadius: 999,
-                          fontSize: "0.75rem",
-                          fontWeight: 700,
-                          display: "inline-flex",
-                          alignItems: "center",
-                          whiteSpace: "nowrap"
+                          border: `1px solid ${marketplaceConfig.border}`
                         }}
                       >
                         {formatEnumLabel(ticket.canalMarketplace)}
@@ -251,12 +227,7 @@ export function TicketListTable({ initialItems }: { initialItems: Ticket[] }) {
                         value={ticket.motivo}
                         disabled={savingKey === `${ticket.id}:motivo`}
                         onChange={(event) => handleSelectChange(ticket.id, "motivo", event.target.value)}
-                        style={{
-                          fontSize: "0.78rem",
-                          padding: "4px 8px",
-                          minWidth: 132,
-                          maxWidth: 150
-                        }}
+                        className="min-w-[132px] max-w-[150px] px-2 py-1 text-[0.78rem]"
                         title={formatEnumLabel(ticket.motivo)}
                       >
                         {MOTIVOS.map((motivo) => (
@@ -273,12 +244,7 @@ export function TicketListTable({ initialItems }: { initialItems: Ticket[] }) {
                         value={ticket.statusTicket}
                         disabled={savingKey === `${ticket.id}:statusTicket`}
                         onChange={(event) => handleSelectChange(ticket.id, "statusTicket", event.target.value)}
-                        style={{
-                          fontSize: "0.78rem",
-                          padding: "4px 8px",
-                          minWidth: 150,
-                          maxWidth: 170
-                        }}
+                        className="min-w-[150px] max-w-[170px] px-2 py-1 text-[0.78rem]"
                         title={formatEnumLabel(ticket.statusTicket)}
                       >
                         {STATUS_TICKET.map((status) => (
@@ -295,16 +261,11 @@ export function TicketListTable({ initialItems }: { initialItems: Ticket[] }) {
                         value={ticket.statusReclamacao}
                         disabled={savingKey === `${ticket.id}:statusReclamacao`}
                         onChange={(event) => handleSelectChange(ticket.id, "statusReclamacao", event.target.value)}
+                        className="min-w-[130px] max-w-[150px] rounded-lg px-2 py-1 text-[0.78rem] font-semibold"
                         style={{
-                          fontSize: "0.78rem",
-                          padding: "4px 8px",
-                          minWidth: 130,
-                          maxWidth: 150,
                           backgroundColor: statusReclamacaoConfig.bg,
                           color: statusReclamacaoConfig.color,
-                          border: `1px solid ${statusReclamacaoConfig.border}`,
-                          borderRadius: 8,
-                          fontWeight: 600
+                          border: `1px solid ${statusReclamacaoConfig.border}`
                         }}
                         title={formatEnumLabel(ticket.statusReclamacao)}
                       >
@@ -316,21 +277,14 @@ export function TicketListTable({ initialItems }: { initialItems: Ticket[] }) {
                       </select>
                     </td>
 
-                    <td>{formatCurrencyBR(Number(ticket.custosTotais))}</td>
+                    <td className="font-medium">{formatCurrencyBR(Number(ticket.custosTotais))}</td>
 
                     <td>
                       <span
-                        className="sla-indicator"
+                        className="inline-block h-3 w-3 rounded-full align-middle"
                         title={isSlaAtrasado ? "Atrasado" : "No prazo"}
                         aria-label={isSlaAtrasado ? "Atrasado" : "No prazo"}
-                        style={{
-                          display: "inline-block",
-                          width: 12,
-                          height: 12,
-                          borderRadius: "50%",
-                          backgroundColor: isSlaAtrasado ? "#ef4444" : "#22c55e",
-                          verticalAlign: "middle"
-                        }}
+                        style={{ backgroundColor: isSlaAtrasado ? "#ef4444" : "#22c55e" }}
                       />
                     </td>
                   </tr>

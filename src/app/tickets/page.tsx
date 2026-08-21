@@ -1,5 +1,6 @@
 import { requireCurrentUser } from "@/lib/auth/require-user";
 import Link from "next/link";
+import { Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { CANAIS_MARKETPLACE, EMPRESAS, MOTIVOS } from "@/config/domains";
 import { TicketListResponse } from "@/lib/contracts";
 import { listTickets } from "@/lib/services/tickets-service";
@@ -97,57 +98,38 @@ export default async function TicketsPage({
 
   return (
     <section className="page">
-      <div
-        className="page-header"
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: 12,
-          flexWrap: "wrap"
-        }}
-      >
+      <div className="page-header flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1>Lista de tickets</h1>
           <p className="muted">Visualização operacional com filtros, paginação e status de SLA.</p>
         </div>
 
-        <Link href="/tickets/new" className="btn btn-primary btn-create-ticket" style={{ whiteSpace: "nowrap" }}>
-          <span aria-hidden>＋</span>
+        <Link href="/tickets/new" className="btn btn-primary btn-create-ticket whitespace-nowrap">
+          <Plus size={16} strokeWidth={2.5} aria-hidden />
           Criar ticket
         </Link>
       </div>
 
       <form
-        className="panel"
+        className="panel grid items-end gap-4"
         method="GET"
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-          gap: 16,
-          alignItems: "flex-end"
-        }}
+        style={{ gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))" }}
       >
-        <div style={{ gridColumn: "span 2 / auto" }}>
+        <div className="col-span-2">
           <label>
             Busca
-            <input
-              name="search"
-              placeholder="Cliente, venda, produto"
-              defaultValue={normalizedQuery.search}
-              style={{ width: "100%" }}
-            />
+            <input name="search" placeholder="Cliente, venda, produto" defaultValue={normalizedQuery.search} />
           </label>
         </div>
 
         <label>
           SKU
-          <input name="sku" placeholder="SKU" defaultValue={normalizedQuery.sku} style={{ width: "100%" }} />
+          <input name="sku" placeholder="SKU" defaultValue={normalizedQuery.sku} />
         </label>
 
         <label>
           Marketplace
-          <select name="canalMarketplace" defaultValue={normalizedQuery.canalMarketplace ?? ""} style={{ width: "100%" }}>
+          <select name="canalMarketplace" defaultValue={normalizedQuery.canalMarketplace ?? ""}>
             <option value="">Todos</option>
             {CANAIS_MARKETPLACE.map((item) => (
               <option key={item} value={item}>
@@ -159,7 +141,7 @@ export default async function TicketsPage({
 
         <label>
           Empresa
-          <select name="empresa" defaultValue={normalizedQuery.empresa ?? ""} style={{ width: "100%" }}>
+          <select name="empresa" defaultValue={normalizedQuery.empresa ?? ""}>
             <option value="">Todas</option>
             {EMPRESAS.map((item) => (
               <option key={item} value={item}>
@@ -171,7 +153,7 @@ export default async function TicketsPage({
 
         <label>
           Motivo
-          <select name="motivo" defaultValue={normalizedQuery.motivo ?? ""} style={{ width: "100%" }}>
+          <select name="motivo" defaultValue={normalizedQuery.motivo ?? ""}>
             <option value="">Todos</option>
             {MOTIVOS.map((item) => (
               <option key={item} value={item}>
@@ -183,17 +165,17 @@ export default async function TicketsPage({
 
         <label>
           Data inicial
-          <input name="startDate" type="date" defaultValue={normalizedQuery.startDate} style={{ width: "100%" }} />
+          <input name="startDate" type="date" defaultValue={normalizedQuery.startDate} />
         </label>
 
         <label>
           Data final
-          <input name="endDate" type="date" defaultValue={normalizedQuery.endDate} style={{ width: "100%" }} />
+          <input name="endDate" type="date" defaultValue={normalizedQuery.endDate} />
         </label>
 
         <label>
           Ordenar por
-          <select name="orderBy" defaultValue={normalizedQuery.orderBy ?? "criadoEm"} style={{ width: "100%" }}>
+          <select name="orderBy" defaultValue={normalizedQuery.orderBy ?? "criadoEm"}>
             <option value="criadoEm">Criação</option>
             <option value="dataReclamacao">Reclamação</option>
             <option value="custosTotais">Custos</option>
@@ -201,16 +183,16 @@ export default async function TicketsPage({
           </select>
         </label>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 8, height: "42px" }}>
+        <div className="flex h-[42px] items-center gap-2">
           <input
             id="includeConcluidos"
             type="checkbox"
             name="includeConcluidos"
             value="true"
             defaultChecked={normalizedQuery.includeConcluidos === "true"}
-            style={{ width: 16, height: 16 }}
+            className="h-4 w-4 flex-none"
           />
-          <label htmlFor="includeConcluidos" style={{ margin: 0 }}>
+          <label htmlFor="includeConcluidos" className="m-0 text-sm font-medium text-slate-600">
             Incluir concluídos
           </label>
         </div>
@@ -218,7 +200,7 @@ export default async function TicketsPage({
         <input type="hidden" name="page" value="1" />
         <input type="hidden" name="pageSize" value={normalizedQuery.pageSize ?? "20"} />
 
-        <button type="submit" className="btn btn-primary" style={{ height: "42px" }}>
+        <button type="submit" className="btn btn-primary h-[42px]">
           Aplicar filtros
         </button>
       </form>
@@ -229,26 +211,18 @@ export default async function TicketsPage({
         <TicketListTable initialItems={result.data} />
       </div>
 
-      <div
-        className="card"
-        style={{
-          display: "flex",
-          gap: 8,
-          justifyContent: "space-between",
-          flexWrap: "wrap",
-          alignItems: "center"
-        }}
-      >
-        <strong>
-          Paginação: página {result.pagination.page} de {totalPages} • total {result.pagination.total}
+      <div className="card flex flex-wrap items-center justify-between gap-2">
+        <strong className="text-sm text-slate-700">
+          Página {result.pagination.page} de {totalPages} • total {result.pagination.total}
         </strong>
 
-        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+        <div className="flex flex-wrap items-center gap-2">
           <a
             className="btn btn-secondary"
             aria-disabled={currentPage <= 1}
             href={buildTicketHref(normalizedQuery, Math.max(currentPage - 1, 1))}
           >
+            <ChevronLeft size={15} aria-hidden />
             Anterior
           </a>
 
@@ -268,6 +242,7 @@ export default async function TicketsPage({
             href={buildTicketHref(normalizedQuery, Math.min(currentPage + 1, totalPages))}
           >
             Próxima
+            <ChevronRight size={15} aria-hidden />
           </a>
         </div>
       </div>

@@ -2,35 +2,53 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { Route } from "next";
+import { LayoutDashboard, Ticket, BarChart3, Settings, Shield, Store, type LucideIcon } from "lucide-react";
 
-type NavItem = { label: string; href: Route };
+type NavItem = { label: string; href: Route; icon: LucideIcon };
 
 const navByPerfil: Record<string, NavItem[]> = {
-  LOJA: [{ label: "Operacional Loja", href: "/loja/solicitacoes" }],
+  LOJA: [{ label: "Operacional Loja", href: "/loja/solicitacoes", icon: Store }],
   ADMIN: [
-    { label: "Dashboard", href: "/dashboard" },
-    { label: "Tickets", href: "/tickets" },
-    { label: "Relatórios", href: "/reports" },
-    { label: "Administração", href: "/admin" },
-    { label: "Operacional Loja", href: "/loja/solicitacoes" }
+    { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    { label: "Tickets", href: "/tickets", icon: Ticket },
+    { label: "Relatórios", href: "/reports", icon: BarChart3 },
+    { label: "Administração", href: "/admin", icon: Settings },
+    { label: "Operacional Loja", href: "/loja/solicitacoes", icon: Store }
   ],
   MASTER: [
-    { label: "Dashboard", href: "/dashboard" },
-    { label: "Tickets", href: "/tickets" },
-    { label: "Relatórios", href: "/reports" },
-    { label: "Administração", href: "/admin" },
-    { label: "Master", href: "/master" },
-    { label: "Operacional Loja", href: "/loja/solicitacoes" }
+    { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    { label: "Tickets", href: "/tickets", icon: Ticket },
+    { label: "Relatórios", href: "/reports", icon: BarChart3 },
+    { label: "Administração", href: "/admin", icon: Settings },
+    { label: "Master", href: "/master", icon: Shield },
+    { label: "Operacional Loja", href: "/loja/solicitacoes", icon: Store }
   ],
   DEFAULT: [
-    { label: "Dashboard", href: "/dashboard" },
-    { label: "Tickets", href: "/tickets" },
-    { label: "Relatórios", href: "/reports" }
+    { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    { label: "Tickets", href: "/tickets", icon: Ticket },
+    { label: "Relatórios", href: "/reports", icon: BarChart3 }
   ]
 };
 
 export function SidebarNav({ perfil }: { perfil: string }) {
   const pathname = usePathname();
   const navItems = navByPerfil[perfil] ?? navByPerfil.DEFAULT;
-  return <nav className="nav-list">{navItems.map((item) => <Link key={item.href} href={item.href} className={`nav-item ${pathname === item.href || pathname.startsWith(`${item.href}/`) ? "active" : ""}`}>{item.label}</Link>)}</nav>;
+
+  return (
+    <nav className="nav-list">
+      {navItems.map((item) => {
+        const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+        const Icon = item.icon;
+
+        return (
+          <Link key={item.href} href={item.href} className={`nav-item ${isActive ? "active" : ""}`}>
+            <span className="nav-icon">
+              <Icon size={17} strokeWidth={2.25} />
+            </span>
+            {item.label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
 }

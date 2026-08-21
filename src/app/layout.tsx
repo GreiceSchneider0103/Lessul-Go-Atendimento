@@ -2,11 +2,15 @@ import "./globals.css";
 import type { Metadata } from "next";
 import { ReactNode } from "react";
 import { headers } from "next/headers";
+import { Inter } from "next/font/google";
+import { Command } from "lucide-react";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { SidebarNav } from "@/components/ui/sidebar-nav";
 import { getCurrentUser } from "@/lib/auth/session";
 import { ServiceUnavailableError, UnauthorizedError } from "@/lib/errors";
 import { hasSupabaseClientEnv } from "@/lib/supabase/config";
+
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 
 export const dynamic = "force-dynamic";
 
@@ -53,7 +57,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
 
   if (!currentUser) {
     return (
-      <html lang="pt-BR">
+      <html lang="pt-BR" className={inter.variable}>
         <body>
           <main style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: 24 }}>{children}</main>
         </body>
@@ -62,12 +66,14 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   }
 
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" className={inter.variable}>
       <body>
         <div className="app-shell">
           <aside className="app-sidebar">
             <div className="brand-row">
-              <div className="brand-icon">⌘</div>
+              <div className="brand-icon">
+                <Command size={16} strokeWidth={2.5} />
+              </div>
               <span className="brand">GO Atendimento</span>
             </div>
             <SidebarNav perfil={currentUser.perfil} />

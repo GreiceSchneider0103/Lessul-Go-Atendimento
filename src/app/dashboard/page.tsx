@@ -5,6 +5,7 @@ import { ticketFiltersSchema } from "@/lib/validation/ticket";
 import { getDashboardData } from "@/lib/services/dashboard-service";
 import { formatCurrencyBR, formatEnumLabel } from "@/lib/formatters/display";
 import { redirect } from "next/navigation";
+import { Layers, AlertTriangle, Clock, Wallet, Banknote, PackageCheck, type LucideIcon } from "lucide-react";
 
 function getCurrentMonthRange() {
   const now = new Date();
@@ -23,13 +24,13 @@ async function getDashboard(query: Record<string, string | undefined>, user: Awa
   return { cards: payload.cards, charts: payload.charts, skuMetrics: payload.skuMetrics ?? [], error: null };
 }
 
-const cardConfig: Record<string, { label: string; tone: string; icon: string; money?: boolean }> = {
-  totalTickets: { label: "Total de tickets", tone: "#2563eb", icon: "◫" },
-  ticketsAbertos: { label: "Tickets abertos", tone: "#eab308", icon: "!" },
-  ticketsAtrasados: { label: "Tickets atrasados", tone: "#ef4444", icon: "⚠" },
-  custoTotal: { label: "Custo total", tone: "#9333ea", icon: "$", money: true },
-  reembolsoTotal: { label: "Valor de reembolso", tone: "#16a34a", icon: "$", money: true },
-  coletaTotal: { label: "Total de coleta, envio ou peças", tone: "#06b6d4", icon: "✓", money: true }
+const cardConfig: Record<string, { label: string; tone: string; icon: LucideIcon; money?: boolean }> = {
+  totalTickets: { label: "Total de tickets", tone: "#2563eb", icon: Layers },
+  ticketsAbertos: { label: "Tickets abertos", tone: "#eab308", icon: Clock },
+  ticketsAtrasados: { label: "Tickets atrasados", tone: "#ef4444", icon: AlertTriangle },
+  custoTotal: { label: "Custo total", tone: "#9333ea", icon: Wallet, money: true },
+  reembolsoTotal: { label: "Valor de reembolso", tone: "#16a34a", icon: Banknote, money: true },
+  coletaTotal: { label: "Total de coleta, envio ou peças", tone: "#06b6d4", icon: PackageCheck, money: true }
 };
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
@@ -51,55 +52,54 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         <p className="muted">Indicadores consolidados da operação de atendimento.</p>
       </div>
 
-      <form className="panel" method="GET" style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
-        <div style={{ flex: 1, minWidth: 200 }}>
-          <select name="canalMarketplace" defaultValue={normalizedQuery.canalMarketplace ?? ""} style={{ width: '100%' }}>
+      <form className="panel flex flex-wrap items-end gap-3" method="GET">
+        <div className="min-w-[200px] flex-1">
+          <select name="canalMarketplace" defaultValue={normalizedQuery.canalMarketplace ?? ""}>
             <option value="">Todos os marketplaces</option>
             {CANAIS_MARKETPLACE.map((item) => <option key={item} value={item}>{formatEnumLabel(item)}</option>)}
           </select>
         </div>
-        <div style={{ flex: 1, minWidth: 150 }}>
-          <select name="empresa" defaultValue={normalizedQuery.empresa ?? ""} style={{ width: '100%' }}>
+        <div className="min-w-[150px] flex-1">
+          <select name="empresa" defaultValue={normalizedQuery.empresa ?? ""}>
             <option value="">Todas as empresas</option>
             {EMPRESAS.map((item) => <option key={item} value={item}>{formatEnumLabel(item)}</option>)}
           </select>
         </div>
-        <div style={{ flex: 1, minWidth: 150 }}>
-          <input name="startDate" type="date" defaultValue={normalizedQuery.startDate} style={{ width: '100%' }} />
+        <div className="min-w-[150px] flex-1">
+          <input name="startDate" type="date" defaultValue={normalizedQuery.startDate} />
         </div>
-        <div style={{ flex: 1, minWidth: 150 }}>
-          <input name="endDate" type="date" defaultValue={normalizedQuery.endDate} style={{ width: '100%' }} />
+        <div className="min-w-[150px] flex-1">
+          <input name="endDate" type="date" defaultValue={normalizedQuery.endDate} />
         </div>
-        <div style={{ flex: 1, minWidth: 100 }}>
-          <input name="sku" placeholder="SKU" defaultValue={normalizedQuery.sku} style={{ width: '100%' }} />
+        <div className="min-w-[100px] flex-1">
+          <input name="sku" placeholder="SKU" defaultValue={normalizedQuery.sku} />
         </div>
-        <button type="submit" className="btn btn-primary" style={{ height: '42px' }}>Filtrar</button>
+        <button type="submit" className="btn btn-primary h-[42px]">Filtrar</button>
       </form>
 
       {data.error ? <div className="alert alert-error">{data.error}</div> : null}
 
-      <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16 }}>
+      <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
         {Object.entries(data.cards).map(([key, value]) => {
           const isFinancial = ['custoTotal', 'reembolsoTotal', 'coletaTotal'].includes(key);
-          const config = cardConfig[key] ?? { label: key, tone: "#2563eb", icon: "●" };
+          const config = cardConfig[key] ?? { label: key, tone: "#2563eb", icon: Layers };
+          const Icon = config.icon;
           return (
-            <article 
-              key={key} 
-              className="card" 
-              style={{ 
-                display: "flex", 
-                justifyContent: "space-between", 
-                alignItems: "center", 
-                gap: 12,
-                borderTop: isFinancial ? `4px solid ${config.tone}` : undefined,
-                minHeight: 100 // Garante altura mínima para alinhamento
-              }}
+            <article
+              key={key}
+              className="card flex items-center justify-between gap-3"
+              style={{ borderTop: isFinancial ? `3px solid ${config.tone}` : undefined, minHeight: 96 }}
             >
               <div>
                 <p className="muted">{config.label}</p>
                 <p className="metric-value">{config.money ? formatCurrencyBR(Number(value)) : String(value)}</p>
               </div>
-              <span style={{ width: 42, height: 42, borderRadius: 10, background: config.tone, color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: 700 }}>{config.icon}</span>
+              <span
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] text-white"
+                style={{ background: config.tone }}
+              >
+                <Icon size={20} strokeWidth={2.25} />
+              </span>
             </article>
           );
         })}
@@ -108,7 +108,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       <DashboardCharts charts={data.charts} />
 
       <div className="panel table-wrap">
-        <h3>Indicadores por SKU</h3>
+        <h3 className="mb-3 text-[15px] font-bold text-slate-800">Indicadores por SKU</h3>
         <table className="table">
           <thead>
             <tr>
