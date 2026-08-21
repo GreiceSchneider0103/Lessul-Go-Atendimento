@@ -184,7 +184,7 @@ export function TicketListTable({ initialItems }: { initialItems: Ticket[] }) {
                       <Link
                         href={`/tickets/${ticket.id}`}
                         title="Abrir ticket"
-                        className="font-bold text-brand-700 no-underline hover:underline"
+                        className="font-bold text-slate-900 no-underline hover:text-brand-700 hover:underline"
                       >
                         {ticket.nomeCliente}
                       </Link>
@@ -197,7 +197,7 @@ export function TicketListTable({ initialItems }: { initialItems: Ticket[] }) {
                           target="_blank"
                           rel="noopener noreferrer"
                           title="Abrir pedido no marketplace"
-                          className="font-semibold text-brand-700 hover:underline"
+                          className="font-semibold text-slate-900 hover:text-brand-700 hover:underline"
                         >
                           {ticket.numeroVenda}
                         </a>

@@ -24,13 +24,13 @@ async function getDashboard(query: Record<string, string | undefined>, user: Awa
   return { cards: payload.cards, charts: payload.charts, skuMetrics: payload.skuMetrics ?? [], error: null };
 }
 
-const cardConfig: Record<string, { label: string; tone: string; icon: LucideIcon; money?: boolean }> = {
-  totalTickets: { label: "Total de tickets", tone: "#2563eb", icon: Layers },
-  ticketsAbertos: { label: "Tickets abertos", tone: "#eab308", icon: Clock },
-  ticketsAtrasados: { label: "Tickets atrasados", tone: "#ef4444", icon: AlertTriangle },
-  custoTotal: { label: "Custo total", tone: "#9333ea", icon: Wallet, money: true },
-  reembolsoTotal: { label: "Valor de reembolso", tone: "#16a34a", icon: Banknote, money: true },
-  coletaTotal: { label: "Total de coleta, envio ou peças", tone: "#06b6d4", icon: PackageCheck, money: true }
+const cardConfig: Record<string, { label: string; icon: LucideIcon; danger?: boolean; money?: boolean }> = {
+  totalTickets: { label: "Total de tickets", icon: Layers },
+  ticketsAbertos: { label: "Tickets abertos", icon: Clock },
+  ticketsAtrasados: { label: "Tickets atrasados", icon: AlertTriangle, danger: true },
+  custoTotal: { label: "Custo total", icon: Wallet, money: true },
+  reembolsoTotal: { label: "Valor de reembolso", icon: Banknote, money: true },
+  coletaTotal: { label: "Total de coleta, envio ou peças", icon: PackageCheck, money: true }
 };
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
@@ -81,24 +81,20 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
       <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
         {Object.entries(data.cards).map(([key, value]) => {
-          const isFinancial = ['custoTotal', 'reembolsoTotal', 'coletaTotal'].includes(key);
-          const config = cardConfig[key] ?? { label: key, tone: "#2563eb", icon: Layers };
+          const config = cardConfig[key] ?? { label: key, icon: Layers };
           const Icon = config.icon;
           return (
-            <article
-              key={key}
-              className="card flex items-center justify-between gap-3"
-              style={{ borderTop: isFinancial ? `3px solid ${config.tone}` : undefined, minHeight: 96 }}
-            >
+            <article key={key} className="card flex items-center justify-between gap-3" style={{ minHeight: 92 }}>
               <div>
                 <p className="muted">{config.label}</p>
                 <p className="metric-value">{config.money ? formatCurrencyBR(Number(value)) : String(value)}</p>
               </div>
               <span
-                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] text-white"
-                style={{ background: config.tone }}
+                className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] ${
+                  config.danger ? "bg-red-50 text-red-600" : "bg-slate-100 text-slate-600"
+                }`}
               >
-                <Icon size={20} strokeWidth={2.25} />
+                <Icon size={19} strokeWidth={2.25} />
               </span>
             </article>
           );

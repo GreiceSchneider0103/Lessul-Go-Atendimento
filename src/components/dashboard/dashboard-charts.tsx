@@ -4,7 +4,8 @@ import type { ReactNode } from "react";
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { formatCurrencyBR, formatEnumLabel } from "@/lib/formatters/display";
 
-const palette = ["#2563eb", "#0ea5e9", "#14b8a6", "#84cc16", "#f59e0b", "#f97316", "#8b5cf6", "#ec4899"];
+const palette = ["#2563eb", "#3b82f6", "#60a5fa", "#0ea5e9", "#0891b2", "#64748b", "#94a3b8", "#1e40af"];
+const barColor = "#2563eb";
 
 function formatChartData(items: Array<{ name: string; value: number }>) {
   return items.map((item) => ({ ...item, label: formatEnumLabel(item.name) }));
@@ -12,9 +13,9 @@ function formatChartData(items: Array<{ name: string; value: number }>) {
 
 function ChartCard({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <article className="card flex flex-col overflow-hidden" style={{ minHeight: 320 }}>
-      <h3 className="mb-3 text-[14px] font-bold text-slate-800">{title}</h3>
-      <div style={{ flex: 1, minHeight: 260 }}>{children}</div>
+    <article className="card flex flex-col overflow-hidden" style={{ minHeight: 260 }}>
+      <h3 className="mb-2 text-[13px] font-bold text-slate-800">{title}</h3>
+      <div style={{ flex: 1, minHeight: 200 }}>{children}</div>
     </article>
   );
 }
@@ -27,7 +28,7 @@ export function DashboardCharts({ charts }: { charts: Record<string, Array<{ nam
   const porSku = formatChartData(charts.ticketsPorSku ?? []).slice(0, 10);
 
   return (
-    <div className="grid" style={{ gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 16 }}>
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
       <ChartCard title="Reclamações por empresa">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={porEmpresa} margin={{ top: 8, right: 8, left: -14, bottom: 16 }}>
@@ -35,7 +36,7 @@ export function DashboardCharts({ charts }: { charts: Record<string, Array<{ nam
             <XAxis dataKey="label" tick={{ fontSize: 12, fill: "#475569" }} interval={0} angle={-12} height={40} />
             <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: "#475569" }} />
             <Tooltip formatter={(value: number) => [value, "Tickets"]} />
-            <Bar dataKey="value" fill="#2563eb" radius={[8, 8, 0, 0]} />
+            <Bar dataKey="value" fill={barColor} radius={[6, 6, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </ChartCard>
@@ -58,7 +59,7 @@ export function DashboardCharts({ charts }: { charts: Record<string, Array<{ nam
             <XAxis dataKey="label" tick={{ fontSize: 12, fill: "#475569" }} interval={0} angle={-12} height={44} />
             <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: "#475569" }} />
             <Tooltip formatter={(value: number) => [value, "Tickets"]} />
-            <Bar dataKey="value" fill="#0ea5e9" radius={[8, 8, 0, 0]} />
+            <Bar dataKey="value" fill={barColor} radius={[6, 6, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </ChartCard>
@@ -70,7 +71,7 @@ export function DashboardCharts({ charts }: { charts: Record<string, Array<{ nam
             <XAxis dataKey="label" tick={{ fontSize: 12, fill: "#475569" }} interval={0} angle={-12} height={44} />
             <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: "#475569" }} />
             <Tooltip formatter={(value: number) => [value, "Tickets"]} />
-            <Bar dataKey="value" fill="#14b8a6" radius={[8, 8, 0, 0]} />
+            <Bar dataKey="value" fill={barColor} radius={[6, 6, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </ChartCard>
@@ -82,7 +83,7 @@ export function DashboardCharts({ charts }: { charts: Record<string, Array<{ nam
             <XAxis dataKey="label" tick={{ fontSize: 12, fill: "#475569" }} interval={0} angle={-12} height={44} />
             <YAxis tick={{ fontSize: 12, fill: "#475569" }} tickFormatter={(value) => `R$ ${value}`} />
             <Tooltip formatter={(value: number) => [formatCurrencyBR(value), "Custos"]} />
-            <Bar dataKey="value" fill="#f59e0b" radius={[8, 8, 0, 0]} />
+            <Bar dataKey="value" fill={barColor} radius={[6, 6, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </ChartCard>
@@ -94,7 +95,7 @@ export function DashboardCharts({ charts }: { charts: Record<string, Array<{ nam
             <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#475569" }} />
             <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: "#475569" }} />
             <Tooltip formatter={(value: number) => [value, "Tickets"]} />
-            <Bar dataKey="value" fill="#8b5cf6" radius={[8, 8, 0, 0]} />
+            <Bar dataKey="value" fill={barColor} radius={[6, 6, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </ChartCard>
@@ -106,7 +107,7 @@ export function DashboardCharts({ charts }: { charts: Record<string, Array<{ nam
             <XAxis dataKey="label" tick={{ fontSize: 12, fill: "#475569" }} interval={0} angle={-12} height={44} />
             <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: "#475569" }} />
             <Tooltip formatter={(value: number) => [value, "Tickets"]} />
-            <Bar dataKey="value" fill="#0f766e" radius={[8, 8, 0, 0]} />
+            <Bar dataKey="value" fill={barColor} radius={[6, 6, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </ChartCard>

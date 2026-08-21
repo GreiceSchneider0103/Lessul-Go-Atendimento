@@ -162,7 +162,11 @@ export function UsersAdmin({
 
   return (
     <section className="grid">
-      <form onSubmit={createOrUpdateUser} className="panel form-grid cols-4">
+      <form
+        onSubmit={createOrUpdateUser}
+        className="panel grid items-end gap-3"
+        style={{ gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))" }}
+      >
         <input name="nome" placeholder="Nome" required value={nome} onChange={(e) => setNome(e.target.value)} />
         <input name="email" placeholder="Email" required type="email" value={email} onChange={(e) => setEmail(e.target.value)} disabled={Boolean(editingUserId)} />
 
@@ -173,7 +177,7 @@ export function UsersAdmin({
         </select>
 
         {allowMultiEmpresa ? (
-          <div className="flex flex-col gap-1.5">
+          <div className="col-span-2 flex flex-col gap-1.5 xl:col-span-1">
             <span className="text-xs font-semibold text-slate-500">
               Empresas vinculadas{perfil === "LOJA" ? " (obrigatório para LOJA)" : ""}
             </span>
@@ -202,7 +206,7 @@ export function UsersAdmin({
           <>
             <label className="flex items-center gap-2 text-sm font-normal text-slate-700">
               <input type="checkbox" className="h-4 w-4 flex-none" checked={enviarConvite} onChange={(e) => setEnviarConvite(e.target.checked)} />
-              Enviar convite por e-mail
+              Enviar convite
             </label>
             <input name="senhaTemporaria" placeholder="Senha temporária" type="password" disabled={enviarConvite} required={!enviarConvite} minLength={8} value={senhaTemporaria} onChange={(e) => setSenhaTemporaria(e.target.value)} />
           </>
@@ -211,7 +215,7 @@ export function UsersAdmin({
         )}
 
         <div className="flex gap-2">
-          <button type="submit" className="btn btn-primary">{editingUserId ? "Salvar edição" : "Cadastrar usuário"}</button>
+          <button type="submit" className="btn btn-primary">{editingUserId ? "Salvar edição" : "Cadastrar"}</button>
           {editingUserId ? <button type="button" className="btn btn-secondary" onClick={resetForm}>Cancelar</button> : null}
         </div>
       </form>

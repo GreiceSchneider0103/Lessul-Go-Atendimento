@@ -111,21 +111,16 @@ export default async function TicketsPage({
       </div>
 
       <form
-        className="panel grid items-end gap-4"
+        className="panel grid items-end gap-3"
         method="GET"
-        style={{ gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))" }}
+        style={{ gridTemplateColumns: "repeat(auto-fit, minmax(148px, 1fr))" }}
       >
         <div className="col-span-2">
           <label>
             Busca
-            <input name="search" placeholder="Cliente, venda, produto" defaultValue={normalizedQuery.search} />
+            <input name="search" placeholder="Cliente, venda, produto ou SKU" defaultValue={normalizedQuery.search} />
           </label>
         </div>
-
-        <label>
-          SKU
-          <input name="sku" placeholder="SKU" defaultValue={normalizedQuery.sku} />
-        </label>
 
         <label>
           Marketplace
@@ -211,40 +206,45 @@ export default async function TicketsPage({
         <TicketListTable initialItems={result.data} />
       </div>
 
-      <div className="card flex flex-wrap items-center justify-between gap-2">
-        <strong className="text-sm text-slate-700">
-          Página {result.pagination.page} de {totalPages} • total {result.pagination.total}
-        </strong>
+      <div className="card flex flex-wrap items-center justify-between gap-3">
+        <p className="muted">
+          Página <strong className="text-slate-800">{currentPage}</strong> de {totalPages} · {result.pagination.total} tickets
+        </p>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <nav className="pagination" aria-label="Paginação">
           <a
-            className="btn btn-secondary"
+            className="pagination-item"
             aria-disabled={currentPage <= 1}
             href={buildTicketHref(normalizedQuery, Math.max(currentPage - 1, 1))}
           >
             <ChevronLeft size={15} aria-hidden />
-            Anterior
           </a>
 
-          {pagesWindow.map((pageNumber) => (
-            <a
-              key={pageNumber}
-              className={`btn ${pageNumber === currentPage ? "btn-primary" : "btn-secondary"}`}
-              href={buildTicketHref(normalizedQuery, pageNumber)}
-            >
-              {pageNumber}
-            </a>
-          ))}
+          {pagesWindow.map((pageNumber, index) => {
+            const previous = pagesWindow[index - 1];
+            const showEllipsis = previous !== undefined && pageNumber - previous > 1;
+
+            return (
+              <span key={pageNumber} className="flex items-center gap-0.5">
+                {showEllipsis ? <span className="pagination-ellipsis">…</span> : null}
+                <a
+                  className={`pagination-item ${pageNumber === currentPage ? "active" : ""}`}
+                  href={buildTicketHref(normalizedQuery, pageNumber)}
+                >
+                  {pageNumber}
+                </a>
+              </span>
+            );
+          })}
 
           <a
-            className="btn btn-secondary"
+            className="pagination-item"
             aria-disabled={currentPage >= totalPages}
             href={buildTicketHref(normalizedQuery, Math.min(currentPage + 1, totalPages))}
           >
-            Próxima
             <ChevronRight size={15} aria-hidden />
           </a>
-        </div>
+        </nav>
       </div>
     </section>
   );

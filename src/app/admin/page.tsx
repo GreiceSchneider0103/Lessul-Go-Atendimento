@@ -1,14 +1,16 @@
 import Link from "next/link";
+import { BarChart3, LayoutDashboard, ArrowRight } from "lucide-react";
 import { requireCurrentUser } from "@/lib/auth/require-user";
 import { assertPermission } from "@/lib/rbac/permissions";
 import { prisma } from "@/lib/db/prisma";
+import { listUsuariosComEmpresas } from "@/lib/services/users-service";
 import { UsersAdmin } from "@/components/admin/users-admin";
 
 export default async function AdminPage() {
   const user = await requireCurrentUser();
   assertPermission(user.perfil, "user.manage");
 
-  let users: Awaited<ReturnType<typeof prisma.usuario.findMany>> = [];
+  let users: Awaited<ReturnType<typeof listUsuariosComEmpresas>> = [];
   let totalTickets = 0;
   let activeTickets = 0;
   let failedBackups = 0;
@@ -16,7 +18,7 @@ export default async function AdminPage() {
 
   try {
     [users, totalTickets, activeTickets, failedBackups] = await Promise.all([
-      prisma.usuario.findMany({ orderBy: { criadoEm: "desc" } }),
+      listUsuariosComEmpresas(),
       prisma.ticket.count(),
       prisma.ticket.count({ where: { ativo: true } }),
       prisma.ticket.count({ where: { backupSyncStatus: "FAILED" } })
@@ -59,12 +61,35 @@ export default async function AdminPage() {
         </article>
       </div>
 
-      <div className="panel flex flex-wrap gap-2">
-        <Link className="btn btn-secondary" href="/reports">Abrir relatórios</Link>
-        <Link className="btn btn-primary" href="/dashboard">Abrir dashboard</Link>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <Link href="/dashboard" className="card flex items-center justify-between gap-3 transition hover:border-brand-300 hover:shadow-popover">
+          <div className="flex items-center gap-3">
+            <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] bg-slate-100 text-slate-600">
+              <LayoutDashboard size={19} strokeWidth={2.25} />
+            </span>
+            <div>
+              <strong className="text-sm font-bold text-slate-800">Dashboard</strong>
+              <p className="muted">Indicadores consolidados da operação</p>
+            </div>
+          </div>
+          <ArrowRight size={16} strokeWidth={2.25} className="text-slate-400" aria-hidden />
+        </Link>
+
+        <Link href="/reports" className="card flex items-center justify-between gap-3 transition hover:border-brand-300 hover:shadow-popover">
+          <div className="flex items-center gap-3">
+            <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] bg-slate-100 text-slate-600">
+              <BarChart3 size={19} strokeWidth={2.25} />
+            </span>
+            <div>
+              <strong className="text-sm font-bold text-slate-800">Relatórios</strong>
+              <p className="muted">Estatísticas e exportação de dados</p>
+            </div>
+          </div>
+          <ArrowRight size={16} strokeWidth={2.25} className="text-slate-400" aria-hidden />
+        </Link>
       </div>
 
-      <UsersAdmin initialUsers={users} initialError={dataError} />
+      <UsersAdmin initialUsers={users} initialError={dataError} allowMultiEmpresa />
     </section>
   );
 }
