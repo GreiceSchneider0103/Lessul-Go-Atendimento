@@ -106,8 +106,8 @@ export function KanbanBoard({ initialItems }: { initialItems: Ticket[] }) {
                 onDrop={() => onDropColumn(status)}
               >
                 <div className="kanban-column-head" style={{ background: toneByStatus[status] ?? "#64748b" }}>
-                  <strong>{formatEnumLabel(status)}</strong>
-                  <div style={{ opacity: 0.9, marginTop: 4 }}>{columnItems.length} tickets</div>
+                  <strong className="text-sm font-bold">{formatEnumLabel(status)}</strong>
+                  <div className="mt-1 text-xs opacity-90">{columnItems.length} tickets</div>
                 </div>
 
                 <div className="kanban-column-body">
@@ -120,13 +120,15 @@ export function KanbanBoard({ initialItems }: { initialItems: Ticket[] }) {
                       onDragStart={() => setActiveDragId(ticket.id)}
                       onDragEnd={() => setActiveDragId(null)}
                     >
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <strong>{ticket.nomeCliente}</strong>
-                        <Link href={`/tickets/${ticket.id}`}>Ver</Link>
+                      <div className="flex items-center justify-between gap-2">
+                        <strong className="text-sm">{ticket.nomeCliente}</strong>
+                        <Link href={`/tickets/${ticket.id}`} className="text-xs font-semibold text-brand-700 hover:underline">
+                          Ver
+                        </Link>
                       </div>
                       <p className="muted">SKU: {ticket.sku}</p>
                       <p className="muted">{formatEnumLabel(ticket.canalMarketplace)} • {formatEnumLabel(ticket.empresa)}</p>
-                      <p style={{ margin: "8px 0 0" }}><StatusBadge value={ticket.slaStatus ?? "NO_PRAZO"} /></p>
+                      <p className="mt-2 mb-0"><StatusBadge value={ticket.slaStatus ?? "NO_PRAZO"} /></p>
                       <select defaultValue={ticket.statusTicket} onChange={(e) => move(ticket.id, e.target.value)}>
                         {statuses.map((item) => <option key={item} value={item}>{formatEnumLabel(item)}</option>)}
                       </select>

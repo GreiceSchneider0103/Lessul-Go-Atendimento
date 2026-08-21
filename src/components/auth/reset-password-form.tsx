@@ -88,11 +88,19 @@ export function ResetPasswordForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="grid" style={{ gap: 12 }}>
-      <input required name="password" type="password" placeholder="Nova senha" minLength={8} />
-      <input required name="confirmPassword" type="password" placeholder="Confirmar nova senha" minLength={8} />
-      {error ? <p style={{ color: "#b91c1c" }}>{error}</p> : null}
-      <button type="submit" disabled={loading}>{loading ? "Salvando..." : "Salvar nova senha"}</button>
+    <form onSubmit={onSubmit} className="grid gap-3.5">
+      <label className="flex flex-col gap-1.5 text-sm font-semibold text-slate-600">
+        Nova senha
+        <input required name="password" type="password" placeholder="••••••••" minLength={8} autoComplete="new-password" />
+      </label>
+      <label className="flex flex-col gap-1.5 text-sm font-semibold text-slate-600">
+        Confirmar nova senha
+        <input required name="confirmPassword" type="password" placeholder="••••••••" minLength={8} autoComplete="new-password" />
+      </label>
+      {error ? <p className="field-error">{error}</p> : null}
+      <button type="submit" className="btn btn-primary mt-1 h-[42px]" disabled={loading}>
+        {loading ? "Salvando..." : "Salvar nova senha"}
+      </button>
     </form>
   );
 }

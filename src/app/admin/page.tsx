@@ -41,13 +41,25 @@ export default async function AdminPage() {
       ) : null}
 
       <div className="grid grid-4">
-        <article className="card"><strong>Total de usuários</strong><p className="metric-value">{users.length}</p></article>
-        <article className="card"><strong>Tickets totais</strong><p className="metric-value">{totalTickets}</p></article>
-        <article className="card"><strong>Tickets ativos</strong><p className="metric-value">{activeTickets}</p></article>
-        <article className="card"><strong>Backups com falha</strong><p className="metric-value">{failedBackups}</p></article>
+        <article className="card">
+          <strong className="text-xs font-bold uppercase tracking-wide text-slate-500">Total de usuários</strong>
+          <p className="metric-value">{users.length}</p>
+        </article>
+        <article className="card">
+          <strong className="text-xs font-bold uppercase tracking-wide text-slate-500">Tickets totais</strong>
+          <p className="metric-value">{totalTickets}</p>
+        </article>
+        <article className="card">
+          <strong className="text-xs font-bold uppercase tracking-wide text-slate-500">Tickets ativos</strong>
+          <p className="metric-value">{activeTickets}</p>
+        </article>
+        <article className="card">
+          <strong className="text-xs font-bold uppercase tracking-wide text-slate-500">Backups com falha</strong>
+          <p className="metric-value">{failedBackups}</p>
+        </article>
       </div>
 
-      <div className="panel" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+      <div className="panel flex flex-wrap gap-2">
         <Link className="btn btn-secondary" href="/reports">Abrir relatórios</Link>
         <Link className="btn btn-primary" href="/dashboard">Abrir dashboard</Link>
       </div>

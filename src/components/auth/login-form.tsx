@@ -33,11 +33,19 @@ export function LoginForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="grid" style={{ gap: 12 }}>
-      <input required name="email" type="email" placeholder="E-mail" />
-      <input required name="password" type="password" placeholder="Senha" />
-      {error ? <p style={{ color: "#b91c1c" }}>{error}</p> : null}
-      <button type="submit" disabled={loading}>{loading ? "Entrando..." : "Entrar"}</button>
+    <form onSubmit={onSubmit} className="grid gap-3.5">
+      <label className="flex flex-col gap-1.5 text-sm font-semibold text-slate-600">
+        E-mail
+        <input required name="email" type="email" placeholder="voce@empresa.com.br" autoComplete="email" />
+      </label>
+      <label className="flex flex-col gap-1.5 text-sm font-semibold text-slate-600">
+        Senha
+        <input required name="password" type="password" placeholder="••••••••" autoComplete="current-password" />
+      </label>
+      {error ? <p className="field-error">{error}</p> : null}
+      <button type="submit" className="btn btn-primary mt-1 h-[42px]" disabled={loading}>
+        {loading ? "Entrando..." : "Entrar"}
+      </button>
     </form>
   );
 }

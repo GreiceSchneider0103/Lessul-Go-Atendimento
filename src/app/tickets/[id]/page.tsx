@@ -1,5 +1,6 @@
 import { requireCurrentUser } from "@/lib/auth/require-user";
 import Link from "next/link";
+import { ArrowLeft, FileText } from "lucide-react";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { getTicketById } from "@/lib/services/tickets-service";
 import { prisma } from "@/lib/db/prisma";
@@ -94,44 +95,21 @@ function AttachmentPreview({ anexo }: { anexo: AnexoTicket | null }) {
       target="_blank"
       rel="noopener noreferrer"
       title={anexo.nome ?? "Abrir anexo"}
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 10,
-        width: "fit-content"
-      }}
+      className="inline-flex w-fit items-center gap-2.5"
     >
       {isImage ? (
         <img
           src={anexo.url}
           alt={anexo.nome ?? "Anexo do ticket"}
-          style={{
-            width: 56,
-            height: 56,
-            objectFit: "cover",
-            borderRadius: 10,
-            border: "1px solid #dbe1ea"
-          }}
+          className="h-14 w-14 rounded-[10px] border border-slate-200 object-cover"
         />
       ) : (
-        <span
-          style={{
-            width: 56,
-            height: 56,
-            borderRadius: 10,
-            border: "1px solid #dbe1ea",
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            background: "#f8fafc",
-            fontWeight: 700
-          }}
-        >
-          PDF
+        <span className="flex h-14 w-14 items-center justify-center rounded-[10px] border border-slate-200 bg-slate-50 text-slate-500">
+          <FileText size={22} strokeWidth={2} />
         </span>
       )}
 
-      <span className="ticket-info-value">Abrir anexo</span>
+      <span className="ticket-info-value font-semibold text-brand-700 hover:underline">Abrir anexo</span>
     </a>
   );
 }
@@ -141,21 +119,17 @@ function ComentarioBubble({ comentario }: { comentario: ComentarioOperacional })
 
   return (
     <div
-      style={{
-        border: "1px solid #e2e8f0",
-        borderRadius: 12,
-        padding: 12,
-        background: perfil === "LOJA" ? "#f8fafc" : "#ffffff"
-      }}
+      className="rounded-xl border border-slate-200 p-3"
+      style={{ background: perfil === "LOJA" ? "#f8fafc" : "#ffffff" }}
     >
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
+      <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
         <strong>{comentario.autorNome ?? "Usuário"}</strong>
         <span className="muted">
           {perfil} • {toDateTime(comentario.criadoEm)}
         </span>
       </div>
 
-      <div style={{ whiteSpace: "pre-wrap" }}>{comentario.comentario}</div>
+      <div className="whitespace-pre-wrap text-sm">{comentario.comentario}</div>
     </div>
   );
 }
@@ -208,7 +182,8 @@ export default async function TicketDetail({ params }: { params: Promise<{ id: s
   return (
     <section className="page">
       <Link href={backHref} className="ticket-back-link">
-        ← Voltar
+        <ArrowLeft size={15} strokeWidth={2.25} aria-hidden />
+        Voltar
       </Link>
 
       <div className="ticket-detail-header">
@@ -228,9 +203,9 @@ export default async function TicketDetail({ params }: { params: Promise<{ id: s
 
       <div className="ticket-detail-grid">
         <article className="card">
-          <div style={{ display: "grid", gap: "24px" }}>
+          <div className="grid gap-6">
             <section>
-              <h2 style={{ marginTop: 0 }}>Dados do cliente</h2>
+              <h2 className="mt-0">Dados do cliente</h2>
 
               <div className="ticket-info-list">
                 <InfoRow label="Nome" value={ticket.nomeCliente} />
@@ -240,7 +215,7 @@ export default async function TicketDetail({ params }: { params: Promise<{ id: s
               </div>
             </section>
 
-            <section style={{ paddingTop: "16px", borderTop: "1px solid #f1f5f9" }}>
+            <section className="border-t border-slate-100 pt-4">
               <h2>Valores e rastreabilidade</h2>
 
               <div className="ticket-info-list">
@@ -308,18 +283,18 @@ export default async function TicketDetail({ params }: { params: Promise<{ id: s
       <article className="card">
         <h2>Comentários</h2>
 
-        <div style={{ marginBottom: "20px" }}>
-          <h3 style={{ fontSize: "14px", color: "#64748b", marginBottom: "8px" }}>Interno</h3>
+        <div className="mb-5">
+          <h3 className="mb-2 text-sm font-semibold text-slate-500">Interno</h3>
 
-          <div style={{ border: "1px solid #e2e8f0", borderRadius: 12, padding: 12, background: "#f8fafc", whiteSpace: "pre-wrap" }}>
+          <div className="whitespace-pre-wrap rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">
             {ticket.comentarioInterno || "Sem comentário interno."}
           </div>
         </div>
 
-        <h3 style={{ fontSize: "14px", color: "#64748b", marginBottom: "8px" }}>Operacionais</h3>
+        <h3 className="mb-2 text-sm font-semibold text-slate-500">Operacionais</h3>
 
         {comentariosOperacionais.length ? (
-          <div style={{ display: "grid", gap: 10 }}>
+          <div className="grid gap-2.5">
             {comentariosOperacionais.map((comentario) => (
               <ComentarioBubble key={comentario.id} comentario={comentario} />
             ))}
@@ -332,14 +307,7 @@ export default async function TicketDetail({ params }: { params: Promise<{ id: s
       <article className="card">
         <h2>Solicitação operacional da loja</h2>
 
-        <div
-          style={{
-            border: "1px solid #e2e8f0",
-            padding: 14,
-            borderRadius: 12,
-            background: "#f8fafc"
-          }}
-        >
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-3.5">
           <div className="ticket-info-list">
             <InfoRow label="Tipo" value={getAcaoOperacionalLabel(tipoOperacional)} />
             <InfoRow label="Status" value={getStatusOperacionalLabel(statusOperacional)} />

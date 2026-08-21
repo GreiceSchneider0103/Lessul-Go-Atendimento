@@ -226,16 +226,15 @@ export default async function LojaSolicitacoesPage({ searchParams }: PageProps) 
 
   return (
     <section className="page">
-      <h1>Solicitações da Loja</h1>
+      <div className="page-header">
+        <h1>Solicitações da Loja</h1>
+        <p className="muted">Acompanhamento operacional das ações abertas pelas lojas.</p>
+      </div>
 
-      <div className="panel" style={{ marginBottom: 12 }}>
-        <form
-          action="/loja/solicitacoes"
-          method="get"
-          style={{ display: "flex", flexWrap: "wrap", gap: 16, alignItems: "flex-end" }}
-        >
+      <div className="panel">
+        <form action="/loja/solicitacoes" method="get" className="flex flex-wrap items-end gap-4">
           {user.perfil === "ADMIN" ? (
-            <label style={{ minWidth: 220 }}>
+            <label className="min-w-[220px]">
               Empresa
               <select name="empresa" defaultValue={empresaFiltro ?? ""}>
                 <option value="">Todas as empresas</option>
@@ -248,7 +247,7 @@ export default async function LojaSolicitacoesPage({ searchParams }: PageProps) 
             </label>
           ) : null}
 
-          <label style={{ minWidth: 260 }}>
+          <label className="min-w-[260px]">
             Status operacional
             <select name="status" defaultValue={statusFiltro ?? ""}>
               <option value="">Todos os status</option>
@@ -260,35 +259,23 @@ export default async function LojaSolicitacoesPage({ searchParams }: PageProps) 
             </select>
           </label>
 
-          <div style={{ display: "flex", gap: 8 }}>
-            <button className="btn btn-primary" type="submit" style={{ height: "42px" }}>
+          <div className="flex gap-2">
+            <button className="btn btn-primary h-[42px]" type="submit">
               Filtrar
             </button>
 
-            <Link
-              className="btn btn-secondary"
-              href="/loja/solicitacoes"
-              style={{
-                height: "42px",
-                display: "inline-flex",
-                alignItems: "center",
-                backgroundColor: "#f1f5f9",
-                color: "#475569",
-                border: "1px solid #e2e8f0"
-              }}
-            >
+            <Link className="btn btn-secondary h-[42px] inline-flex items-center" href="/loja/solicitacoes">
               Limpar
             </Link>
           </div>
         </form>
       </div>
 
-      {/* Objetivo 4: Layout dos cards */}
-      <div className="grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: '16px', marginBottom: '16px' }}>
+      <div className="grid" style={{ gridTemplateColumns: "repeat(5, minmax(0, 1fr))" }}>
         {stats.map((item) => (
           <article className="card" key={item.key}>
-            <strong>{item.label}</strong>
-            <div style={{ fontSize: 24 }}>{item.value}</div>
+            <strong className="text-xs font-bold uppercase tracking-wide text-slate-500">{item.label}</strong>
+            <p className="metric-value">{item.value}</p>
           </article>
         ))}
       </div>

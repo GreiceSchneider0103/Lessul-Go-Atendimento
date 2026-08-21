@@ -2,6 +2,7 @@ import { requireCurrentUser } from "@/lib/auth/require-user";
 import { getTicketById, softDeleteTicket } from "@/lib/services/tickets-service";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
+import { ArrowLeft, Trash2 } from "lucide-react";
 import { TicketForm } from "@/components/forms/ticket-form";
 import { prisma } from "@/lib/db/prisma";
 import { Perfil } from "@prisma/client";
@@ -69,10 +70,11 @@ export default async function TicketEditPage({ params }: { params: Promise<{ id:
 
   return (
     <section className="page ticket-edit-page">
-      <div className="page-header" style={{ marginBottom: 24 }}>
+      <div className="page-header mb-6">
         <div className="ticket-edit-topbar">
           <Link href={backHref} className="btn btn-secondary">
-            ← Voltar
+            <ArrowLeft size={15} strokeWidth={2.25} aria-hidden />
+            Voltar
           </Link>
 
           <div className="ticket-edit-actions">
@@ -92,6 +94,7 @@ export default async function TicketEditPage({ params }: { params: Promise<{ id:
                 }}
               >
                 <button type="submit" className="btn btn-danger">
+                  <Trash2 size={15} strokeWidth={2.25} aria-hidden />
                   Excluir ticket
                 </button>
               </form>
@@ -99,11 +102,11 @@ export default async function TicketEditPage({ params }: { params: Promise<{ id:
           </div>
         </div>
 
-        <p className="muted" style={{ marginTop: 24 }}>
+        <p className="muted mt-6">
           Editando ticket
         </p>
 
-        <h1 style={{ margin: 0 }}>{ticket.nomeCliente}</h1>
+        <h1 className="m-0">{ticket.nomeCliente}</h1>
 
         <p className="muted">ID: {ticket.id}</p>
       </div>

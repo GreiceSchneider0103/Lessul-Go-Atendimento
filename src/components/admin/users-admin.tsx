@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
+import { Pencil, Power, KeyRound } from "lucide-react";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { EMPRESAS } from "@/config/domains";
 
@@ -172,13 +173,16 @@ export function UsersAdmin({
         </select>
 
         {allowMultiEmpresa ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            <span className="muted" style={{ fontSize: 12 }}>Empresas vinculadas{perfil === "LOJA" ? " (obrigatório para LOJA)" : ""}</span>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+          <div className="flex flex-col gap-1.5">
+            <span className="text-xs font-semibold text-slate-500">
+              Empresas vinculadas{perfil === "LOJA" ? " (obrigatório para LOJA)" : ""}
+            </span>
+            <div className="flex flex-wrap gap-x-4 gap-y-1.5">
               {EMPRESAS.map((emp) => (
-                <label key={emp} style={{ display: "flex", gap: 4, alignItems: "center", fontWeight: "normal" }}>
+                <label key={emp} className="flex items-center gap-1.5 text-sm font-normal text-slate-700">
                   <input
                     type="checkbox"
+                    className="h-4 w-4 flex-none"
                     checked={empresasVinculadas.includes(emp)}
                     onChange={() => toggleEmpresaVinculada(emp)}
                   />
@@ -196,17 +200,17 @@ export function UsersAdmin({
 
         {!editingUserId ? (
           <>
-            <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <input type="checkbox" checked={enviarConvite} onChange={(e) => setEnviarConvite(e.target.checked)} />
+            <label className="flex items-center gap-2 text-sm font-normal text-slate-700">
+              <input type="checkbox" className="h-4 w-4 flex-none" checked={enviarConvite} onChange={(e) => setEnviarConvite(e.target.checked)} />
               Enviar convite por e-mail
             </label>
             <input name="senhaTemporaria" placeholder="Senha temporária" type="password" disabled={enviarConvite} required={!enviarConvite} minLength={8} value={senhaTemporaria} onChange={(e) => setSenhaTemporaria(e.target.value)} />
           </>
         ) : (
-          <div className="muted" style={{ alignSelf: "center" }}>E-mail/Auth não editáveis nesta etapa.</div>
+          <div className="muted self-center">E-mail/Auth não editáveis nesta etapa.</div>
         )}
 
-        <div style={{ display: "flex", gap: 8 }}>
+        <div className="flex gap-2">
           <button type="submit" className="btn btn-primary">{editingUserId ? "Salvar edição" : "Cadastrar usuário"}</button>
           {editingUserId ? <button type="button" className="btn btn-secondary" onClick={resetForm}>Cancelar</button> : null}
         </div>
@@ -235,9 +239,15 @@ export function UsersAdmin({
                         : user.empresaVinculada ?? "-"}
                     </td>
                     <td>{user.ativo ? "Sim" : "Não"}</td>
-                    <td style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                      <button className="btn btn-secondary" onClick={() => handleEditUser(user)}>Editar</button>
-                      <button className="btn btn-secondary" onClick={() => toggleAtivo(user.id, user.ativo)}>{user.ativo ? "Inativar" : "Ativar"}</button>
+                    <td className="flex flex-wrap items-center gap-2">
+                      <button className="btn btn-secondary" onClick={() => handleEditUser(user)}>
+                        <Pencil size={14} strokeWidth={2.25} aria-hidden />
+                        Editar
+                      </button>
+                      <button className="btn btn-secondary" onClick={() => toggleAtivo(user.id, user.ativo)}>
+                        <Power size={14} strokeWidth={2.25} aria-hidden />
+                        {user.ativo ? "Inativar" : "Ativar"}
+                      </button>
                       {showPasswordReset ? (
                         <button
                           type="button"
@@ -245,6 +255,7 @@ export function UsersAdmin({
                           disabled={resetState === "loading"}
                           onClick={() => sendPasswordReset(user.id)}
                         >
+                          <KeyRound size={14} strokeWidth={2.25} aria-hidden />
                           {resetState === "loading" ? "Enviando..." : resetState === "sent" ? "E-mail enviado" : "Redefinir senha"}
                         </button>
                       ) : null}
