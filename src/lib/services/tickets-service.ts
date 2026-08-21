@@ -1,6 +1,7 @@
-import { BackupSyncStatus, Prisma, Usuario } from "@prisma/client";
+import { BackupSyncStatus, Empresa, Prisma, Usuario } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { registerTicketAudit } from "@/lib/audit/ticket-audit";
+import type { CanalMarketplace } from "@/config/domains";
 import { TicketFiltersInput, TicketInput } from "@/lib/validation/ticket";
 import { getTicketScopeWhere, hasPermission } from "@/lib/rbac/permissions";
 import { assertSlaConsistency, calculateSla } from "@/lib/utils/sla";
@@ -370,6 +371,141 @@ export async function createTicket(input: TicketInput, userId: string) {
   after(() => syncTicketCreateBackup(ticket.id));
 
   return ticket;
+}
+
+export type DevolucaoRecebidaInput = {
+  nomeCliente: string;
+  numeroVenda: string;
+  canalMarketplace: CanalMarketplace;
+  empresa: Empresa;
+  produto: string;
+  sku: string;
+};
+
+const RETURN_PHOTO_ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp", "application/pdf"];
+const RETURN_PHOTO_MAX_SIZE = 10 * 1024 * 1024;
+
+/**
+ * Restricted creation path for LOJA: opens a ticket directly in the
+ * "devolução recebida" state for returns that arrive at the store without
+ * a pre-existing support ticket (e.g. the customer returned straight to the
+ * marketplace). Builds the ticket, attaches the required photo and fires the
+ * same internal notification email as updateTicket's DEVOLUCAO_RECEBIDA
+ * transition — but does it all against the row it just created instead of
+ * going through the scope-checked update helpers, since those only trust the
+ * user's legacy single empresaVinculada field and could reject a ticket
+ * opened for one of the user's other linked companies.
+ */
+export async function createDevolucaoRecebidaTicket(input: DevolucaoRecebidaInput, file: File, user: Usuario) {
+  if (!RETURN_PHOTO_ALLOWED_TYPES.includes(file.type)) {
+    throw new AppError("Tipo de arquivo não permitido", 400, "INVALID_FILE_TYPE");
+  }
+
+  if (file.size > RETURN_PHOTO_MAX_SIZE) {
+    throw new AppError("Arquivo acima de 10MB", 400, "FILE_TOO_LARGE");
+  }
+
+  const now = new Date();
+  const prazoConclusao = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+  const ticket = await prisma.ticket.create({
+    data: {
+      nomeCliente: input.nomeCliente,
+      dataCompra: now,
+      numeroVenda: input.numeroVenda,
+      uf: "XX",
+      cpf: "00000000000",
+      canalMarketplace: input.canalMarketplace,
+      empresa: input.empresa,
+      produto: input.produto,
+      sku: input.sku,
+      statusReclamacao: "NAO_AFETANDO",
+      dataReclamacao: now,
+      mesReclamacao: now.getUTCMonth() + 1,
+      anoReclamacao: now.getUTCFullYear(),
+      motivo: "PROBLEMA",
+      detalhesCliente:
+        "Devolução recebida pela loja sem ticket de atendimento prévio — aberto diretamente pela loja para cobrança ao marketplace.",
+      statusTicket: "AGUARDANDO_MARKETPLACE",
+      prazoConclusao,
+      criadoPorId: user.id,
+      atualizadoPorId: user.id,
+      acaoOperacionalLoja: "DEVOLUCAO",
+      statusOperacionalLoja: "EM_ABERTO",
+      slaStatus: calculateSla("AGUARDANDO_MARKETPLACE", prazoConclusao)
+    }
+  });
+
+  await registerTicketAudit({
+    ticketId: ticket.id,
+    user,
+    action: "CREATE",
+    after: toAuditJson(ticket as unknown as Record<string, unknown>)
+  });
+
+  const supabase = createSupabaseAdmin();
+  const bucket = "ticket-anexos";
+  const safeFileName = getSafeFileName(file.name);
+  const path = `tickets/${ticket.empresa}/${ticket.id}/${Date.now()}-${safeFileName}`;
+
+  const { error: uploadError } = await supabase.storage.from(bucket).upload(path, file, {
+    upsert: false,
+    contentType: file.type
+  });
+
+  if (uploadError) {
+    logError("Falha no upload da foto de devolução recebida (loja)", {
+      ticketId: ticket.id,
+      path,
+      message: uploadError.message
+    });
+
+    throw new AppError(
+      "Ticket criado, mas a foto não pôde ser enviada. Abra o ticket e anexe a foto manualmente.",
+      500,
+      "UPLOAD_FAILED"
+    );
+  }
+
+  const updated = await prisma.ticket.update({
+    where: { id: ticket.id },
+    data: {
+      anexoUrl: `/api/tickets/${ticket.id}/attachment/view`,
+      anexoPath: path,
+      anexoNome: file.name,
+      anexoMimeType: file.type,
+      anexoSizeBytes: BigInt(file.size),
+      anexoUploadedAt: new Date(),
+      anexoUploadedBy: user.id,
+      statusOperacionalLoja: "DEVOLUCAO_RECEBIDA",
+      atualizadoPorId: user.id
+    }
+  });
+
+  await registerTicketAudit({
+    ticketId: ticket.id,
+    user,
+    action: "UPDATE",
+    before: toAuditJson({ statusOperacionalLoja: "EM_ABERTO" }),
+    after: toAuditJson({ statusOperacionalLoja: "DEVOLUCAO_RECEBIDA", anexoPath: path })
+  });
+
+  after(() => syncTicketCreateBackup(ticket.id));
+
+  await sendEmail({
+    to: RETURNS_NOTIFICATION_EMAIL,
+    subject: `Devolução recebida — ${updated.nomeCliente} (pedido ${updated.numeroVenda})`,
+    text:
+      `A loja abriu um novo ticket confirmando o recebimento de um produto de devolução (sem atendimento prévio). Confira a foto e os dados do pedido para realizar a cobrança do marketplace.\n\n` +
+      `Ticket: ${updated.id}\n` +
+      `Cliente: ${updated.nomeCliente}\n` +
+      `Pedido: ${updated.numeroVenda}\n` +
+      `Empresa: ${updated.empresa}\n` +
+      `Marketplace: ${updated.canalMarketplace}\n\n` +
+      `Acesse o ticket: ${process.env.APP_BASE_URL ?? ""}/tickets/${updated.id}`
+  });
+
+  return updated;
 }
 
 export async function getTicketById(id: string, user: Usuario) {

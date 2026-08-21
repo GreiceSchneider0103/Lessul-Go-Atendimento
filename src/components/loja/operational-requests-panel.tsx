@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useEffect } from "react";
 import Link from "next/link";
 import { Perfil, StatusOperacional } from "@prisma/client";
-import { X, FileText, Paperclip, Upload } from "lucide-react";
+import { X, FileText, Paperclip, Upload, SlidersHorizontal } from "lucide-react";
 import { formatDateBR, formatEnumLabel } from "@/lib/formatters/display";
 
 type Row = { 
@@ -236,11 +236,20 @@ export function OperationalRequestsPanel({ data, perfil }: { data: Row[]; perfil
               return (
                 <tr key={row.id}>
                   <td>{formatEnumLabel(row.empresa)}</td>
-                  <td><Link href={`/tickets/${row.ticketId}`} className="link">Ver Ticket</Link></td>
+                  <td>
+                    <Link href={`/tickets/${row.ticketId}`} className="font-semibold text-brand-700 hover:underline">
+                      Ver Ticket
+                    </Link>
+                  </td>
                   <td>{row.ticket.nomeCliente}</td>
                   <td>
                     {row.ticket.linkPedido ? (
-                      <a href={row.ticket.linkPedido} target="_blank" rel="noopener noreferrer" className="link">
+                      <a
+                        href={row.ticket.linkPedido}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-semibold text-brand-700 hover:underline"
+                      >
                         {row.ticket.numeroVenda}
                       </a>
                     ) : row.ticket.numeroVenda}
@@ -264,9 +273,10 @@ export function OperationalRequestsPanel({ data, perfil }: { data: Row[]; perfil
                   <td>{renderAnexoThumbnail(row)}</td>
                   <td>
                     <button
-                      className="btn btn-secondary px-3 py-1.5 text-xs"
+                      className="btn btn-secondary whitespace-nowrap px-3 py-1.5 text-xs"
                       onClick={() => setSelectedRow(row)}
                     >
+                      <SlidersHorizontal size={13} strokeWidth={2.25} aria-hidden />
                       Ações
                     </button>
                   </td>
