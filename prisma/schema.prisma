@@ -79,10 +79,6 @@ model Ticket {
   mesReclamacao                 Int
   anoReclamacao                 Int
   slaStatus                     String                         @default("NO_PRAZO")
-  backupSheetRowNumber          Int?
-  backupSyncStatus              BackupSyncStatus               @default(PENDING)
-  backupLastSyncedAt            DateTime?
-  backupSyncError               String?
   acaoOperacionalLoja           AcaoOperacionalLoja            @default(NENHUMA)
   statusOperacionalLoja         StatusOperacionalLoja          @default(EM_ABERTO)
   codigoRastreio                String?
@@ -109,7 +105,6 @@ model Ticket {
   @@index([mesReclamacao, anoReclamacao], map: "Ticket_mes_ano_idx")
   @@index([responsavelId], map: "Ticket_responsavel_idx")
   @@index([statusTicket, statusReclamacao], map: "Ticket_status_idx")
-  @@index([backupSyncStatus], map: "Ticket_backup_status_idx")
 }
 
 model TicketAuditoria {
@@ -297,12 +292,6 @@ model TicketComentarioOperacional {
   ticket      Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 
   @@index([ticketId, criadoEm], map: "TicketComentarioOperacional_ticketId_criadoEm_idx")
-}
-
-enum BackupSyncStatus {
-  PENDING
-  SYNCED
-  FAILED
 }
 
 enum AcaoUsuarioAuditoria {

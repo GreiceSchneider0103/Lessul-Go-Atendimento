@@ -148,6 +148,7 @@ button { border: 0; border-radius: 10px; padding: 10px 14px; cursor: pointer; }
 .filters-inline-row .btn { flex: 0 0 auto; height: 42px; }
 
 .grid { display: grid; gap: 16px; }
+.grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 
 .panel, .card {
@@ -232,7 +233,7 @@ button { border: 0; border-radius: 10px; padding: 10px 14px; cursor: pointer; }
 .alert-error { background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; }
 .empty-state { color: var(--color-text-muted); text-align: center; padding: 22px; font-size: 13.5px; }
 
-@media (max-width: 1180px) { .grid-4, .cols-4 { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+@media (max-width: 1180px) { .grid-3, .grid-4, .cols-4 { grid-template-columns: repeat(2, minmax(0,1fr)); } }
 @media (max-width: 980px) {
   .app-header { flex-wrap: wrap; height: auto; padding: 12px 20px; }
   .header-left { flex-basis: 100%; order: 2; }
@@ -240,7 +241,7 @@ button { border: 0; border-radius: 10px; padding: 10px 14px; cursor: pointer; }
 }
 @media (max-width: 700px) {
   .header-right { flex-wrap: wrap; justify-content: flex-start; }
-  .grid-4, .cols-4 { grid-template-columns: 1fr; }
+  .grid-3, .grid-4, .cols-4 { grid-template-columns: 1fr; }
   .ticket-form-grid { grid-template-columns: 1fr; }
 }
 

@@ -13,15 +13,13 @@ export default async function AdminPage() {
   let users: Awaited<ReturnType<typeof listUsuariosComEmpresas>> = [];
   let totalTickets = 0;
   let activeTickets = 0;
-  let failedBackups = 0;
   let dataError: string | null = null;
 
   try {
-    [users, totalTickets, activeTickets, failedBackups] = await Promise.all([
+    [users, totalTickets, activeTickets] = await Promise.all([
       listUsuariosComEmpresas(),
       prisma.ticket.count(),
-      prisma.ticket.count({ where: { ativo: true } }),
-      prisma.ticket.count({ where: { backupSyncStatus: "FAILED" } })
+      prisma.ticket.count({ where: { ativo: true } })
     ]);
   } catch (error) {
     dataError = error instanceof Error ? error.message : "Falha ao carregar métricas administrativas";
@@ -38,11 +36,11 @@ export default async function AdminPage() {
         <div className="alert alert-error">
           {dataError}
           <br />
-          Aplique o patch SQL de alinhamento do banco para liberar as métricas de backup e auditoria.
+          Aplique o patch SQL de alinhamento do banco para liberar as métricas administrativas.
         </div>
       ) : null}
 
-      <div className="grid grid-4">
+      <div className="grid grid-3">
         <article className="card">
           <strong className="text-xs font-bold uppercase tracking-wide text-slate-500">Total de usuários</strong>
           <p className="metric-value">{users.length}</p>
@@ -54,10 +52,6 @@ export default async function AdminPage() {
         <article className="card">
           <strong className="text-xs font-bold uppercase tracking-wide text-slate-500">Tickets ativos</strong>
           <p className="metric-value">{activeTickets}</p>
-        </article>
-        <article className="card">
-          <strong className="text-xs font-bold uppercase tracking-wide text-slate-500">Backups com falha</strong>
-          <p className="metric-value">{failedBackups}</p>
         </article>
       </div>
 

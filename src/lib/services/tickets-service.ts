@@ -1,4 +1,4 @@
-import { BackupSyncStatus, Empresa, Prisma, Usuario } from "@prisma/client";
+import { Empresa, Prisma, Usuario } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { registerTicketAudit } from "@/lib/audit/ticket-audit";
 import type { CanalMarketplace } from "@/config/domains";
@@ -6,16 +6,9 @@ import { TicketFiltersInput, TicketInput } from "@/lib/validation/ticket";
 import { getTicketScopeWhere, hasPermission } from "@/lib/rbac/permissions";
 import { assertSlaConsistency, calculateSla } from "@/lib/utils/sla";
 import { AppError, ForbiddenError } from "@/lib/errors";
-import {
-  appendTicketBackupRow,
-  getGoogleSheetsBackupConfigError,
-  isGoogleSheetsBackupEnabled,
-  updateTicketBackupRow
-} from "@/lib/integrations/google-sheets-backup";
 import { logError } from "@/lib/logger";
 import { createSupabaseAdmin } from "@/lib/supabase/service-role";
 import { sendEmail } from "@/lib/services/email-service";
-import { after } from "next/server";
 
 const RETURNS_NOTIFICATION_EMAIL = "atendimento@lessul.com.br";
 
@@ -63,38 +56,6 @@ function getDateRange(startDate?: string, endDate?: string) {
   };
 }
 
-function toTicketBackupRow(ticket: {
-  id: string;
-  nomeCliente: string;
-  numeroVenda: string;
-  empresa: string;
-  canalMarketplace: string;
-  motivo: string;
-  statusTicket: string;
-  statusReclamacao: string;
-  valorReembolso: Prisma.Decimal;
-  valorColeta: Prisma.Decimal;
-  custosTotais: Prisma.Decimal;
-  criadoEm: Date;
-  atualizadoEm: Date;
-}) {
-  return {
-    id: ticket.id,
-    nomeCliente: ticket.nomeCliente,
-    numeroVenda: ticket.numeroVenda,
-    empresa: ticket.empresa,
-    canalMarketplace: ticket.canalMarketplace,
-    motivo: ticket.motivo,
-    statusTicket: ticket.statusTicket,
-    statusReclamacao: ticket.statusReclamacao,
-    valorReembolso: Number(ticket.valorReembolso),
-    valorColeta: Number(ticket.valorColeta),
-    custosTotais: Number(ticket.custosTotais),
-    criadoEm: ticket.criadoEm.toISOString(),
-    atualizadoEm: ticket.atualizadoEm.toISOString()
-  };
-}
-
 function toAuditJson(ticket: Record<string, unknown>): Prisma.JsonObject {
   const output: Record<string, Prisma.JsonValue> = {};
 
@@ -134,91 +95,6 @@ function toAuditJson(ticket: Record<string, unknown>): Prisma.JsonObject {
   }
 
   return output as Prisma.JsonObject;
-}
-
-async function markBackupSyncFailure(ticketId: string, error: unknown) {
-  const message = error instanceof Error ? error.message : String(error);
-
-  logError("Falha ao sincronizar backup Google Sheets", {
-    ticketId,
-    error: message
-  });
-
-  await prisma.ticket.update({
-    where: { id: ticketId },
-    data: {
-      backupSyncStatus: BackupSyncStatus.FAILED,
-      backupSyncError: message.slice(0, 2000)
-    }
-  });
-}
-
-async function syncTicketCreateBackup(ticketId: string) {
-  if (!isGoogleSheetsBackupEnabled()) {
-    await prisma.ticket.update({
-      where: { id: ticketId },
-      data: {
-        backupSyncStatus: BackupSyncStatus.FAILED,
-        backupSyncError: getGoogleSheetsBackupConfigError() ?? "Integração Google Sheets não configurada"
-      }
-    });
-
-    return;
-  }
-
-  try {
-    const ticket = await prisma.ticket.findUniqueOrThrow({
-      where: { id: ticketId }
-    });
-
-    const { rowNumber } = await appendTicketBackupRow(toTicketBackupRow(ticket));
-
-    await prisma.ticket.update({
-      where: { id: ticketId },
-      data: {
-        backupSheetRowNumber: rowNumber,
-        backupSyncStatus: BackupSyncStatus.SYNCED,
-        backupLastSyncedAt: new Date(),
-        backupSyncError: null
-      }
-    });
-  } catch (error) {
-    await markBackupSyncFailure(ticketId, error);
-  }
-}
-
-async function syncTicketUpdateBackup(ticketId: string) {
-  if (!isGoogleSheetsBackupEnabled()) {
-    await prisma.ticket.update({
-      where: { id: ticketId },
-      data: {
-        backupSyncStatus: BackupSyncStatus.FAILED,
-        backupSyncError: getGoogleSheetsBackupConfigError() ?? "Integração Google Sheets não configurada"
-      }
-    });
-
-    return;
-  }
-
-  try {
-    const ticket = await prisma.ticket.findUniqueOrThrow({
-      where: { id: ticketId }
-    });
-
-    const { rowNumber } = await updateTicketBackupRow(toTicketBackupRow(ticket), ticket.backupSheetRowNumber);
-
-    await prisma.ticket.update({
-      where: { id: ticketId },
-      data: {
-        backupSheetRowNumber: rowNumber,
-        backupSyncStatus: BackupSyncStatus.SYNCED,
-        backupLastSyncedAt: new Date(),
-        backupSyncError: null
-      }
-    });
-  } catch (error) {
-    await markBackupSyncFailure(ticketId, error);
-  }
 }
 
 export async function listTickets(
@@ -367,8 +243,6 @@ export async function createTicket(input: TicketInput, userId: string) {
     action: "CREATE",
     after: toAuditJson(ticket as unknown as Record<string, unknown>)
   });
-
-  after(() => syncTicketCreateBackup(ticket.id));
 
   return ticket;
 }
@@ -522,8 +396,6 @@ export async function createDevolucaoRecebidaTicket(input: DevolucaoRecebidaInpu
     before: toAuditJson({ operationalRequest: null }),
     after: toAuditJson({ operationalRequest: operationalRequest.id, fotos: files.length })
   });
-
-  after(() => syncTicketCreateBackup(ticket.id));
 
   await sendEmail({
     to: RETURNS_NOTIFICATION_EMAIL,
@@ -727,8 +599,6 @@ export async function updateTicket(id: string, rawPayload: Partial<TicketInput>,
     after: toAuditJson(updated as unknown as Record<string, unknown>)
   });
 
-  after(() => syncTicketUpdateBackup(id));
-
   if (before.statusOperacionalLoja !== "DEVOLUCAO_RECEBIDA" && updated.statusOperacionalLoja === "DEVOLUCAO_RECEBIDA") {
     await sendEmail({
       to: RETURNS_NOTIFICATION_EMAIL,
@@ -770,8 +640,6 @@ export async function softDeleteTicket(id: string, user: Usuario) {
     before: toAuditJson(before as unknown as Record<string, unknown>),
     after: toAuditJson(updated as unknown as Record<string, unknown>)
   });
-
-  after(() => syncTicketUpdateBackup(id));
 
   return { ok: true };
 }
