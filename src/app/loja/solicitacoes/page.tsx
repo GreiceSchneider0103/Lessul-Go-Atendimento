@@ -102,7 +102,7 @@ function toNumber(value: unknown): number {
 function isOverdue(prazoOperacional: string | null, status: string) {
   if (!prazoOperacional) return false;
   // Atualizado para considerar novos status finalizados como não atrasados
-  const nonOverdueStatuses = ["CONCLUIDA", "ASSISTENCIA_ENTREGUE", "REEMBOLSO_REALIZADO"];
+  const nonOverdueStatuses = ["CONCLUIDA", "REEMBOLSO_REALIZADO"];
   if (nonOverdueStatuses.includes(status)) return false;
 
   const prazo = new Date(prazoOperacional);
@@ -230,7 +230,7 @@ export default async function LojaSolicitacoesPage({ searchParams }: PageProps) 
   });
   // Definir status para as novas regras dos cards
   const openStatuses = ["EM_ABERTO"];
-  const finalizedStatuses = ["CONCLUIDA", "ASSISTENCIA_ENTREGUE", "REEMBOLSO_REALIZADO"];
+  const finalizedStatuses = ["CONCLUIDA", "REEMBOLSO_REALIZADO"];
 
   // Estatísticas devem considerar todos os registros (incluindo concluídos), porém a tabela
   // exibirá, por padrão, apenas os não concluídos. Se houver um filtro explícito de status,
