@@ -7,7 +7,19 @@ import { createSupabaseRouteClient } from "@/lib/supabase/server";
 import { logError } from "@/lib/logger";
 import { getAppBaseUrl } from "@/lib/supabase/config";
 
-type AppUser = { id: string; perfil: Perfil; empresaVinculada: Empresa | null; email?: string; nome?: string };
+type AppUser = {
+  id: string;
+  perfil: Perfil;
+  empresaVinculada: Empresa | null;
+  empresasVinculadas?: Empresa[];
+  email?: string;
+  nome?: string;
+};
+
+function empresasFor(user: AppUser): Empresa[] {
+  if (user.empresasVinculadas?.length) return user.empresasVinculadas;
+  return user.empresaVinculada ? [user.empresaVinculada] : [];
+}
 
 /**
  * Powers the Operacional Loja nav dot: true when "the other side" (loja vs.
@@ -83,8 +95,9 @@ const LOJA_ALLOWED_STATUS: StatusOperacional[] = [
 ];
 
 export async function listOperationalRequests(user: AppUser) {
-  const where: Prisma.OperationalRequestWhereInput = user.perfil === "LOJA" ? { empresa: user.empresaVinculada ?? undefined } : {};
-  if (user.perfil === "LOJA" && !user.empresaVinculada) throw new ForbiddenError("Usuário loja sem empresa vinculada");
+  const empresas = empresasFor(user);
+  const where: Prisma.OperationalRequestWhereInput = user.perfil === "LOJA" ? { empresa: { in: empresas } } : {};
+  if (user.perfil === "LOJA" && empresas.length === 0) throw new ForbiddenError("Usuário loja sem empresa vinculada");
   return prisma.operationalRequest.findMany({ where, include: { ticket: true, anexos: true }, orderBy: { updatedAt: "desc" } });
 }
 
@@ -98,7 +111,14 @@ export async function createFromTicket(ticketId: string, tipoAcao: TipoAcaoOpera
 
   await registerTicketAudit({ ticketId: ticket.id, user: actor as any, action: "UPDATE", before: { operationalRequest: null } as any, after: { operationalRequest: created.id, tipoAcao } as any });
 
-  const lojaUsers = await prisma.usuario.findMany({ where: { perfil: "LOJA", ativo: true, empresaVinculada: ticket.empresa }, select: { email: true } });
+  const lojaUsers = await prisma.usuario.findMany({
+    where: {
+      perfil: "LOJA",
+      ativo: true,
+      OR: [{ empresaVinculada: ticket.empresa }, { usuarioEmpresas: { some: { empresa: ticket.empresa } } }]
+    },
+    select: { email: true }
+  });
   const link = `${getAppBaseUrl()}/loja/solicitacoes`;
   const body = `Olá,\n\nUma nova tarefa operacional foi criada para sua loja.\n\nTicket: ${ticket.id}\nCliente: ${ticket.nomeCliente}\nPedido: ${ticket.numeroVenda}\nEmpresa: ${ticket.empresa}\nAção solicitada: ${tipoAcao}\nPrazo: ${ticket.prazoConclusao?.toISOString().slice(0, 10) ?? "-"}\n\nAcesse o painel da loja para atualizar o andamento:\n${link}`;
 
@@ -113,7 +133,7 @@ export async function createFromTicket(ticketId: string, tipoAcao: TipoAcaoOpera
 export async function updateOperationalRequest(id: string, actor: AppUser, payload: Partial<{ status: StatusOperacional; comentarioLoja: string; comentarioAtendente: string; codigoRastreio: string; valorReembolso: number; valorCte: number; valorColetaEnvioPecas: number; valorAssistencia: number; prazoOperacional: string; empresa: string; }>) {
   const current = await prisma.operationalRequest.findUnique({ where: { id } });
   if (!current) throw new AppError("Solicitação não encontrada", 404, "NOT_FOUND");
-  if (actor.perfil === "LOJA" && current.empresa !== actor.empresaVinculada) throw new ForbiddenError();
+  if (actor.perfil === "LOJA" && !empresasFor(actor).includes(current.empresa)) throw new ForbiddenError();
 
   if (actor.perfil === "LOJA") {
     if (payload.status === "CONCLUIDA") throw new ForbiddenError("Perfil LOJA não pode concluir solicitação");
@@ -170,14 +190,14 @@ export async function deleteOperationalRequest(id: string, actor: AppUser) {
 export async function listAttachments(requestId: string, actor: AppUser) {
   const req = await prisma.operationalRequest.findUnique({ where: { id: requestId } });
   if (!req) throw new AppError("Solicitação não encontrada", 404, "NOT_FOUND");
-  if (actor.perfil === "LOJA" && req.empresa !== actor.empresaVinculada) throw new ForbiddenError();
+  if (actor.perfil === "LOJA" && !empresasFor(actor).includes(req.empresa)) throw new ForbiddenError();
   return prisma.operationalRequestAttachment.findMany({ where: { operationalRequestId: requestId }, orderBy: { uploadedAt: "desc" }, take: 1 });
 }
 
 export async function uploadAttachment(requestId: string, file: File, tipoAnexo: TipoAnexoOperacional, actor: AppUser) {
   const req = await prisma.operationalRequest.findUnique({ where: { id: requestId } });
   if (!req) throw new AppError("Solicitação não encontrada", 404, "NOT_FOUND");
-  if (actor.perfil === "LOJA" && req.empresa !== actor.empresaVinculada) throw new ForbiddenError();
+  if (actor.perfil === "LOJA" && !empresasFor(actor).includes(req.empresa)) throw new ForbiddenError();
   if (actor.perfil === "LOJA" && req.status === "CONCLUIDA") throw new ForbiddenError("Solicitação concluída não permite novo anexo para LOJA");
   const allowed = ["image/png", "image/jpeg", "image/webp", "application/pdf"];
   if (!allowed.includes(file.type)) throw new AppError("Tipo de arquivo não permitido", 400, "INVALID_FILE_TYPE");

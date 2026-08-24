@@ -3,8 +3,7 @@ import { NextRequest } from "next/server";
 
 const mocks = vi.hoisted(() => ({
   getCurrentApiUser: vi.fn(),
-  createDevolucaoRecebidaTicket: vi.fn(),
-  usuarioEmpresaFindMany: vi.fn()
+  createDevolucaoRecebidaTicket: vi.fn()
 }));
 
 vi.mock("@/lib/auth/session", () => ({
@@ -14,14 +13,6 @@ vi.mock("@/lib/auth/session", () => ({
 vi.mock("@/lib/services/tickets-service", () => ({
   createDevolucaoRecebidaTicket: mocks.createDevolucaoRecebidaTicket,
   RETURN_PHOTOS_MIN_COUNT: 5
-}));
-
-vi.mock("@/lib/db/prisma", () => ({
-  prisma: {
-    usuarioEmpresa: {
-      findMany: mocks.usuarioEmpresaFindMany
-    }
-  }
 }));
 
 import { POST } from "@/app/api/loja/devolucoes/route";
@@ -72,8 +63,12 @@ describe("POST /api/loja/devolucoes", () => {
   });
 
   it("bloqueia empresa fora do vínculo do usuário LOJA", async () => {
-    mocks.getCurrentApiUser.mockResolvedValue({ id: "loja-1", perfil: "LOJA", empresaVinculada: "LESSUL" });
-    mocks.usuarioEmpresaFindMany.mockResolvedValue([{ empresa: "LESSUL" }]);
+    mocks.getCurrentApiUser.mockResolvedValue({
+      id: "loja-1",
+      perfil: "LOJA",
+      empresaVinculada: "LESSUL",
+      empresasVinculadas: ["LESSUL"]
+    });
 
     const response = await POST(
       new NextRequest("http://localhost/api/loja/devolucoes", {
@@ -87,9 +82,13 @@ describe("POST /api/loja/devolucoes", () => {
   });
 
   it("cria o ticket quando o LOJA envia dados válidos com 5+ fotos para uma empresa vinculada", async () => {
-    const user = { id: "loja-1", perfil: "LOJA", empresaVinculada: "LESSUL" };
+    const user = {
+      id: "loja-1",
+      perfil: "LOJA",
+      empresaVinculada: "LESSUL",
+      empresasVinculadas: ["LESSUL", "MODIFIKA"]
+    };
     mocks.getCurrentApiUser.mockResolvedValue(user);
-    mocks.usuarioEmpresaFindMany.mockResolvedValue([{ empresa: "LESSUL" }, { empresa: "MODIFIKA" }]);
     mocks.createDevolucaoRecebidaTicket.mockResolvedValue({ id: "ticket-1" });
 
     const response = await POST(

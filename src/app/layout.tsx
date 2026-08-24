@@ -9,7 +9,6 @@ import { SidebarNav } from "@/components/ui/sidebar-nav";
 import { getCurrentUser } from "@/lib/auth/session";
 import { ServiceUnavailableError, UnauthorizedError } from "@/lib/errors";
 import { hasSupabaseClientEnv } from "@/lib/supabase/config";
-import { prisma } from "@/lib/db/prisma";
 import { hasUnreadOperacionalLoja } from "@/lib/services/operational-requests-service";
 
 async function resolveHasUnreadOperacional(currentUser: NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>) {
@@ -18,20 +17,9 @@ async function resolveHasUnreadOperacional(currentUser: NonNullable<Awaited<Retu
   }
 
   try {
-    let empresasVinculadas: NonNullable<typeof currentUser.empresaVinculada>[] = [];
-
-    if (currentUser.perfil === "LOJA") {
-      const vinculos = await prisma.usuarioEmpresa.findMany({ where: { usuarioId: currentUser.id } });
-      empresasVinculadas = vinculos.length
-        ? vinculos.map((item) => item.empresa)
-        : currentUser.empresaVinculada
-          ? [currentUser.empresaVinculada]
-          : [];
-    }
-
     return await hasUnreadOperacionalLoja({
       perfil: currentUser.perfil,
-      empresasVinculadas,
+      empresasVinculadas: currentUser.perfil === "LOJA" ? currentUser.empresasVinculadas : [],
       visitadoEm: currentUser.operacionalLojaVisitadoEm
     });
   } catch {

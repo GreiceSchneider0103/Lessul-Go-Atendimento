@@ -31,6 +31,18 @@ export function normalizeEmpresas(payload: { empresaVinculada?: unknown; empresa
   return Array.from(empresas);
 }
 
+/**
+ * Resolves the full set of companies a single user is allowed to act on,
+ * merging the UsuarioEmpresa vinculos with the legacy single-company
+ * fallback. This is the source of truth every LOJA-scoped query should use
+ * instead of reading `empresaVinculada` alone, which only ever holds one
+ * (the first) of a multi-company user's companies.
+ */
+export async function resolveEmpresasVinculadas(usuarioId: string, empresaVinculada: Empresa | null): Promise<Empresa[]> {
+  const vinculos = await getUsuarioEmpresas(prisma, [usuarioId]);
+  return vinculos.length ? vinculos.map((item) => item.empresa) : empresaVinculada ? [empresaVinculada] : [];
+}
+
 export async function getUsuarioEmpresas(db: UsuarioEmpresaDb, usuarioIds: string[]) {
   if (usuarioIds.length === 0) {
     return [];

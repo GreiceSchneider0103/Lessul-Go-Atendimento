@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hasPermission } from "../src/lib/rbac/permissions";
+import { getTicketScopeWhere, hasPermission } from "../src/lib/rbac/permissions";
 
 describe("rbac", () => {
   it("atendente não pode exportar relatório", () => {
@@ -22,5 +22,28 @@ describe("rbac", () => {
   it("master herda as permissões de admin", () => {
     expect(hasPermission("MASTER", "user.manage")).toBe(true);
     expect(hasPermission("MASTER", "ticket.soft_delete")).toBe(true);
+  });
+
+  it("loja com múltiplas empresas vinculadas vê tickets de todas elas, não só a principal", () => {
+    const where = getTicketScopeWhere({
+      id: "loja-1",
+      perfil: "LOJA",
+      empresaVinculada: "LESSUL",
+      empresasVinculadas: ["LESSUL", "MODIFIKA"]
+    });
+
+    expect(where).toEqual({ empresa: { in: ["LESSUL", "MODIFIKA"] } });
+  });
+
+  it("loja sem empresasVinculadas cai de volta para o campo legado empresaVinculada", () => {
+    const where = getTicketScopeWhere({ id: "loja-1", perfil: "LOJA", empresaVinculada: "LESSUL" });
+
+    expect(where).toEqual({ empresa: { in: ["LESSUL"] } });
+  });
+
+  it("loja sem nenhuma empresa vinculada não enxerga nenhum ticket (não retorna filtro vazio)", () => {
+    const where = getTicketScopeWhere({ id: "loja-1", perfil: "LOJA", empresaVinculada: null });
+
+    expect(where).toEqual({ empresa: { in: [] } });
   });
 });

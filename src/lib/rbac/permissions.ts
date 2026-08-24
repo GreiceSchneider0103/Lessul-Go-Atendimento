@@ -17,8 +17,20 @@ const matrix: Record<Perfil, Permission[]> = {
 export const hasPermission = (perfil: Perfil, permission: Permission) => matrix[perfil].includes(permission);
 export const assertPermission = (perfil: Perfil, permission: Permission) => { if (!hasPermission(perfil, permission)) throw new ForbiddenError(); };
 
-export function getTicketScopeWhere(user: { id: string; perfil: Perfil; empresaVinculada?: Empresa | null }): Prisma.TicketWhereInput {
-  if (user.perfil === "LOJA") return { empresa: user.empresaVinculada ?? undefined };
+export function getTicketScopeWhere(user: {
+  id: string;
+  perfil: Perfil;
+  empresaVinculada?: Empresa | null;
+  empresasVinculadas?: Empresa[];
+}): Prisma.TicketWhereInput {
+  if (user.perfil === "LOJA") {
+    const empresas = user.empresasVinculadas?.length
+      ? user.empresasVinculadas
+      : user.empresaVinculada
+        ? [user.empresaVinculada]
+        : [];
+    return { empresa: { in: empresas } };
+  }
   if (user.perfil === "ATENDENTE") return { OR: [{ criadoPorId: user.id }, { atualizadoPorId: user.id }, { responsavelId: user.id }] };
   return {};
 }

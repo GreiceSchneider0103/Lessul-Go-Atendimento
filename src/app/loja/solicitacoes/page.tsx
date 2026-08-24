@@ -131,7 +131,7 @@ export default async function LojaSolicitacoesPage({ searchParams }: PageProps) 
   const baseWhere: Prisma.OperationalRequestWhereInput = {
     ticket: { ativo: true },
     ...(user.perfil === "LOJA"
-      ? { empresa: user.empresaVinculada ?? undefined }
+      ? { empresa: { in: user.empresasVinculadas } }
       : empresaFiltro
         ? { empresa: empresaFiltro as Empresa }
         : {})

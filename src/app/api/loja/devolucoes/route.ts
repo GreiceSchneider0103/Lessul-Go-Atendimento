@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentApiUser } from "@/lib/auth/session";
-import { prisma } from "@/lib/db/prisma";
 import { createDevolucaoRecebidaTicket, RETURN_PHOTOS_MIN_COUNT } from "@/lib/services/tickets-service";
 import { AppError, ForbiddenError } from "@/lib/errors";
 import { CANAIS_MARKETPLACE, EMPRESAS, normalizeCanalMarketplace } from "@/config/domains";
@@ -53,14 +52,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: "Dados inválidos", issues: parsed.error.issues }, { status: 422 });
     }
 
-    const vinculos = await prisma.usuarioEmpresa.findMany({ where: { usuarioId: user.id } });
-    const empresasPermitidas = vinculos.length
-      ? vinculos.map((item) => item.empresa)
-      : user.empresaVinculada
-        ? [user.empresaVinculada]
-        : [];
-
-    if (!empresasPermitidas.includes(parsed.data.empresa)) {
+    if (!user.empresasVinculadas.includes(parsed.data.empresa)) {
       throw new ForbiddenError("Empresa não vinculada ao usuário");
     }
 

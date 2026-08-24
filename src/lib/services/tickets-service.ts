@@ -396,9 +396,8 @@ export const RETURN_PHOTOS_MIN_COUNT = 5;
  * not Ticket — directly), attaches the required photos and fires the same
  * internal notification email as updateTicket's DEVOLUCAO_RECEBIDA
  * transition. Runs entirely against rows it just created instead of going
- * through the scope-checked update helpers, since those only trust the
- * user's legacy single empresaVinculada field and could reject a ticket
- * opened for one of the user's other linked companies.
+ * through the scope-checked update helpers, since there's nothing to scope
+ * yet — the ticket and its OperationalRequest are built from scratch here.
  */
 export async function createDevolucaoRecebidaTicket(input: DevolucaoRecebidaInput, files: File[], user: Usuario) {
   if (files.length < RETURN_PHOTOS_MIN_COUNT) {

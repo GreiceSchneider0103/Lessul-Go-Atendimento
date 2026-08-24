@@ -1,7 +1,17 @@
-import { Prisma, Usuario } from "@prisma/client";
+import { Empresa, Prisma, Usuario } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { ForbiddenError, ServiceUnavailableError, UnauthorizedError } from "@/lib/errors";
 import { createSupabaseRouteClient, createSupabaseServerClient } from "@/lib/supabase/server";
+import { resolveEmpresasVinculadas } from "@/lib/services/users-service";
+
+/**
+ * Usuario enriched with the full list of companies the user is allowed to
+ * act on (via UsuarioEmpresa, falling back to the legacy single
+ * empresaVinculada). Empty for non-LOJA profiles, which aren't scoped by
+ * company. Every RBAC scope check for LOJA should read `empresasVinculadas`
+ * instead of the single legacy field.
+ */
+export type AuthenticatedUser = Usuario & { empresasVinculadas: Empresa[] };
 
 const AUTH_TIMEOUT_MS = Number(process.env.AUTH_TIMEOUT_MS ?? 8000);
 
@@ -38,7 +48,7 @@ function mapDatabaseAuthError(error: unknown): never {
   throw error;
 }
 
-async function getAppUserByAuthId(authUserId: string): Promise<Usuario> {
+async function getAppUserByAuthId(authUserId: string): Promise<AuthenticatedUser> {
   try {
     const appUser = await withTimeout(
       prisma.usuario.findUnique({ where: { authUserId } }),
@@ -48,7 +58,11 @@ async function getAppUserByAuthId(authUserId: string): Promise<Usuario> {
 
     if (!appUser) throw new ForbiddenError("Usuário não provisionado no sistema");
     if (!appUser.ativo) throw new ForbiddenError("Usuário inativo");
-    return appUser;
+
+    const empresasVinculadas =
+      appUser.perfil === "LOJA" ? await resolveEmpresasVinculadas(appUser.id, appUser.empresaVinculada) : [];
+
+    return { ...appUser, empresasVinculadas };
   } catch (error) {
     mapDatabaseAuthError(error);
   }
