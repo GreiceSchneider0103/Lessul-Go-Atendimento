@@ -24,6 +24,7 @@ model Usuario {
   auditoriasComoAlvo      UsuarioAuditoria[]             @relation("usuario_auditoria_alvo")
   auditoriasComoAtor      UsuarioAuditoria[]             @relation("usuario_auditoria_ator")
   empresaVinculada        Empresa?
+  operacionalLojaVisitadoEm DateTime?                    @map("operacional_loja_visitado_em")
   operacionaisCriadas     OperationalRequest[]           @relation("operacionais_criadas")
   operacionaisAtualizadas OperationalRequest[]           @relation("operacionais_atualizadas")
   anexosOperacionais      OperationalRequestAttachment[] @relation("anexos_operacionais_usuario")

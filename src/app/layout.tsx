@@ -9,6 +9,35 @@ import { SidebarNav } from "@/components/ui/sidebar-nav";
 import { getCurrentUser } from "@/lib/auth/session";
 import { ServiceUnavailableError, UnauthorizedError } from "@/lib/errors";
 import { hasSupabaseClientEnv } from "@/lib/supabase/config";
+import { prisma } from "@/lib/db/prisma";
+import { hasUnreadOperacionalLoja } from "@/lib/services/operational-requests-service";
+
+async function resolveHasUnreadOperacional(currentUser: NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>) {
+  if (currentUser.perfil !== "LOJA" && currentUser.perfil !== "ADMIN" && currentUser.perfil !== "MASTER") {
+    return false;
+  }
+
+  try {
+    let empresasVinculadas: NonNullable<typeof currentUser.empresaVinculada>[] = [];
+
+    if (currentUser.perfil === "LOJA") {
+      const vinculos = await prisma.usuarioEmpresa.findMany({ where: { usuarioId: currentUser.id } });
+      empresasVinculadas = vinculos.length
+        ? vinculos.map((item) => item.empresa)
+        : currentUser.empresaVinculada
+          ? [currentUser.empresaVinculada]
+          : [];
+    }
+
+    return await hasUnreadOperacionalLoja({
+      perfil: currentUser.perfil,
+      empresasVinculadas,
+      visitadoEm: currentUser.operacionalLojaVisitadoEm
+    });
+  } catch {
+    return false;
+  }
+}
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 
@@ -55,6 +84,8 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     }
   }
 
+  const hasUnreadOperacional = currentUser ? await resolveHasUnreadOperacional(currentUser) : false;
+
   if (!currentUser) {
     return (
       <html lang="pt-BR" className={inter.variable}>
@@ -87,7 +118,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
                 </div>
                 <span className="brand">GO Atendimento</span>
               </div>
-              <SidebarNav perfil={currentUser.perfil} />
+              <SidebarNav perfil={currentUser.perfil} hasUnreadOperacional={hasUnreadOperacional} />
             </div>
             <div className="header-right">
               <div className="user-chip">

@@ -1,4 +1,4 @@
-import { Prisma, Perfil, StatusOperacional, TipoAcaoOperacional, TipoAnexoOperacional } from "@prisma/client";
+import { Prisma, Perfil, Empresa, StatusOperacional, TipoAcaoOperacional, TipoAnexoOperacional } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { AppError, ForbiddenError } from "@/lib/errors";
 import { registerTicketAudit } from "@/lib/audit/ticket-audit";
@@ -7,7 +7,52 @@ import { createSupabaseRouteClient } from "@/lib/supabase/server";
 import { logError } from "@/lib/logger";
 import { getAppBaseUrl } from "@/lib/supabase/config";
 
-type AppUser = { id: string; perfil: Perfil; empresaVinculada: import("@prisma/client").Empresa | null; email?: string; nome?: string };
+type AppUser = { id: string; perfil: Perfil; empresaVinculada: Empresa | null; email?: string; nome?: string };
+
+/**
+ * Powers the Operacional Loja nav dot: true when "the other side" (loja vs.
+ * atendimento/admin) touched an active operational request since this
+ * user's last visit to the page.
+ */
+export async function hasUnreadOperacionalLoja(params: {
+  perfil: Perfil;
+  empresasVinculadas: Empresa[];
+  visitadoEm: Date | null;
+}) {
+  const since = params.visitadoEm ?? new Date(0);
+
+  if (params.perfil === "LOJA") {
+    if (params.empresasVinculadas.length === 0) return false;
+
+    const count = await prisma.operationalRequest.count({
+      where: {
+        empresa: { in: params.empresasVinculadas },
+        ticket: { ativo: true },
+        updatedAt: { gt: since },
+        atualizador: { perfil: { not: "LOJA" } }
+      }
+    });
+
+    return count > 0;
+  }
+
+  const count = await prisma.operationalRequest.count({
+    where: {
+      ticket: { ativo: true },
+      updatedAt: { gt: since },
+      atualizador: { perfil: "LOJA" }
+    }
+  });
+
+  return count > 0;
+}
+
+export async function markOperacionalLojaVisitado(userId: string) {
+  await prisma.usuario.update({
+    where: { id: userId },
+    data: { operacionalLojaVisitadoEm: new Date() }
+  });
+}
 
 
 
