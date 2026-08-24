@@ -4,7 +4,6 @@ import { CANAIS_MARKETPLACE, EMPRESAS } from "@/config/domains";
 import { ticketFiltersSchema } from "@/lib/validation/ticket";
 import { getDashboardData } from "@/lib/services/dashboard-service";
 import { formatCurrencyBR, formatEnumLabel } from "@/lib/formatters/display";
-import { redirect } from "next/navigation";
 import { Layers, AlertTriangle, Clock, Wallet, Banknote, PackageCheck, type LucideIcon } from "lucide-react";
 
 function getCurrentMonthRange() {
@@ -35,7 +34,7 @@ const cardConfig: Record<string, { label: string; icon: LucideIcon; danger?: boo
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const user = await requireCurrentUser();
-  if (user.perfil === "LOJA") redirect("/loja/solicitacoes");
+  const empresaOptions = user.perfil === "LOJA" ? user.empresasVinculadas : EMPRESAS;
   const query = await searchParams;
   const monthRange = getCurrentMonthRange();
   const normalizedQuery: Record<string, string | undefined> = {
@@ -62,7 +61,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         <div className="min-w-[150px] flex-1">
           <select name="empresa" defaultValue={normalizedQuery.empresa ?? ""}>
             <option value="">Todas as empresas</option>
-            {EMPRESAS.map((item) => <option key={item} value={item}>{formatEnumLabel(item)}</option>)}
+            {empresaOptions.map((item) => <option key={item} value={item}>{formatEnumLabel(item)}</option>)}
           </select>
         </div>
         <div className="min-w-[150px] flex-1">

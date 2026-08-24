@@ -231,7 +231,7 @@ export async function listTickets(
 ) {
   const where: Prisma.TicketWhereInput = {
     ativo: true,
-    ...getTicketScopeWhere(user),
+    AND: [getTicketScopeWhere(user)],
 
     ...(query.search
       ? {

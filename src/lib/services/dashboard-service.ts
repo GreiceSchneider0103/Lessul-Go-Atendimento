@@ -18,7 +18,7 @@ export async function getDashboardData(filters: DashboardFilters, user: { id: st
 
   const baseWhere: Prisma.TicketWhereInput = {
     ativo: true,
-    ...getTicketScopeWhere(user),
+    AND: [getTicketScopeWhere(user)],
     ...(filters.empresa ? { empresa: filters.empresa } : {}),
     ...(filters.canalMarketplace ? { canalMarketplace: filters.canalMarketplace } : {}),
     ...(filters.statusTicket ? { statusTicket: filters.statusTicket } : {}),

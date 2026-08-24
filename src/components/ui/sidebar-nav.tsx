@@ -7,7 +7,10 @@ import { LayoutDashboard, Ticket, BarChart3, Settings, Shield, Store, type Lucid
 type NavItem = { label: string; href: Route; icon: LucideIcon };
 
 const navByPerfil: Record<string, NavItem[]> = {
-  LOJA: [{ label: "Operacional Loja", href: "/loja/solicitacoes", icon: Store }],
+  LOJA: [
+    { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    { label: "Operacional Loja", href: "/loja/solicitacoes", icon: Store }
+  ],
   ADMIN: [
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { label: "Tickets", href: "/tickets", icon: Ticket },

@@ -16,7 +16,7 @@ function getDateRange(startDate?: string, endDate?: string) {
 export async function getReportsData(filters: ReportFilters, user: { id: string; perfil: Perfil }) {
   const where: Prisma.TicketWhereInput = {
     ativo: true,
-    ...getTicketScopeWhere(user),
+    AND: [getTicketScopeWhere(user)],
     ...(filters.empresa ? { empresa: filters.empresa } : {}),
     ...(filters.canalMarketplace ? { canalMarketplace: filters.canalMarketplace } : {}),
     ...(filters.statusTicket ? { statusTicket: filters.statusTicket } : {}),

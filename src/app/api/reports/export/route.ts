@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import * as XLSX from "xlsx";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { getCurrentApiUser } from "@/lib/auth/session";
 import { assertPermission, getTicketScopeWhere } from "@/lib/rbac/permissions";
@@ -15,9 +16,9 @@ export async function GET(request: NextRequest) {
     const format = params.format ?? "csv";
     const parsed = ticketFiltersSchema.partial().parse(params);
 
-    const where = {
+    const where: Prisma.TicketWhereInput = {
       ativo: true,
-      ...getTicketScopeWhere(user),
+      AND: [getTicketScopeWhere(user)],
       ...(parsed.empresa ? { empresa: parsed.empresa } : {}),
       ...(parsed.canalMarketplace ? { canalMarketplace: parsed.canalMarketplace } : {}),
       ...(parsed.statusTicket ? { statusTicket: parsed.statusTicket } : {}),
