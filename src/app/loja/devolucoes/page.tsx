@@ -25,7 +25,7 @@ export default async function DevolucaoRecebidaPage() {
   return (
     <section className="page">
       <div className="page-header">
-        <h1>Devolução recebida sem ticket</h1>
+        <h1>Devolução recebida</h1>
         <p className="muted">
           Use este formulário quando um produto de devolução chegar na loja sem um ticket de atendimento já aberto
           (por exemplo, quando o cliente devolveu direto pelo marketplace). Ao enviar, o time interno é notificado

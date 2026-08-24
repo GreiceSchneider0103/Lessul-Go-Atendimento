@@ -376,6 +376,7 @@ export async function createTicket(input: TicketInput, userId: string) {
 export type DevolucaoRecebidaInput = {
   nomeCliente: string;
   numeroVenda: string;
+  dataRecebimento: string;
   canalMarketplace: CanalMarketplace;
   empresa: Empresa;
   produto: string;
@@ -414,13 +415,13 @@ export async function createDevolucaoRecebidaTicket(input: DevolucaoRecebidaInpu
     }
   }
 
-  const now = new Date();
-  const prazoConclusao = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const dataRecebimento = new Date(input.dataRecebimento);
+  const prazoConclusao = new Date(dataRecebimento.getTime() + 7 * 24 * 60 * 60 * 1000);
 
   const ticket = await prisma.ticket.create({
     data: {
       nomeCliente: input.nomeCliente,
-      dataCompra: now,
+      dataCompra: dataRecebimento,
       numeroVenda: input.numeroVenda,
       uf: "XX",
       cpf: "00000000000",
@@ -429,9 +430,9 @@ export async function createDevolucaoRecebidaTicket(input: DevolucaoRecebidaInpu
       produto: input.produto,
       sku: input.sku,
       statusReclamacao: "NAO_AFETANDO",
-      dataReclamacao: now,
-      mesReclamacao: now.getUTCMonth() + 1,
-      anoReclamacao: now.getUTCFullYear(),
+      dataReclamacao: dataRecebimento,
+      mesReclamacao: dataRecebimento.getUTCMonth() + 1,
+      anoReclamacao: dataRecebimento.getUTCFullYear(),
       motivo: "PROBLEMA",
       detalhesCliente:
         "Devolução recebida pela loja sem ticket de atendimento prévio — aberto diretamente pela loja para cobrança ao marketplace.",
@@ -465,7 +466,9 @@ export async function createDevolucaoRecebidaTicket(input: DevolucaoRecebidaInpu
   });
 
   const supabase = createSupabaseAdmin();
-  const bucket = "operational-attachments";
+  // Reuses the ticket-anexos bucket (already provisioned in production) instead
+  // of operational-attachments, which isn't set up there.
+  const bucket = "ticket-anexos";
 
   for (const file of files) {
     const safeFileName = getSafeFileName(file.name);
@@ -485,7 +488,7 @@ export async function createDevolucaoRecebidaTicket(input: DevolucaoRecebidaInpu
       });
 
       if (uploadError.message.toLowerCase().includes("not found")) {
-        throw new AppError("Bucket operational-attachments não encontrado", 500, "STORAGE_BUCKET_NOT_FOUND");
+        throw new AppError("Bucket ticket-anexos não encontrado", 500, "STORAGE_BUCKET_NOT_FOUND");
       }
 
       throw new AppError(
@@ -533,6 +536,7 @@ export async function createDevolucaoRecebidaTicket(input: DevolucaoRecebidaInpu
       `Pedido: ${ticket.numeroVenda}\n` +
       `Empresa: ${ticket.empresa}\n` +
       `Marketplace: ${ticket.canalMarketplace}\n` +
+      `Data do recebimento: ${dataRecebimento.toISOString().slice(0, 10)}\n` +
       `Fotos anexadas: ${files.length}\n\n` +
       `Acesse o ticket: ${process.env.APP_BASE_URL ?? ""}/tickets/${ticket.id}`
   });
