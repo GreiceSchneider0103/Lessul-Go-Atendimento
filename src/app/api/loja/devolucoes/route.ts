@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentApiUser } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
-import { createDevolucaoRecebidaTicket } from "@/lib/services/tickets-service";
+import { createDevolucaoRecebidaTicket, RETURN_PHOTOS_MIN_COUNT } from "@/lib/services/tickets-service";
 import { AppError, ForbiddenError } from "@/lib/errors";
 import { CANAIS_MARKETPLACE, EMPRESAS, normalizeCanalMarketplace } from "@/config/domains";
 
@@ -27,10 +27,13 @@ export async function POST(req: NextRequest) {
     }
 
     const formData = await req.formData();
-    const file = formData.get("file");
+    const files = formData.getAll("files").filter((item): item is File => item instanceof File);
 
-    if (!file || !(file instanceof File)) {
-      return NextResponse.json({ message: "Anexe uma foto do produto recebido" }, { status: 400 });
+    if (files.length < RETURN_PHOTOS_MIN_COUNT) {
+      return NextResponse.json(
+        { message: `Anexe pelo menos ${RETURN_PHOTOS_MIN_COUNT} fotos do produto recebido` },
+        { status: 400 }
+      );
     }
 
     const parsed = schema.safeParse({
@@ -57,7 +60,7 @@ export async function POST(req: NextRequest) {
       throw new ForbiddenError("Empresa não vinculada ao usuário");
     }
 
-    const ticket = await createDevolucaoRecebidaTicket(parsed.data, file, user);
+    const ticket = await createDevolucaoRecebidaTicket(parsed.data, files, user);
 
     return NextResponse.json({ data: { id: ticket.id } }, { status: 201 });
   } catch (error: any) {

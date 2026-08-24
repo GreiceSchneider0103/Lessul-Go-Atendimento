@@ -12,7 +12,8 @@ vi.mock("@/lib/auth/session", () => ({
 }));
 
 vi.mock("@/lib/services/tickets-service", () => ({
-  createDevolucaoRecebidaTicket: mocks.createDevolucaoRecebidaTicket
+  createDevolucaoRecebidaTicket: mocks.createDevolucaoRecebidaTicket,
+  RETURN_PHOTOS_MIN_COUNT: 5
 }));
 
 vi.mock("@/lib/db/prisma", () => ({
@@ -25,7 +26,7 @@ vi.mock("@/lib/db/prisma", () => ({
 
 import { POST } from "@/app/api/loja/devolucoes/route";
 
-function buildFormData(overrides: Record<string, string> = {}, includeFile = true) {
+function buildFormData(overrides: Record<string, string> = {}, fileCount = 5) {
   const formData = new FormData();
   formData.set("nomeCliente", overrides.nomeCliente ?? "Cliente Teste");
   formData.set("numeroVenda", overrides.numeroVenda ?? "12345678");
@@ -34,8 +35,8 @@ function buildFormData(overrides: Record<string, string> = {}, includeFile = tru
   formData.set("produto", overrides.produto ?? "Cadeira");
   formData.set("sku", overrides.sku ?? "SKU-1");
 
-  if (includeFile) {
-    formData.set("file", new File(["foto"], "foto.png", { type: "image/png" }));
+  for (let index = 0; index < fileCount; index += 1) {
+    formData.append("files", new File(["foto"], `foto-${index}.png`, { type: "image/png" }));
   }
 
   return formData;
@@ -55,13 +56,13 @@ describe("POST /api/loja/devolucoes", () => {
     expect(mocks.createDevolucaoRecebidaTicket).not.toHaveBeenCalled();
   });
 
-  it("exige a foto do produto recebido", async () => {
+  it("exige pelo menos 5 fotos do produto recebido", async () => {
     mocks.getCurrentApiUser.mockResolvedValue({ id: "loja-1", perfil: "LOJA" });
 
     const response = await POST(
       new NextRequest("http://localhost/api/loja/devolucoes", {
         method: "POST",
-        body: buildFormData({}, false)
+        body: buildFormData({}, 3)
       })
     );
 
@@ -84,7 +85,7 @@ describe("POST /api/loja/devolucoes", () => {
     expect(mocks.createDevolucaoRecebidaTicket).not.toHaveBeenCalled();
   });
 
-  it("cria o ticket quando o LOJA envia dados válidos para uma empresa vinculada", async () => {
+  it("cria o ticket quando o LOJA envia dados válidos com 5+ fotos para uma empresa vinculada", async () => {
     const user = { id: "loja-1", perfil: "LOJA", empresaVinculada: "LESSUL" };
     mocks.getCurrentApiUser.mockResolvedValue(user);
     mocks.usuarioEmpresaFindMany.mockResolvedValue([{ empresa: "LESSUL" }, { empresa: "MODIFIKA" }]);
@@ -93,15 +94,16 @@ describe("POST /api/loja/devolucoes", () => {
     const response = await POST(
       new NextRequest("http://localhost/api/loja/devolucoes", {
         method: "POST",
-        body: buildFormData({ empresa: "MODIFIKA" })
+        body: buildFormData({ empresa: "MODIFIKA" }, 7)
       })
     );
 
     expect(response.status).toBe(201);
     expect(mocks.createDevolucaoRecebidaTicket).toHaveBeenCalledTimes(1);
-    const [inputArg, fileArg, userArg] = mocks.createDevolucaoRecebidaTicket.mock.calls[0];
+    const [inputArg, filesArg, userArg] = mocks.createDevolucaoRecebidaTicket.mock.calls[0];
     expect(inputArg.empresa).toBe("MODIFIKA");
-    expect(fileArg).toBeInstanceOf(File);
+    expect(filesArg).toHaveLength(7);
+    expect(filesArg[0]).toBeInstanceOf(File);
     expect(userArg).toBe(user);
   });
 });

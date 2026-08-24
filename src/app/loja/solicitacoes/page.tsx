@@ -1,4 +1,4 @@
-import { StatusOperacional, Empresa, Prisma, StatusOperacionalLoja } from "@prisma/client";
+import { StatusOperacional, Empresa, Prisma, StatusOperacionalLoja, TipoAcaoOperacional } from "@prisma/client";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -13,10 +13,16 @@ type PageProps = {
   searchParams: Promise<{
     empresa?: string;
     status?: string;
+    categoria?: string;
   }>;
 };
 
 type EmpresaValue = (typeof EMPRESAS)[number];
+
+const CATEGORIA_TIPO_ACAO: Record<string, TipoAcaoOperacional[]> = {
+  assistencia_coleta: ["ASSISTENCIA", "COLETA"],
+  devolucoes: ["DEVOLUCAO", "REEMBOLSO"]
+};
 
 type OperationalRequestWithTicket = {
   id: string;
@@ -31,6 +37,12 @@ type OperationalRequestWithTicket = {
   codigoRastreio: string | null;
   valorReembolso: unknown;
   valorColetaEnvioPecas: unknown;
+  anexos: Array<{
+    id: string;
+    fileUrl: string | null;
+    fileName: string;
+    mimeType: string | null;
+  }>;
   ticket: {
     nomeCliente: string;
     numeroVenda: string;
@@ -110,6 +122,7 @@ export default async function LojaSolicitacoesPage({ searchParams }: PageProps) 
   const params = await searchParams;
   const empresaFiltro = isEmpresa(params.empresa) ? params.empresa : undefined;
   const statusFiltro = isStatusOperacional(params.status) ? params.status : undefined;
+  const categoriaFiltro = params.categoria && CATEGORIA_TIPO_ACAO[params.categoria] ? params.categoria : undefined;
 
   const baseWhere: Prisma.OperationalRequestWhereInput = {
     ticket: { ativo: true },
@@ -120,19 +133,27 @@ export default async function LojaSolicitacoesPage({ searchParams }: PageProps) 
         : {})
   };
 
-  let where: Prisma.OperationalRequestWhereInput = { ...baseWhere };
+  const conditions: Prisma.OperationalRequestWhereInput[] = [baseWhere];
 
   if (statusFiltro) {
     // quando filtrar por status, considerar tanto o status da request quanto o status operacional armazenado no ticket
-    where = {
-      ...baseWhere,
-      OR: [{ status: statusFiltro }, { ticket: { statusOperacionalLoja: statusFiltro } }]
-    };
+    conditions.push({ OR: [{ status: statusFiltro }, { ticket: { statusOperacionalLoja: statusFiltro } }] });
   }
+
+  if (categoriaFiltro) {
+    const tipos = CATEGORIA_TIPO_ACAO[categoriaFiltro];
+    conditions.push({ OR: [{ tipoAcao: { in: tipos } }, { ticket: { acaoOperacionalLoja: { in: tipos } } }] });
+  }
+
+  const where: Prisma.OperationalRequestWhereInput = conditions.length > 1 ? { AND: conditions } : conditions[0];
 
   const data = (await prisma.operationalRequest.findMany({
     where,
     include: {
+      anexos: {
+        orderBy: { uploadedAt: "asc" },
+        select: { id: true, fileUrl: true, fileName: true, mimeType: true }
+      },
       ticket: {
         select: {
           nomeCliente: true,
@@ -199,7 +220,8 @@ export default async function LojaSolicitacoesPage({ searchParams }: PageProps) 
             filePath: row.ticket.anexoPath ?? null,
             mimeType: row.ticket.anexoMimeType ?? null
           }
-        : undefined
+        : undefined,
+      anexos: row.anexos
     };
   });
   // Definir status para as novas regras dos cards
@@ -228,6 +250,21 @@ export default async function LojaSolicitacoesPage({ searchParams }: PageProps) 
     ? mappedData.filter((item) => item.status === statusFiltro)
     : mappedData.filter((item) => !finalizedStatuses.includes(item.status));
 
+  const categoriaTabs: Array<{ key?: string; label: string }> = [
+    { key: undefined, label: "Todas" },
+    { key: "assistencia_coleta", label: "Assistências e coletas" },
+    { key: "devolucoes", label: "Devoluções" }
+  ];
+
+  function buildCategoriaHref(categoria?: string) {
+    const query = new URLSearchParams();
+    if (empresaFiltro) query.set("empresa", empresaFiltro);
+    if (statusFiltro) query.set("status", statusFiltro);
+    if (categoria) query.set("categoria", categoria);
+    const queryString = query.toString();
+    return `/loja/solicitacoes${queryString ? `?${queryString}` : ""}`;
+  }
+
   return (
     <section className="page">
       <div className="page-header flex flex-wrap items-center justify-between gap-3">
@@ -244,8 +281,22 @@ export default async function LojaSolicitacoesPage({ searchParams }: PageProps) 
         ) : null}
       </div>
 
+      <nav className="tabs" aria-label="Categoria">
+        {categoriaTabs.map((tab) => (
+          <a
+            key={tab.key ?? "todas"}
+            href={buildCategoriaHref(tab.key)}
+            className={`tab-item ${categoriaFiltro === tab.key || (!categoriaFiltro && !tab.key) ? "active" : ""}`}
+          >
+            {tab.label}
+          </a>
+        ))}
+      </nav>
+
       <div className="panel">
         <form action="/loja/solicitacoes" method="get" className="flex flex-wrap items-end gap-4">
+          <input type="hidden" name="categoria" value={categoriaFiltro ?? ""} />
+
           {user.perfil !== "LOJA" ? (
             <label className="min-w-[220px]">
               Empresa
