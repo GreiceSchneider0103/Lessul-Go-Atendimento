@@ -1,72 +1,16 @@
--- Simplifies the operational status list from 14 down to 11 values (10
--- selectable + the EM_ABERTO default), per updated requirements. Backfills
--- existing rows away from the 5 values being dropped, mapping each to the
--- closest surviving state, before recreating both enum types with the final
--- value set (Postgres has no direct "DROP VALUE" for enums).
+-- Split from the original single-file migration: adding a new value to a
+-- Postgres enum cannot be used within the same transaction it was added in,
+-- so it has to land, committed, before the migration that backfills rows
+-- onto it (20260824171000_simplify_status_operacional_backfill).
 --
--- Mapping for removed values:
---   ASSISTENCIA_A_CAMINHO -> ASSISTENCIA_ENVIADA (in-transit tracking dropped)
---   ASSISTENCIA_ENTREGUE  -> CONCLUIDA (delivery already meant "done")
---   DEVOLUCAO_SOLICITADA  -> EM_ABERTO (no more granular pre-receipt tracking)
---   DEVOLUCAO_A_CAMINHO   -> EM_ABERTO
---   DEVOLUCAO_REALIZADA   -> CONCLUIDA (already meant the return was finished)
---
--- New values added: ENVIAR_ASSISTENCIA, COLETAR (explicit "not started yet"
--- states for the assistência/coleta flows, replacing the generic EM_ABERTO
--- default in that context).
-
-UPDATE "Ticket" SET "statusOperacionalLoja" = 'ASSISTENCIA_ENVIADA' WHERE "statusOperacionalLoja" = 'ASSISTENCIA_A_CAMINHO';
-UPDATE "Ticket" SET "statusOperacionalLoja" = 'CONCLUIDA' WHERE "statusOperacionalLoja" = 'ASSISTENCIA_ENTREGUE';
-UPDATE "Ticket" SET "statusOperacionalLoja" = 'EM_ABERTO' WHERE "statusOperacionalLoja" IN ('DEVOLUCAO_SOLICITADA', 'DEVOLUCAO_A_CAMINHO');
-UPDATE "Ticket" SET "statusOperacionalLoja" = 'CONCLUIDA' WHERE "statusOperacionalLoja" = 'DEVOLUCAO_REALIZADA';
-
-UPDATE "OperationalRequest" SET "status" = 'ASSISTENCIA_ENVIADA' WHERE "status" = 'ASSISTENCIA_A_CAMINHO';
-UPDATE "OperationalRequest" SET "status" = 'CONCLUIDA' WHERE "status" = 'ASSISTENCIA_ENTREGUE';
-UPDATE "OperationalRequest" SET "status" = 'EM_ABERTO' WHERE "status" IN ('DEVOLUCAO_SOLICITADA', 'DEVOLUCAO_A_CAMINHO');
-UPDATE "OperationalRequest" SET "status" = 'CONCLUIDA' WHERE "status" = 'DEVOLUCAO_REALIZADA';
-
--- Recreate StatusOperacionalLoja (used by Ticket.statusOperacionalLoja).
-ALTER TYPE "StatusOperacionalLoja" RENAME TO "StatusOperacionalLoja_old";
-
-CREATE TYPE "StatusOperacionalLoja" AS ENUM (
-  'EM_ABERTO',
-  'ENVIAR_ASSISTENCIA',
-  'ASSISTENCIA_ENVIADA',
-  'COLETAR',
-  'COLETA_SOLICITADA',
-  'COLETA_FEITA',
-  'DEVOLUCAO_RECEBIDA',
-  'REEMBOLSO_PENDENTE',
-  'REEMBOLSO_REALIZADO',
-  'AGUARDANDO_ATENDENTE',
-  'CONCLUIDA'
-);
-
-ALTER TABLE "Ticket" ALTER COLUMN "statusOperacionalLoja" DROP DEFAULT;
-ALTER TABLE "Ticket" ALTER COLUMN "statusOperacionalLoja" TYPE "StatusOperacionalLoja" USING ("statusOperacionalLoja"::text::"StatusOperacionalLoja");
-ALTER TABLE "Ticket" ALTER COLUMN "statusOperacionalLoja" SET DEFAULT 'EM_ABERTO';
-
-DROP TYPE "StatusOperacionalLoja_old";
-
--- Recreate StatusOperacional (used by OperationalRequest.status) the same way.
-ALTER TYPE "StatusOperacional" RENAME TO "StatusOperacional_old";
-
-CREATE TYPE "StatusOperacional" AS ENUM (
-  'EM_ABERTO',
-  'ENVIAR_ASSISTENCIA',
-  'ASSISTENCIA_ENVIADA',
-  'COLETAR',
-  'COLETA_SOLICITADA',
-  'COLETA_FEITA',
-  'DEVOLUCAO_RECEBIDA',
-  'REEMBOLSO_PENDENTE',
-  'REEMBOLSO_REALIZADO',
-  'AGUARDANDO_ATENDENTE',
-  'CONCLUIDA'
-);
-
-ALTER TABLE "OperationalRequest" ALTER COLUMN "status" DROP DEFAULT;
-ALTER TABLE "OperationalRequest" ALTER COLUMN "status" TYPE "StatusOperacional" USING ("status"::text::"StatusOperacional");
-ALTER TABLE "OperationalRequest" ALTER COLUMN "status" SET DEFAULT 'EM_ABERTO';
-
-DROP TYPE "StatusOperacional_old";
+-- StatusOperacionalLoja (Ticket.statusOperacionalLoja) has included both
+-- 'ASSISTENCIA_ENVIADA' and 'DEVOLUCAO_A_CAMINHO' since it was created.
+-- StatusOperacional (OperationalRequest.status) never had either one — the
+-- first is what made the original migration fail on production with
+-- "invalid input value for enum StatusOperacional: ASSISTENCIA_ENVIADA",
+-- and the second fails the same way one statement later (the backfill's
+-- `WHERE "status" IN ('DEVOLUCAO_SOLICITADA', 'DEVOLUCAO_A_CAMINHO')` needs
+-- both literals to parse as the enum type even though no OperationalRequest
+-- row can already hold the value that was never a member).
+ALTER TYPE "StatusOperacional" ADD VALUE IF NOT EXISTS 'ASSISTENCIA_ENVIADA';
+ALTER TYPE "StatusOperacional" ADD VALUE IF NOT EXISTS 'DEVOLUCAO_A_CAMINHO';
