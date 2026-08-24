@@ -608,7 +608,7 @@ export async function updateTicket(id: string, rawPayload: Partial<TicketInput>,
 
   const shouldCloseTicket =
     payload.statusOperacionalLoja === "REEMBOLSO_REALIZADO" ||
-    payload.statusOperacionalLoja === "ASSISTENCIA_ENTREGUE";
+    payload.statusOperacionalLoja === "CONCLUIDA";
 
   const resolvedStatusTicket = shouldCloseTicket ? "CONCLUIDO" : payload.statusTicket ?? before.statusTicket;
 

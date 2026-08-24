@@ -36,7 +36,7 @@ type Row = {
   anexos: Array<{ id: string; fileUrl: string | null; fileName: string; mimeType: string | null }>;
 };
 
-const statusOptions = ["EM_ABERTO","ASSISTENCIA_ENVIADA","ASSISTENCIA_A_CAMINHO","ASSISTENCIA_ENTREGUE","COLETA_SOLICITADA","COLETA_FEITA","DEVOLUCAO_SOLICITADA","DEVOLUCAO_A_CAMINHO","DEVOLUCAO_RECEBIDA","DEVOLUCAO_REALIZADA","REEMBOLSO_PENDENTE","REEMBOLSO_REALIZADO","AGUARDANDO_ATENDENTE","CONCLUIDA"];
+const statusOptions = ["EM_ABERTO","ENVIAR_ASSISTENCIA","ASSISTENCIA_ENVIADA","COLETAR","COLETA_SOLICITADA","COLETA_FEITA","DEVOLUCAO_RECEBIDA","REEMBOLSO_PENDENTE","REEMBOLSO_REALIZADO","AGUARDANDO_ATENDENTE","CONCLUIDA"];
 const resolucoesOptions = ["ASSISTENCIA", "DEVOLUCAO", "REEMBOLSO", "RESOLVIDO"];
 const acoesOptions = ["NENHUMA", "ASSISTENCIA", "COLETA", "DEVOLUCAO", "REEMBOLSO"];
 
@@ -125,8 +125,8 @@ export function OperationalRequestsPanel({ data, perfil }: { data: Row[]; perfil
       const fd = new FormData(e.currentTarget);
       const payload = Object.fromEntries(fd.entries());
       
-      // Objetivo 2: Concluir ticket automaticamente se statusOperacionalLoja for REEMBOLSO_REALIZADO ou ASSISTENCIA_ENTREGUE
-      if (payload.statusOperacionalLoja === "REEMBOLSO_REALIZADO" || payload.statusOperacionalLoja === "ASSISTENCIA_ENTREGUE") {
+      // Concluir ticket automaticamente se statusOperacionalLoja for REEMBOLSO_REALIZADO ou CONCLUIDA
+      if (payload.statusOperacionalLoja === "REEMBOLSO_REALIZADO" || payload.statusOperacionalLoja === "CONCLUIDA") {
         payload.statusTicket = "CONCLUIDO";
       }
 

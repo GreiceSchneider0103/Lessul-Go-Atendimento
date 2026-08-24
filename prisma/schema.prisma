@@ -24,6 +24,7 @@ model Usuario {
   auditoriasComoAlvo      UsuarioAuditoria[]             @relation("usuario_auditoria_alvo")
   auditoriasComoAtor      UsuarioAuditoria[]             @relation("usuario_auditoria_ator")
   empresaVinculada        Empresa?
+  operacionalLojaVisitadoEm DateTime?                    @map("operacional_loja_visitado_em")
   operacionaisCriadas     OperationalRequest[]           @relation("operacionais_criadas")
   operacionaisAtualizadas OperationalRequest[]           @relation("operacionais_atualizadas")
   anexosOperacionais      OperationalRequestAttachment[] @relation("anexos_operacionais_usuario")
@@ -200,15 +201,12 @@ enum AcaoOperacionalLoja {
 
 enum StatusOperacionalLoja {
   EM_ABERTO
+  ENVIAR_ASSISTENCIA
   ASSISTENCIA_ENVIADA
-  ASSISTENCIA_A_CAMINHO
-  ASSISTENCIA_ENTREGUE
+  COLETAR
   COLETA_SOLICITADA
   COLETA_FEITA
-  DEVOLUCAO_SOLICITADA
-  DEVOLUCAO_A_CAMINHO
   DEVOLUCAO_RECEBIDA
-  DEVOLUCAO_REALIZADA
   REEMBOLSO_PENDENTE
   REEMBOLSO_REALIZADO
   AGUARDANDO_ATENDENTE
@@ -224,15 +222,12 @@ enum TipoAcaoOperacional {
 
 enum StatusOperacional {
   EM_ABERTO
+  ENVIAR_ASSISTENCIA
   ASSISTENCIA_ENVIADA
-  ASSISTENCIA_A_CAMINHO
-  ASSISTENCIA_ENTREGUE
+  COLETAR
   COLETA_SOLICITADA
   COLETA_FEITA
-  DEVOLUCAO_SOLICITADA
-  DEVOLUCAO_A_CAMINHO
   DEVOLUCAO_RECEBIDA
-  DEVOLUCAO_REALIZADA
   REEMBOLSO_PENDENTE
   REEMBOLSO_REALIZADO
   AGUARDANDO_ATENDENTE

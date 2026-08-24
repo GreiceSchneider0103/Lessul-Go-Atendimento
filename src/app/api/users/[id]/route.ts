@@ -89,7 +89,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       });
 
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        throw new AppError("Falha ao salvar alterações do usuário", 400, "USER_UPDATE_FAILED");
+        const target = Array.isArray(error.meta?.target) ? error.meta.target.join(", ") : error.meta?.target;
+        const detail = target ? ` (${error.code}: ${target})` : ` (${error.code})`;
+        throw new AppError(`Falha ao salvar alterações do usuário${detail}`, 400, "USER_UPDATE_FAILED");
+      }
+
+      if (error instanceof Prisma.PrismaClientValidationError) {
+        throw new AppError("Falha ao salvar alterações do usuário (dados inválidos para o banco)", 400, "USER_UPDATE_FAILED");
       }
 
       throw error;

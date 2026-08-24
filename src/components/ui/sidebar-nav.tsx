@@ -30,7 +30,7 @@ const navByPerfil: Record<string, NavItem[]> = {
   ]
 };
 
-export function SidebarNav({ perfil }: { perfil: string }) {
+export function SidebarNav({ perfil, hasUnreadOperacional = false }: { perfil: string; hasUnreadOperacional?: boolean }) {
   const pathname = usePathname();
   const navItems = navByPerfil[perfil] ?? navByPerfil.DEFAULT;
 
@@ -39,11 +39,13 @@ export function SidebarNav({ perfil }: { perfil: string }) {
       {navItems.map((item) => {
         const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
         const Icon = item.icon;
+        const showUnreadDot = hasUnreadOperacional && item.href === "/loja/solicitacoes";
 
         return (
           <Link key={item.href} href={item.href} className={`nav-item ${isActive ? "active" : ""}`}>
-            <span className="nav-icon">
+            <span className="nav-icon" style={{ position: "relative" }}>
               <Icon size={17} strokeWidth={2.25} />
+              {showUnreadDot ? <span className="nav-unread-dot" aria-label="Atualizações não vistas" /> : null}
             </span>
             {item.label}
           </Link>

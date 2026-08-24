@@ -492,20 +492,17 @@ export function TicketForm({
             Status operacional da loja
             <select {...register("statusOperacionalLoja")}>
               <option value="EM_ABERTO">Em aberto</option>
+              <option value="ENVIAR_ASSISTENCIA">Enviar assistência</option>
               <option value="ASSISTENCIA_ENVIADA">Assistência enviada</option>
-              <option value="ASSISTENCIA_A_CAMINHO">Assistência a caminho</option>
-              <option value="ASSISTENCIA_ENTREGUE">Assistência entregue</option>
+              <option value="COLETAR">Coletar</option>
               <option value="COLETA_SOLICITADA">Coleta solicitada</option>
               <option value="COLETA_FEITA">Coleta feita</option>
-              <option value="DEVOLUCAO_SOLICITADA">Devolução solicitada</option>
-              <option value="DEVOLUCAO_A_CAMINHO">Devolução a caminho</option>
-              <option value="DEVOLUCAO_RECEBIDA">Devolução recebida (aguardando cobrança)</option>
-              <option value="DEVOLUCAO_REALIZADA">Devolução realizada</option>
-              <option value="REEMBOLSO_PENDENTE">Reembolso pendente</option>
-              <option value="REEMBOLSO_REALIZADO">Reembolso realizado</option>
-              <option value="AGUARDANDO_ATENDENTE">Aguardando atendente</option>
+              <option value="DEVOLUCAO_RECEBIDA">Devolução recebida aguardando cobrança</option>
+              <option value="REEMBOLSO_PENDENTE">Reembolsar</option>
+              <option value="REEMBOLSO_REALIZADO">Reembolso feito</option>
+              <option value="AGUARDANDO_ATENDENTE">Aguardando informações</option>
               <option value="CONCLUIDA" disabled={userPerfil === "LOJA"}>
-                Concluída
+                Concluído
               </option>
             </select>
           </label>

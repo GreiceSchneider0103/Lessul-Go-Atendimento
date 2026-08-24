@@ -1,6 +1,7 @@
 import { StatusOperacional, Empresa, Prisma, StatusOperacionalLoja, TipoAcaoOperacional } from "@prisma/client";
 import Link from "next/link";
 import { Plus } from "lucide-react";
+import { after } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db/prisma";
@@ -8,6 +9,7 @@ import { formatEnumLabel } from "@/lib/formatters/display";
 import { EMPRESAS } from "@/config/domains";
 import { hasPermission } from "@/lib/rbac/permissions";
 import { OperationalRequestsPanel } from "@/components/loja/operational-requests-panel";
+import { markOperacionalLojaVisitado } from "@/lib/services/operational-requests-service";
 
 type PageProps = {
   searchParams: Promise<{
@@ -100,7 +102,7 @@ function toNumber(value: unknown): number {
 function isOverdue(prazoOperacional: string | null, status: string) {
   if (!prazoOperacional) return false;
   // Atualizado para considerar novos status finalizados como não atrasados
-  const nonOverdueStatuses = ["CONCLUIDA", "ASSISTENCIA_ENTREGUE", "REEMBOLSO_REALIZADO"];
+  const nonOverdueStatuses = ["CONCLUIDA", "REEMBOLSO_REALIZADO"];
   if (nonOverdueStatuses.includes(status)) return false;
 
   const prazo = new Date(prazoOperacional);
@@ -118,6 +120,8 @@ export default async function LojaSolicitacoesPage({ searchParams }: PageProps) 
   if (user.perfil !== "LOJA" && !hasPermission(user.perfil, "operational.update")) {
     redirect("/dashboard");
   }
+
+  after(() => markOperacionalLojaVisitado(user.id));
 
   const params = await searchParams;
   const empresaFiltro = isEmpresa(params.empresa) ? params.empresa : undefined;
@@ -226,7 +230,7 @@ export default async function LojaSolicitacoesPage({ searchParams }: PageProps) 
   });
   // Definir status para as novas regras dos cards
   const openStatuses = ["EM_ABERTO"];
-  const finalizedStatuses = ["CONCLUIDA", "ASSISTENCIA_ENTREGUE", "REEMBOLSO_REALIZADO"];
+  const finalizedStatuses = ["CONCLUIDA", "REEMBOLSO_REALIZADO"];
 
   // Estatísticas devem considerar todos os registros (incluindo concluídos), porém a tabela
   // exibirá, por padrão, apenas os não concluídos. Se houver um filtro explícito de status,
@@ -274,9 +278,9 @@ export default async function LojaSolicitacoesPage({ searchParams }: PageProps) 
         </div>
 
         {user.perfil === "LOJA" ? (
-          <Link href="/loja/devolucoes" className="btn btn-primary whitespace-nowrap">
+          <Link href="/loja/devolucoes" className="btn btn-primary">
             <Plus size={16} strokeWidth={2.5} aria-hidden />
-            Devolução recebida sem ticket
+            Devolução sem ticket
           </Link>
         ) : null}
       </div>
@@ -293,12 +297,12 @@ export default async function LojaSolicitacoesPage({ searchParams }: PageProps) 
         ))}
       </nav>
 
-      <div className="panel">
-        <form action="/loja/solicitacoes" method="get" className="flex flex-wrap items-end gap-4">
+      <div className="panel flex flex-wrap items-end justify-between gap-4">
+        <form action="/loja/solicitacoes" method="get" className="flex flex-1 flex-wrap items-end gap-3">
           <input type="hidden" name="categoria" value={categoriaFiltro ?? ""} />
 
           {user.perfil !== "LOJA" ? (
-            <label className="min-w-[220px]">
+            <label className="min-w-[180px]">
               Empresa
               <select name="empresa" defaultValue={empresaFiltro ?? ""}>
                 <option value="">Todas as empresas</option>
@@ -311,7 +315,7 @@ export default async function LojaSolicitacoesPage({ searchParams }: PageProps) 
             </label>
           ) : null}
 
-          <label className="min-w-[260px]">
+          <label className="min-w-[200px]">
             Status operacional
             <select name="status" defaultValue={statusFiltro ?? ""}>
               <option value="">Todos os status</option>
@@ -323,25 +327,38 @@ export default async function LojaSolicitacoesPage({ searchParams }: PageProps) 
             </select>
           </label>
 
-          <div className="flex gap-2">
+          <div className="flex items-center gap-1">
             <button className="btn btn-primary h-[42px]" type="submit">
               Filtrar
             </button>
 
-            <Link className="btn btn-secondary h-[42px] inline-flex items-center" href="/loja/solicitacoes">
+            <Link className="btn btn-link h-[42px] inline-flex items-center" href="/loja/solicitacoes">
               Limpar
             </Link>
           </div>
         </form>
-      </div>
 
-      <div className="grid" style={{ gridTemplateColumns: "repeat(5, minmax(0, 1fr))" }}>
-        {stats.map((item) => (
-          <article className="card" key={item.key}>
-            <strong className="text-xs font-bold uppercase tracking-wide text-slate-500">{item.label}</strong>
-            <p className="metric-value">{item.value}</p>
-          </article>
-        ))}
+        <div className="flex flex-wrap items-center gap-2">
+          {stats.map((item) => (
+            <div
+              key={item.key}
+              className="flex items-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 py-1.5"
+              style={
+                item.key === "ATRASADAS" && item.value > 0
+                  ? { borderColor: "#fecaca", background: "#fef2f2" }
+                  : { borderColor: "var(--color-border)", background: "#f8fafc" }
+              }
+            >
+              <span className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{item.label}</span>
+              <strong
+                className="text-sm font-extrabold"
+                style={{ color: item.key === "ATRASADAS" && item.value > 0 ? "#b91c1c" : "#0f172a" }}
+              >
+                {item.value}
+              </strong>
+            </div>
+          ))}
+        </div>
       </div>
 
       <OperationalRequestsPanel perfil={user.perfil} data={displayData} />
