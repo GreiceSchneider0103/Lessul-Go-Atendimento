@@ -89,8 +89,16 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       });
 
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        const target = Array.isArray(error.meta?.target) ? error.meta.target.join(", ") : error.meta?.target;
-        const detail = target ? ` (${error.code}: ${target})` : ` (${error.code})`;
+        // Prisma's error `meta` shape depends on the code: P2002 (unique
+        // constraint) uses `target`, P2022 (column doesn't exist) uses
+        // `column`, P2003 (FK constraint) uses `field_name`. Surface
+        // whichever is present instead of only checking `target`, so the
+        // real cause (e.g. a missing DB column) shows up in the response
+        // instead of just the bare error code.
+        const meta = error.meta as Record<string, unknown> | undefined;
+        const rawDetail = meta?.target ?? meta?.column ?? meta?.field_name ?? meta?.cause;
+        const detailValue = Array.isArray(rawDetail) ? rawDetail.join(", ") : rawDetail;
+        const detail = detailValue ? ` (${error.code}: ${detailValue})` : ` (${error.code})`;
         throw new AppError(`Falha ao salvar alterações do usuário${detail}`, 400, "USER_UPDATE_FAILED");
       }
 
