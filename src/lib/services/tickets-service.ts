@@ -384,25 +384,34 @@ export type DevolucaoRecebidaInput = {
 
 const RETURN_PHOTO_ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp", "application/pdf"];
 const RETURN_PHOTO_MAX_SIZE = 10 * 1024 * 1024;
+export const RETURN_PHOTOS_MIN_COUNT = 5;
 
 /**
  * Restricted creation path for LOJA: opens a ticket directly in the
  * "devolução recebida" state for returns that arrive at the store without
  * a pre-existing support ticket (e.g. the customer returned straight to the
- * marketplace). Builds the ticket, attaches the required photo and fires the
- * same internal notification email as updateTicket's DEVOLUCAO_RECEBIDA
- * transition — but does it all against the row it just created instead of
- * going through the scope-checked update helpers, since those only trust the
+ * marketplace). Builds the ticket, the matching OperationalRequest row (so
+ * it shows up in the Operacional Loja listing, which queries that table —
+ * not Ticket — directly), attaches the required photos and fires the same
+ * internal notification email as updateTicket's DEVOLUCAO_RECEBIDA
+ * transition. Runs entirely against rows it just created instead of going
+ * through the scope-checked update helpers, since those only trust the
  * user's legacy single empresaVinculada field and could reject a ticket
  * opened for one of the user's other linked companies.
  */
-export async function createDevolucaoRecebidaTicket(input: DevolucaoRecebidaInput, file: File, user: Usuario) {
-  if (!RETURN_PHOTO_ALLOWED_TYPES.includes(file.type)) {
-    throw new AppError("Tipo de arquivo não permitido", 400, "INVALID_FILE_TYPE");
+export async function createDevolucaoRecebidaTicket(input: DevolucaoRecebidaInput, files: File[], user: Usuario) {
+  if (files.length < RETURN_PHOTOS_MIN_COUNT) {
+    throw new AppError(`Anexe pelo menos ${RETURN_PHOTOS_MIN_COUNT} fotos do produto recebido`, 400, "RETURN_PHOTOS_MIN_COUNT");
   }
 
-  if (file.size > RETURN_PHOTO_MAX_SIZE) {
-    throw new AppError("Arquivo acima de 10MB", 400, "FILE_TOO_LARGE");
+  for (const file of files) {
+    if (!RETURN_PHOTO_ALLOWED_TYPES.includes(file.type)) {
+      throw new AppError("Tipo de arquivo não permitido", 400, "INVALID_FILE_TYPE");
+    }
+
+    if (file.size > RETURN_PHOTO_MAX_SIZE) {
+      throw new AppError("Arquivo acima de 10MB", 400, "FILE_TOO_LARGE");
+    }
   }
 
   const now = new Date();
@@ -431,7 +440,7 @@ export async function createDevolucaoRecebidaTicket(input: DevolucaoRecebidaInpu
       criadoPorId: user.id,
       atualizadoPorId: user.id,
       acaoOperacionalLoja: "DEVOLUCAO",
-      statusOperacionalLoja: "EM_ABERTO",
+      statusOperacionalLoja: "DEVOLUCAO_RECEBIDA",
       slaStatus: calculateSla("AGUARDANDO_MARKETPLACE", prazoConclusao)
     }
   });
@@ -443,69 +452,92 @@ export async function createDevolucaoRecebidaTicket(input: DevolucaoRecebidaInpu
     after: toAuditJson(ticket as unknown as Record<string, unknown>)
   });
 
-  const supabase = createSupabaseAdmin();
-  const bucket = "ticket-anexos";
-  const safeFileName = getSafeFileName(file.name);
-  const path = `tickets/${ticket.empresa}/${ticket.id}/${Date.now()}-${safeFileName}`;
-
-  const { error: uploadError } = await supabase.storage.from(bucket).upload(path, file, {
-    upsert: false,
-    contentType: file.type
-  });
-
-  if (uploadError) {
-    logError("Falha no upload da foto de devolução recebida (loja)", {
-      ticketId: ticket.id,
-      path,
-      message: uploadError.message
-    });
-
-    throw new AppError(
-      "Ticket criado, mas a foto não pôde ser enviada. Abra o ticket e anexe a foto manualmente.",
-      500,
-      "UPLOAD_FAILED"
-    );
-  }
-
-  const updated = await prisma.ticket.update({
-    where: { id: ticket.id },
+  const operationalRequest = await prisma.operationalRequest.create({
     data: {
-      anexoUrl: `/api/tickets/${ticket.id}/attachment/view`,
-      anexoPath: path,
-      anexoNome: file.name,
-      anexoMimeType: file.type,
-      anexoSizeBytes: BigInt(file.size),
-      anexoUploadedAt: new Date(),
-      anexoUploadedBy: user.id,
-      statusOperacionalLoja: "DEVOLUCAO_RECEBIDA",
-      atualizadoPorId: user.id
+      ticketId: ticket.id,
+      empresa: ticket.empresa,
+      tipoAcao: "DEVOLUCAO",
+      status: "DEVOLUCAO_RECEBIDA",
+      prazoOperacional: prazoConclusao,
+      createdBy: user.id,
+      updatedBy: user.id
     }
   });
+
+  const supabase = createSupabaseAdmin();
+  const bucket = "operational-attachments";
+
+  for (const file of files) {
+    const safeFileName = getSafeFileName(file.name);
+    const path = `operational/${ticket.empresa}/${operationalRequest.id}/${Date.now()}-${safeFileName}`;
+
+    const { error: uploadError } = await supabase.storage.from(bucket).upload(path, file, {
+      upsert: false,
+      contentType: file.type
+    });
+
+    if (uploadError) {
+      logError("Falha no upload de foto de devolução recebida (loja)", {
+        ticketId: ticket.id,
+        operationalRequestId: operationalRequest.id,
+        path,
+        message: uploadError.message
+      });
+
+      if (uploadError.message.toLowerCase().includes("not found")) {
+        throw new AppError("Bucket operational-attachments não encontrado", 500, "STORAGE_BUCKET_NOT_FOUND");
+      }
+
+      throw new AppError(
+        "Ticket criado, mas nem todas as fotos puderam ser enviadas. Abra o ticket e anexe as fotos que faltaram.",
+        500,
+        "UPLOAD_FAILED"
+      );
+    }
+
+    const { data: publicUrlData } = supabase.storage.from(bucket).getPublicUrl(path);
+
+    await prisma.operationalRequestAttachment.create({
+      data: {
+        operationalRequestId: operationalRequest.id,
+        ticketId: ticket.id,
+        empresa: ticket.empresa,
+        tipoAnexo: "IMAGEM_PECA",
+        fileUrl: publicUrlData.publicUrl,
+        storagePath: path,
+        fileName: file.name,
+        mimeType: file.type,
+        sizeBytes: BigInt(file.size),
+        uploadedBy: user.id
+      }
+    });
+  }
 
   await registerTicketAudit({
     ticketId: ticket.id,
     user,
     action: "UPDATE",
-    before: toAuditJson({ statusOperacionalLoja: "EM_ABERTO" }),
-    after: toAuditJson({ statusOperacionalLoja: "DEVOLUCAO_RECEBIDA", anexoPath: path })
+    before: toAuditJson({ operationalRequest: null }),
+    after: toAuditJson({ operationalRequest: operationalRequest.id, fotos: files.length })
   });
 
   after(() => syncTicketCreateBackup(ticket.id));
 
   await sendEmail({
     to: RETURNS_NOTIFICATION_EMAIL,
-    subject: `Devolução recebida — ${updated.nomeCliente} (pedido ${updated.numeroVenda})`,
+    subject: `Devolução recebida — ${ticket.nomeCliente} (pedido ${ticket.numeroVenda})`,
     text:
-      `A loja abriu um novo ticket confirmando o recebimento de um produto de devolução (sem atendimento prévio). Confira a foto e os dados do pedido para realizar a cobrança do marketplace.\n\n` +
-      `Ticket: ${updated.id}\n` +
-      `Cliente: ${updated.nomeCliente}\n` +
-      `Pedido: ${updated.numeroVenda}\n` +
-      `Empresa: ${updated.empresa}\n` +
-      `Marketplace: ${updated.canalMarketplace}\n\n` +
-      `Acesse o ticket: ${process.env.APP_BASE_URL ?? ""}/tickets/${updated.id}`
+      `A loja abriu um novo ticket confirmando o recebimento de um produto de devolução (sem atendimento prévio). Confira as fotos e os dados do pedido para realizar a cobrança do marketplace.\n\n` +
+      `Ticket: ${ticket.id}\n` +
+      `Cliente: ${ticket.nomeCliente}\n` +
+      `Pedido: ${ticket.numeroVenda}\n` +
+      `Empresa: ${ticket.empresa}\n` +
+      `Marketplace: ${ticket.canalMarketplace}\n` +
+      `Fotos anexadas: ${files.length}\n\n` +
+      `Acesse o ticket: ${process.env.APP_BASE_URL ?? ""}/tickets/${ticket.id}`
   });
 
-  return updated;
+  return ticket;
 }
 
 export async function getTicketById(id: string, user: Usuario) {
@@ -557,11 +589,17 @@ export async function updateTicket(id: string, rawPayload: Partial<TicketInput>,
   assertCanEditFields(user, payload);
 
   if (payload.statusOperacionalLoja === "DEVOLUCAO_RECEBIDA" && !before.anexoPath) {
-    throw new AppError(
-      "Anexe uma foto do produto recebido antes de marcar como devolução recebida",
-      400,
-      "RETURN_PHOTO_REQUIRED"
-    );
+    // Fotos de devolução recebida abertas pela loja sem ticket prévio ficam em
+    // OperationalRequestAttachment (múltiplas fotos), não no anexo único do ticket.
+    const multiPhotoCount = await prisma.operationalRequestAttachment.count({ where: { ticketId: id } });
+
+    if (multiPhotoCount === 0) {
+      throw new AppError(
+        "Anexe uma foto do produto recebido antes de marcar como devolução recebida",
+        400,
+        "RETURN_PHOTO_REQUIRED"
+      );
+    }
   }
 
   const shouldCloseTicket =

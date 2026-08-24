@@ -2,26 +2,37 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Paperclip } from "lucide-react";
+import { Info, X } from "lucide-react";
 import { CANAIS_MARKETPLACE, EMPRESAS } from "@/config/domains";
 import { formatEnumLabel } from "@/lib/formatters/display";
 
 type EmpresaValue = (typeof EMPRESAS)[number];
 
+const MIN_PHOTOS = 5;
+
 export function DevolucaoRecebidaForm({ empresasDisponiveis }: { empresasDisponiveis: EmpresaValue[] }) {
   const router = useRouter();
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const semEmpresaDisponivel = empresasDisponiveis.length === 0;
 
+  function addFiles(selected: FileList | null) {
+    if (!selected || selected.length === 0) return;
+    setFiles((prev) => [...prev, ...Array.from(selected)]);
+  }
+
+  function removeFile(index: number) {
+    setFiles((prev) => prev.filter((_, itemIndex) => itemIndex !== index));
+  }
+
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
 
-    if (!file) {
-      setError("Anexe uma foto do produto recebido.");
+    if (files.length < MIN_PHOTOS) {
+      setError(`Anexe pelo menos ${MIN_PHOTOS} fotos do produto recebido.`);
       return;
     }
 
@@ -29,7 +40,8 @@ export function DevolucaoRecebidaForm({ empresasDisponiveis }: { empresasDisponi
 
     try {
       const formData = new FormData(event.currentTarget);
-      formData.set("file", file);
+      formData.delete("files");
+      files.forEach((file) => formData.append("files", file));
 
       const response = await fetch("/api/loja/devolucoes", {
         method: "POST",
@@ -107,23 +119,54 @@ export function DevolucaoRecebidaForm({ empresasDisponiveis }: { empresasDisponi
       </section>
 
       <section className="ticket-form-section">
-        <h3>Foto do produto recebido</h3>
+        <h3>Fotos do produto recebido</h3>
+
+        <div className="alert flex items-start gap-2" style={{ background: "#eff6ff", border: "1px solid #bfdbfe", color: "#1d4ed8" }}>
+          <Info size={16} strokeWidth={2.25} className="mt-0.5 shrink-0" aria-hidden />
+          <span>
+            Envie pelo menos {MIN_PHOTOS} fotos — dá pra anexar mais se precisar. Inclua a etiqueta do produto e as
+            avarias/danos visíveis, além de fotos gerais do item recebido.
+          </span>
+        </div>
 
         <div className="ticket-form-grid">
           <label>
-            Anexo
+            Adicionar fotos
             <input
               type="file"
               accept="image/*,application/pdf"
-              required
-              onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+              multiple
+              onChange={(event) => {
+                addFiles(event.target.files);
+                event.target.value = "";
+              }}
             />
           </label>
         </div>
 
-        <p className="muted">
-          <Paperclip size={13} strokeWidth={2.25} className="mr-1 inline" aria-hidden />
-          A foto é obrigatória — ela é o comprovante usado para cobrar o marketplace.
+        {files.length > 0 ? (
+          <ul className="flex flex-wrap gap-2">
+            {files.map((file, index) => (
+              <li
+                key={`${file.name}-${index}`}
+                className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 py-1 pl-3 pr-1.5 text-xs font-medium text-slate-700"
+              >
+                {file.name}
+                <button
+                  type="button"
+                  onClick={() => removeFile(index)}
+                  className="flex h-5 w-5 items-center justify-center rounded-full bg-transparent p-0 text-slate-500 hover:bg-slate-200"
+                  aria-label={`Remover ${file.name}`}
+                >
+                  <X size={12} strokeWidth={2.5} />
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+
+        <p className={files.length < MIN_PHOTOS ? "field-error" : "muted"}>
+          {files.length} de {MIN_PHOTOS} fotos obrigatórias selecionadas.
         </p>
       </section>
 

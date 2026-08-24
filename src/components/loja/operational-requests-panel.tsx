@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useEffect } from "react";
 import Link from "next/link";
 import { Perfil, StatusOperacional } from "@prisma/client";
-import { X, FileText, Paperclip, Upload, SlidersHorizontal } from "lucide-react";
+import { X, FileText, Paperclip, Upload, SlidersHorizontal, Images } from "lucide-react";
 import { formatDateBR, formatEnumLabel } from "@/lib/formatters/display";
 
 type Row = { 
@@ -32,7 +32,8 @@ type Row = {
     statusOperacionalLoja: string;
     comentarioLoja: string | null;
   }; 
-  anexo?: { fileUrl: string | null; fileName?: string; filePath?: string | null; mimeType?: string | null } 
+  anexo?: { fileUrl: string | null; fileName?: string; filePath?: string | null; mimeType?: string | null };
+  anexos: Array<{ id: string; fileUrl: string | null; fileName: string; mimeType: string | null }>;
 };
 
 const statusOptions = ["EM_ABERTO","ASSISTENCIA_ENVIADA","ASSISTENCIA_A_CAMINHO","ASSISTENCIA_ENTREGUE","COLETA_SOLICITADA","COLETA_FEITA","DEVOLUCAO_SOLICITADA","DEVOLUCAO_A_CAMINHO","DEVOLUCAO_RECEBIDA","DEVOLUCAO_REALIZADA","REEMBOLSO_PENDENTE","REEMBOLSO_REALIZADO","AGUARDANDO_ATENDENTE","CONCLUIDA"];
@@ -75,6 +76,19 @@ export function OperationalRequestsPanel({ data, perfil }: { data: Row[]; perfil
   }, []);
 
   const renderAnexoThumbnail = (row: Row) => {
+    if (row.anexos.length > 0) {
+      return (
+        <button
+          type="button"
+          onClick={() => setSelectedRow(row)}
+          className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-100"
+        >
+          <Images size={13} strokeWidth={2.25} aria-hidden />
+          {row.anexos.length} {row.anexos.length === 1 ? "foto" : "fotos"}
+        </button>
+      );
+    }
+
     if (!row.anexo) return <span className="text-[0.85rem] text-slate-400">Sem anexo</span>;
 
     const isImage = row.anexo.mimeType?.startsWith("image/");
@@ -116,7 +130,7 @@ export function OperationalRequestsPanel({ data, perfil }: { data: Row[]; perfil
         payload.statusTicket = "CONCLUIDO";
       }
 
-      if (payload.statusOperacionalLoja === "DEVOLUCAO_RECEBIDA" && !selectedRow.anexo) {
+      if (payload.statusOperacionalLoja === "DEVOLUCAO_RECEBIDA" && !selectedRow.anexo && selectedRow.anexos.length === 0) {
         setNotice({ type: "error", message: "Anexe uma foto do produto recebido antes de marcar como devolução recebida." });
         setIsSaving(false);
         return;
@@ -361,9 +375,33 @@ export function OperationalRequestsPanel({ data, perfil }: { data: Row[]; perfil
               {/* Attachment */}
               <fieldset className="rounded-lg border border-slate-200 p-3">
                 <legend className="px-1 text-xs font-bold text-slate-500">
-                  Anexo
+                  {selectedRow.anexos.length > 0 ? `Fotos (${selectedRow.anexos.length})` : "Anexo"}
                 </legend>
-                {selectedRow.anexo ? (
+                {selectedRow.anexos.length > 0 ? (
+                  <div className="grid grid-cols-3 gap-2">
+                    {selectedRow.anexos.map((anexo) => (
+                      <a
+                        key={anexo.id}
+                        href={anexo.fileUrl ?? undefined}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={anexo.fileName}
+                      >
+                        {anexo.mimeType?.startsWith("image/") ? (
+                          <img
+                            src={anexo.fileUrl ?? undefined}
+                            alt={anexo.fileName}
+                            className="h-20 w-full rounded-md border border-slate-200 object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-20 items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-[#d32f2f]">
+                            <FileText size={22} strokeWidth={1.75} />
+                          </div>
+                        )}
+                      </a>
+                    ))}
+                  </div>
+                ) : selectedRow.anexo ? (
                   <div className="mb-2 text-center">
                     {selectedRow.anexo.mimeType?.startsWith("image/") ? (
                       <img
