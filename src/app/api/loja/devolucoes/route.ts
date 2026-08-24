@@ -9,6 +9,9 @@ import { CANAIS_MARKETPLACE, EMPRESAS, normalizeCanalMarketplace } from "@/confi
 const schema = z.object({
   nomeCliente: z.string().min(3, "Informe o nome do cliente"),
   numeroVenda: z.string().min(3, "Informe o número da venda"),
+  dataRecebimento: z
+    .string()
+    .refine((value) => !Number.isNaN(Date.parse(value)), { message: "Informe a data do recebimento" }),
   canalMarketplace: z.preprocess(
     (value) => normalizeCanalMarketplace(typeof value === "string" ? value : undefined),
     z.enum(CANAIS_MARKETPLACE, { message: "Marketplace inválido" })
@@ -39,6 +42,7 @@ export async function POST(req: NextRequest) {
     const parsed = schema.safeParse({
       nomeCliente: formData.get("nomeCliente"),
       numeroVenda: formData.get("numeroVenda"),
+      dataRecebimento: formData.get("dataRecebimento"),
       canalMarketplace: formData.get("canalMarketplace"),
       empresa: formData.get("empresa"),
       produto: formData.get("produto"),

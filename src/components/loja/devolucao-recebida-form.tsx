@@ -10,6 +10,10 @@ type EmpresaValue = (typeof EMPRESAS)[number];
 
 const MIN_PHOTOS = 5;
 
+function todayIsoDate() {
+  return new Date().toISOString().slice(0, 10);
+}
+
 export function DevolucaoRecebidaForm({ empresasDisponiveis }: { empresasDisponiveis: EmpresaValue[] }) {
   const router = useRouter();
   const [files, setFiles] = useState<File[]>([]);
@@ -82,6 +86,11 @@ export function DevolucaoRecebidaForm({ empresasDisponiveis }: { empresasDisponi
           <label>
             Número da venda
             <input name="numeroVenda" placeholder="Número da venda" required minLength={3} />
+          </label>
+
+          <label>
+            Data do recebimento
+            <input name="dataRecebimento" type="date" defaultValue={todayIsoDate()} max={todayIsoDate()} required />
           </label>
 
           <label>

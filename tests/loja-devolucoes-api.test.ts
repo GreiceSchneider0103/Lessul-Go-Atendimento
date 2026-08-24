@@ -30,6 +30,7 @@ function buildFormData(overrides: Record<string, string> = {}, fileCount = 5) {
   const formData = new FormData();
   formData.set("nomeCliente", overrides.nomeCliente ?? "Cliente Teste");
   formData.set("numeroVenda", overrides.numeroVenda ?? "12345678");
+  formData.set("dataRecebimento", overrides.dataRecebimento ?? "2026-08-20");
   formData.set("canalMarketplace", overrides.canalMarketplace ?? "MERCADO_LIVRE");
   formData.set("empresa", overrides.empresa ?? "LESSUL");
   formData.set("produto", overrides.produto ?? "Cadeira");
