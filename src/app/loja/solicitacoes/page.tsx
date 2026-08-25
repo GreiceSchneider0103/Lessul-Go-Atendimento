@@ -57,6 +57,8 @@ type OperationalRequestWithTicket = {
     valorReembolso: Prisma.Decimal;
     valorAssistencia: Prisma.Decimal;
     valorColetaEnvioPecas: Prisma.Decimal;
+    valorRecuperado: Prisma.Decimal;
+    custosTotais: Prisma.Decimal;
     codigoRastreio: string | null;
     statusOperacionalLoja: StatusOperacionalLoja;
     comentarioLoja: string | null;
@@ -171,6 +173,8 @@ export default async function LojaSolicitacoesPage({ searchParams }: PageProps) 
           valorReembolso: true,
           valorColetaEnvioPecas: true,
           valorAssistencia: true,
+          valorRecuperado: true,
+          custosTotais: true,
           codigoRastreio: true,
           statusOperacionalLoja: true,
           comentarioLoja: true,
@@ -205,6 +209,8 @@ export default async function LojaSolicitacoesPage({ searchParams }: PageProps) 
       valorReembolso: toNumber(row.ticket.valorReembolso) || toNumber(row.valorReembolso),
       valorAssistencia: toNumber(row.ticket.valorAssistencia),
       valorColetaEnvioPecas: toNumber(row.ticket.valorColetaEnvioPecas) || toNumber(row.valorColetaEnvioPecas),
+      valorRecuperado: toNumber(row.ticket.valorRecuperado),
+      custosTotais: toNumber(row.ticket.custosTotais),
       ticket: {
         nomeCliente: row.ticket.nomeCliente,
         numeroVenda: row.ticket.numeroVenda,
@@ -278,7 +284,7 @@ export default async function LojaSolicitacoesPage({ searchParams }: PageProps) 
         </div>
 
         {user.perfil === "LOJA" ? (
-          <Link href="/loja/devolucoes" className="btn btn-primary">
+          <Link href="/loja/devolucoes" className="btn btn-primary btn-create-ticket whitespace-nowrap">
             <Plus size={16} strokeWidth={2.5} aria-hidden />
             Devolução sem ticket
           </Link>

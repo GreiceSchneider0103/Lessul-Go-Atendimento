@@ -372,15 +372,16 @@ export async function createDevolucaoRecebidaTicket(input: DevolucaoRecebidaInpu
       );
     }
 
-    const { data: publicUrlData } = supabase.storage.from(bucket).getPublicUrl(path);
-
+    // No fileUrl stored here: ticket-anexos is a private bucket, so a
+    // getPublicUrl() result never actually loads — the panel always fetches
+    // a fresh signed URL via /api/operational-requests/attachments/[id]/view
+    // using storagePath instead.
     await prisma.operationalRequestAttachment.create({
       data: {
         operationalRequestId: operationalRequest.id,
         ticketId: ticket.id,
         empresa: ticket.empresa,
         tipoAnexo: "IMAGEM_PECA",
-        fileUrl: publicUrlData.publicUrl,
         storagePath: path,
         fileName: file.name,
         mimeType: file.type,

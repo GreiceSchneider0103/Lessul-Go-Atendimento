@@ -3,7 +3,7 @@ import { prisma } from "@/lib/db/prisma";
 import { AppError, ForbiddenError } from "@/lib/errors";
 import { registerTicketAudit } from "@/lib/audit/ticket-audit";
 import { sendEmail } from "@/lib/services/email-service";
-import { createSupabaseRouteClient } from "@/lib/supabase/server";
+import { createSupabaseAdmin } from "@/lib/supabase/service-role";
 import { logError } from "@/lib/logger";
 import { getAppBaseUrl } from "@/lib/supabase/config";
 
@@ -16,7 +16,7 @@ type AppUser = {
   nome?: string;
 };
 
-function empresasFor(user: AppUser): Empresa[] {
+export function empresasFor(user: AppUser): Empresa[] {
   if (user.empresasVinculadas?.length) return user.empresasVinculadas;
   return user.empresaVinculada ? [user.empresaVinculada] : [];
 }
@@ -203,19 +203,23 @@ export async function uploadAttachment(requestId: string, file: File, tipoAnexo:
   if (!allowed.includes(file.type)) throw new AppError("Tipo de arquivo não permitido", 400, "INVALID_FILE_TYPE");
   if (file.size > 10 * 1024 * 1024) throw new AppError("Arquivo acima de 10MB", 400, "FILE_TOO_LARGE");
 
-  const supabase = await createSupabaseRouteClient();
+  // Uses the ticket-anexos bucket (already provisioned in production), same as
+  // the loja no-ticket devolução upload path — operational-attachments was
+  // never actually set up there, and this bucket requires signed URLs to
+  // read back (see the attachments/[id]/view route), not a public URL.
+  const supabase = createSupabaseAdmin();
+  const bucket = "ticket-anexos";
   const existing = await prisma.operationalRequestAttachment.findFirst({ where: { operationalRequestId: requestId }, orderBy: { uploadedAt: "desc" } });
   if (existing?.storagePath) {
-    await supabase.storage.from("operational-attachments").remove([existing.storagePath]);
+    await supabase.storage.from(bucket).remove([existing.storagePath]);
     await prisma.operationalRequestAttachment.delete({ where: { id: existing.id } });
   }
 
   const path = `operational/${req.empresa}/${requestId}/${Date.now()}-${file.name.replace(/\s+/g, "_")}`;
-  const { error } = await supabase.storage.from("operational-attachments").upload(path, file, { upsert: false, contentType: file.type });
+  const { error } = await supabase.storage.from(bucket).upload(path, file, { upsert: false, contentType: file.type });
   if (error) { logError("Falha upload supabase storage", { error: error.message, path }); throw new Error("Falha no upload do arquivo"); }
 
-  const { data } = supabase.storage.from("operational-attachments").getPublicUrl(path);
-  const saved = await prisma.operationalRequestAttachment.create({ data: { operationalRequestId: requestId, ticketId: req.ticketId, empresa: req.empresa, tipoAnexo, fileUrl: data.publicUrl, storagePath: path, fileName: file.name, mimeType: file.type, sizeBytes: file.size, uploadedBy: actor.id } });
+  const saved = await prisma.operationalRequestAttachment.create({ data: { operationalRequestId: requestId, ticketId: req.ticketId, empresa: req.empresa, tipoAnexo, storagePath: path, fileName: file.name, mimeType: file.type, sizeBytes: file.size, uploadedBy: actor.id } });
   await registerTicketAudit({ ticketId: req.ticketId, user: actor as any, action: "UPDATE", before: {} as any, after: { operationalAttachment: saved.id, tipoAnexo } as any });
   return saved;
 }
@@ -226,8 +230,8 @@ export async function deleteAttachment(requestId: string, actor: AppUser) {
   if (!req) throw new AppError("Solicitação não encontrada", 404, "NOT_FOUND");
   const existing = await prisma.operationalRequestAttachment.findFirst({ where: { operationalRequestId: requestId }, orderBy: { uploadedAt: "desc" } });
   if (!existing) return { ok: true };
-  const supabase = await createSupabaseRouteClient();
-  if (existing.storagePath) await supabase.storage.from("operational-attachments").remove([existing.storagePath]);
+  const supabase = createSupabaseAdmin();
+  if (existing.storagePath) await supabase.storage.from("ticket-anexos").remove([existing.storagePath]);
   await prisma.operationalRequestAttachment.delete({ where: { id: existing.id } });
   return { ok: true };
 }

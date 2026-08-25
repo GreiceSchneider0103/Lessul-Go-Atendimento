@@ -19,8 +19,10 @@ type Row = {
   codigoRastreio: string | null; 
   valorReembolso: number;
   valorAssistencia?: number;
-  valorColetaEnvioPecas: number; 
-  ticket: { 
+  valorColetaEnvioPecas: number;
+  valorRecuperado?: number;
+  custosTotais?: number;
+  ticket: {
     nomeCliente: string; 
     numeroVenda: string; 
     linkPedido: string | null;
@@ -161,6 +163,8 @@ export function OperationalRequestsPanel({ data, perfil }: { data: Row[]; perfil
         valorReembolso: Number(updatedTicket.valorReembolso ?? row.valorReembolso),
         valorAssistencia: Number(updatedTicket.valorAssistencia ?? row.valorAssistencia ?? 0),
         valorColetaEnvioPecas: Number(updatedTicket.valorColetaEnvioPecas ?? row.valorColetaEnvioPecas),
+        valorRecuperado: Number(updatedTicket.valorRecuperado ?? row.valorRecuperado ?? 0),
+        custosTotais: Number(updatedTicket.custosTotais ?? row.custosTotais ?? 0),
         ticket: { ...row.ticket, ...updatedTicket }
       } : row));
       setNotice({ type: "success", message: "Dados salvos com sucesso!" });
@@ -318,7 +322,7 @@ export function OperationalRequestsPanel({ data, perfil }: { data: Row[]; perfil
       {/* Drawer */}
       {selectedRow && (
         <div
-          className="fixed right-0 top-0 z-[1000] flex h-screen w-[420px] max-w-[92vw] flex-col overflow-y-auto border-l border-slate-200 bg-white shadow-[-2px_0_8px_rgba(0,0,0,0.1)]"
+          className="fixed right-0 top-0 z-[1000] flex h-screen w-[680px] max-w-[92vw] flex-col overflow-y-auto border-l border-slate-200 bg-white shadow-[-2px_0_8px_rgba(0,0,0,0.1)]"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
@@ -336,47 +340,49 @@ export function OperationalRequestsPanel({ data, perfil }: { data: Row[]; perfil
           {/* Content */}
           <div className="flex-1 overflow-y-auto p-4">
             <form onSubmit={handleSaveDrawer} className="grid gap-3">
-              {/* Client Info */}
-              <fieldset className="rounded-lg border border-slate-200 p-3">
-                <legend className="px-1 text-xs font-bold text-slate-500">
-                  Informações do Cliente
-                </legend>
-                <div className="grid gap-2">
-                  <div className="text-sm">
-                    <strong>Cliente:</strong> {selectedRow.ticket.nomeCliente}
+              <div className="grid grid-cols-2 gap-3">
+                {/* Client Info */}
+                <fieldset className="rounded-lg border border-slate-200 p-3">
+                  <legend className="px-1 text-xs font-bold text-slate-500">
+                    Informações do Cliente
+                  </legend>
+                  <div className="grid gap-2">
+                    <div className="text-sm">
+                      <strong>Cliente:</strong> {selectedRow.ticket.nomeCliente}
+                    </div>
+                    <div className="text-sm">
+                      <strong>Número do Pedido:</strong>
+                      {selectedRow.ticket.linkPedido ? (
+                        <a
+                          href={selectedRow.ticket.linkPedido}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="ml-2 font-semibold text-brand-700 hover:underline"
+                        >
+                          {selectedRow.ticket.numeroVenda}
+                        </a>
+                      ) : (
+                        <span className="ml-2">{selectedRow.ticket.numeroVenda}</span>
+                      )}
+                    </div>
                   </div>
-                  <div className="text-sm">
-                    <strong>Número do Pedido:</strong>
-                    {selectedRow.ticket.linkPedido ? (
-                      <a
-                        href={selectedRow.ticket.linkPedido}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="ml-2 font-semibold text-brand-700 hover:underline"
-                      >
-                        {selectedRow.ticket.numeroVenda}
-                      </a>
-                    ) : (
-                      <span className="ml-2">{selectedRow.ticket.numeroVenda}</span>
-                    )}
-                  </div>
-                </div>
-              </fieldset>
+                </fieldset>
 
-              {/* Product Info */}
-              <fieldset className="rounded-lg border border-slate-200 p-3">
-                <legend className="px-1 text-xs font-bold text-slate-500">
-                  Informações do Produto
-                </legend>
-                <div className="grid gap-2">
-                  <div className="text-sm">
-                    <strong>SKU:</strong> {selectedRow.ticket.sku}
+                {/* Product Info */}
+                <fieldset className="rounded-lg border border-slate-200 p-3">
+                  <legend className="px-1 text-xs font-bold text-slate-500">
+                    Informações do Produto
+                  </legend>
+                  <div className="grid gap-2">
+                    <div className="text-sm">
+                      <strong>SKU:</strong> {selectedRow.ticket.sku}
+                    </div>
+                    <div className="text-sm">
+                      <strong>Produto:</strong> {selectedRow.ticket.produto}
+                    </div>
                   </div>
-                  <div className="text-sm">
-                    <strong>Produto:</strong> {selectedRow.ticket.produto}
-                  </div>
-                </div>
-              </fieldset>
+                </fieldset>
+              </div>
 
               {/* Attachment */}
               <fieldset className="rounded-lg border border-slate-200 p-3">
@@ -384,28 +390,26 @@ export function OperationalRequestsPanel({ data, perfil }: { data: Row[]; perfil
                   {selectedRow.anexos.length > 0 ? `Fotos (${selectedRow.anexos.length})` : "Anexo"}
                 </legend>
                 {selectedRow.anexos.length > 0 ? (
-                  <div className="grid grid-cols-3 gap-2">
-                    {selectedRow.anexos.map((anexo) => (
-                      <a
-                        key={anexo.id}
-                        href={anexo.fileUrl ?? undefined}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title={anexo.fileName}
-                      >
-                        {anexo.mimeType?.startsWith("image/") ? (
-                          <img
-                            src={anexo.fileUrl ?? undefined}
-                            alt={anexo.fileName}
-                            className="h-20 w-full rounded-md border border-slate-200 object-cover"
-                          />
-                        ) : (
-                          <div className="flex h-20 items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-[#d32f2f]">
-                            <FileText size={22} strokeWidth={1.75} />
-                          </div>
-                        )}
-                      </a>
-                    ))}
+                  <div className="grid grid-cols-4 gap-2">
+                    {selectedRow.anexos.map((anexo) => {
+                      const anexoViewUrl = `/api/operational-requests/attachments/${anexo.id}/view`;
+
+                      return (
+                        <a key={anexo.id} href={anexoViewUrl} target="_blank" rel="noopener noreferrer" title={anexo.fileName}>
+                          {anexo.mimeType?.startsWith("image/") ? (
+                            <img
+                              src={anexoViewUrl}
+                              alt={anexo.fileName}
+                              className="h-24 w-full rounded-md border border-slate-200 object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-24 items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-[#d32f2f]">
+                              <FileText size={22} strokeWidth={1.75} />
+                            </div>
+                          )}
+                        </a>
+                      );
+                    })}
                   </div>
                 ) : selectedRow.anexo ? (
                   <div className="mb-2 text-center">
@@ -454,57 +458,59 @@ export function OperationalRequestsPanel({ data, perfil }: { data: Row[]; perfil
                 />
               </label>
 
-              {/* Action */}
-              <label className="flex flex-col gap-1.5 text-sm font-semibold text-slate-600">
-                Ação Operacional da Loja
-                <select name="acaoOperacionalLoja" defaultValue={selectedRow.ticket.acaoOperacionalLoja}>
-                  {acoesOptions.map((opcao) => (
-                    <option key={opcao} value={opcao}>
-                      {formatEnumLabel(opcao)}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {/* Action */}
+                <label className="flex flex-col gap-1.5 text-sm font-semibold text-slate-600">
+                  Ação Operacional da Loja
+                  <select name="acaoOperacionalLoja" defaultValue={selectedRow.ticket.acaoOperacionalLoja}>
+                    {acoesOptions.map((opcao) => (
+                      <option key={opcao} value={opcao}>
+                        {formatEnumLabel(opcao)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
 
-              {/* Resolution */}
-              <label className="flex flex-col gap-1.5 text-sm font-semibold text-slate-600">
-                Resolução
-                <select name="resolucao" defaultValue={selectedRow.ticket.resolucao ?? ""}>
-                  <option value="">Sem resolução</option>
-                  {resolucoesOptions.map((opcao) => (
-                    <option key={opcao} value={opcao}>
-                      {formatEnumLabel(opcao)}
-                    </option>
-                  ))}
-                </select>
-              </label>
+                {/* Resolution */}
+                <label className="flex flex-col gap-1.5 text-sm font-semibold text-slate-600">
+                  Resolução
+                  <select name="resolucao" defaultValue={selectedRow.ticket.resolucao ?? ""}>
+                    <option value="">Sem resolução</option>
+                    {resolucoesOptions.map((opcao) => (
+                      <option key={opcao} value={opcao}>
+                        {formatEnumLabel(opcao)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
 
-              {/* Status */}
-              <label className="flex flex-col gap-1.5 text-sm font-semibold text-slate-600">
-                Status Operacional da Loja
-                <select name="statusOperacionalLoja" defaultValue={selectedRow.ticket.statusOperacionalLoja}>
-                  {statusOptions.map((status) => (
-                    <option
-                      key={status}
-                      value={status}
-                      disabled={perfil === Perfil.LOJA && status === "CONCLUIDA"}
-                    >
-                      {formatEnumLabel(status)}
-                    </option>
-                  ))}
-                </select>
-              </label>
+                {/* Status */}
+                <label className="flex flex-col gap-1.5 text-sm font-semibold text-slate-600">
+                  Status Operacional da Loja
+                  <select name="statusOperacionalLoja" defaultValue={selectedRow.ticket.statusOperacionalLoja}>
+                    {statusOptions.map((status) => (
+                      <option
+                        key={status}
+                        value={status}
+                        disabled={perfil === Perfil.LOJA && status === "CONCLUIDA"}
+                      >
+                        {formatEnumLabel(status)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
 
-              {/* Tracking Code */}
-              <label className="flex flex-col gap-1.5 text-sm font-semibold text-slate-600">
-                Código de Rastreio
-                <input
-                  type="text"
-                  name="codigoRastreio"
-                  defaultValue={selectedRow.codigoRastreio ?? ""}
-                  placeholder="Código de rastreio..."
-                />
-              </label>
+                {/* Tracking Code */}
+                <label className="flex flex-col gap-1.5 text-sm font-semibold text-slate-600">
+                  Código de Rastreio
+                  <input
+                    type="text"
+                    name="codigoRastreio"
+                    defaultValue={selectedRow.codigoRastreio ?? ""}
+                    placeholder="Código de rastreio..."
+                  />
+                </label>
+              </div>
 
               {/* Values */}
               <div className="grid grid-cols-2 gap-2">
@@ -532,17 +538,43 @@ export function OperationalRequestsPanel({ data, perfil }: { data: Row[]; perfil
                 </label>
               </div>
 
-              <label className="flex flex-col gap-1.5 text-sm font-semibold text-slate-600">
-                Valor de Coleta, Envio ou Peças
-                <input
-                  type="number"
-                  name="valorColetaEnvioPecas"
-                  defaultValue={selectedRow.valorColetaEnvioPecas}
-                  step="0.01"
-                  min="0"
-                  placeholder="R$ 0,00"
-                />
-              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <label className="flex flex-col gap-1.5 text-sm font-semibold text-slate-600">
+                  Valor de Coleta, Envio ou Peças
+                  <input
+                    type="number"
+                    name="valorColetaEnvioPecas"
+                    defaultValue={selectedRow.valorColetaEnvioPecas}
+                    step="0.01"
+                    min="0"
+                    placeholder="R$ 0,00"
+                  />
+                </label>
+
+                {perfil !== Perfil.LOJA ? (
+                  <label className="flex flex-col gap-1.5 text-sm font-semibold text-slate-600">
+                    Valor Recuperado do Marketplace
+                    <input
+                      type="number"
+                      name="valorRecuperado"
+                      defaultValue={selectedRow.valorRecuperado ?? 0}
+                      step="0.01"
+                      min="0"
+                      placeholder="R$ 0,00"
+                    />
+                  </label>
+                ) : null}
+              </div>
+
+              <div className="ticket-form-total">
+                <span>Custo total</span>
+                <strong>
+                  {(selectedRow.custosTotais ?? selectedRow.valorReembolso + (selectedRow.valorAssistencia ?? 0) + selectedRow.valorColetaEnvioPecas).toLocaleString(
+                    "pt-BR",
+                    { style: "currency", currency: "BRL" }
+                  )}
+                </strong>
+              </div>
 
               <button type="submit" className="btn btn-primary mt-2 w-full" disabled={isSaving}>
                 {isSaving ? "Salvando..." : "Salvar Alterações"}

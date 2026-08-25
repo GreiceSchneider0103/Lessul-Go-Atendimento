@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { TicketListResponse } from "@/lib/contracts";
-import { formatCurrencyBR, formatEnumLabel } from "@/lib/formatters/display";
+import { formatEnumLabel } from "@/lib/formatters/display";
 
 type Ticket = TicketListResponse["data"][number];
 
@@ -159,7 +159,6 @@ export function TicketListTable({ initialItems }: { initialItems: Ticket[] }) {
               <th>Motivo</th>
               <th>Status Ticket</th>
               <th>Status Reclamação</th>
-              <th>Custos</th>
               <th style={{ width: 48 }}>SLA</th>
             </tr>
           </thead>
@@ -167,7 +166,7 @@ export function TicketListTable({ initialItems }: { initialItems: Ticket[] }) {
           <tbody>
             {items.length === 0 ? (
               <tr>
-                <td colSpan={9} className="muted text-center" style={{ padding: 20 }}>
+                <td colSpan={8} className="muted text-center" style={{ padding: 20 }}>
                   Nenhum ticket encontrado com os filtros atuais.
                 </td>
               </tr>
@@ -177,6 +176,7 @@ export function TicketListTable({ initialItems }: { initialItems: Ticket[] }) {
                 const marketplaceConfig = MARKETPLACE_CONFIG[ticket.canalMarketplace] ?? MARKETPLACE_CONFIG.OUTRO;
                 const statusReclamacaoConfig =
                   STATUS_RECLAMACAO_CONFIG[ticket.statusReclamacao] ?? STATUS_RECLAMACAO_CONFIG.REMOVIDA;
+                const isCobranca = ticket.statusOperacionalLoja === "DEVOLUCAO_RECEBIDA";
 
                 return (
                   <tr key={ticket.id}>
@@ -244,12 +244,17 @@ export function TicketListTable({ initialItems }: { initialItems: Ticket[] }) {
                         value={ticket.statusTicket}
                         disabled={savingKey === `${ticket.id}:statusTicket`}
                         onChange={(event) => handleSelectChange(ticket.id, "statusTicket", event.target.value)}
-                        className="min-w-[150px] max-w-[170px] px-2 py-1 text-[0.78rem]"
-                        title={formatEnumLabel(ticket.statusTicket)}
+                        className="min-w-[150px] max-w-[170px] rounded-lg px-2 py-1 text-[0.78rem]"
+                        style={
+                          isCobranca
+                            ? { backgroundColor: "#fff1f0", color: "#b42318", border: "1px solid #ffccc7", fontWeight: 700 }
+                            : undefined
+                        }
+                        title={isCobranca ? "Cobrar" : formatEnumLabel(ticket.statusTicket)}
                       >
                         {STATUS_TICKET.map((status) => (
                           <option key={status} value={status}>
-                            {formatEnumLabel(status)}
+                            {isCobranca && status === ticket.statusTicket ? "Cobrar" : formatEnumLabel(status)}
                           </option>
                         ))}
                       </select>
@@ -276,8 +281,6 @@ export function TicketListTable({ initialItems }: { initialItems: Ticket[] }) {
                         ))}
                       </select>
                     </td>
-
-                    <td className="font-medium">{formatCurrencyBR(Number(ticket.custosTotais))}</td>
 
                     <td>
                       <span
