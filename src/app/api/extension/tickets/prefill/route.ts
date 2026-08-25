@@ -13,7 +13,10 @@ const importSchema = z.object({
   produto: z.string().optional(),
   sku: z.string().optional(),
   dataCompra: z.string().optional(),
-  linkPedido: z.string().optional()
+  dataReclamacao: z.string().optional(),
+  linkPedido: z.string().optional(),
+  cpf: z.string().optional(),
+  uf: z.string().optional()
 });
 
 export async function POST(request: NextRequest) {

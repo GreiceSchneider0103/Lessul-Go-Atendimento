@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Lessul Go — Importar Mercado Livre",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Importa dados do pedido do Mercado Livre para abrir um ticket pré-preenchido no Lessul Go Atendimento.",
   "action": {
     "default_popup": "popup.html",

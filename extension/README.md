@@ -30,7 +30,7 @@ digitar tudo manualmente.
    e complete o restante do formulário normalmente antes de salvar — nenhum
    ticket é criado automaticamente, apenas o rascunho é pré-preenchido.
 
-## Limitações conhecidas (v0.2)
+## Limitações conhecidas (v0.3)
 
 - Suporta apenas a página de venda do vendedor
   (`vendedores.mercadolivre.com.br/vendas/<id>/detalhe`) por enquanto — outros
@@ -38,8 +38,15 @@ digitar tudo manualmente.
 - A extração (`extractor.js`) foi ajustada com base em uma página real do
   vendedor: número da venda vem da própria URL, SKU e data são lidos por
   busca de padrão no texto da página, e o nome do cliente é a linha logo
-  acima da linha com CNPJ/CPF. Se o Mercado Livre mudar o layout e algum
-  campo parar de vir certo, esse é o único arquivo que precisa de ajuste.
+  acima da linha com CNPJ/CPF (o CPF/CNPJ em si vem da mesma linha). Data da
+  reclamação é sempre a data de hoje (o dia em que a importação é feita), não
+  algo lido da página. Se o Mercado Livre mudar o layout e algum campo parar
+  de vir certo, esse é o único arquivo que precisa de ajuste.
+- **UF é um "melhor esforço"**: procura uma sigla de estado válida perto da
+  primeira menção de "CEP" na página. Como o endereço de entrega não foi
+  visto numa página real durante o desenvolvimento, confira esse campo antes
+  de salvar o ticket — se vier errado, me avise com um print da seção
+  "Dados do envio" para eu ajustar a busca.
 - Depois de atualizar os arquivos da extensão, clique em **Atualizar** em
   `chrome://extensions` para recarregar (o Chrome não recarrega sozinho).
 - O token fica salvo em `chrome.storage.local` (por navegador/perfil, não

@@ -35,6 +35,16 @@
     return String(value).padStart(2, "0");
   }
 
+  function todayIsoDate() {
+    const now = new Date();
+    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  }
+
+  const UF_CODES = [
+    "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG",
+    "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"
+  ];
+
   // Mercado Livre often omits the year for recent sales ("25 de agosto").
   // Assume the current year, unless that would place the sale in the
   // future, in which case it must have been the previous year.
@@ -84,6 +94,10 @@
     return match ? parseDatePtBR(match[1]) : undefined;
   }
 
+  function findBuyerLine(lines) {
+    return lines.find((line) => /\b(CNPJ|CPF)\b/i.test(line));
+  }
+
   // The buyer card has no "Comprador:" label — it's rendered as the name on
   // one line, followed by "<cidade> | CPF/CNPJ ... | ..." on the next.
   function extractNomeCliente(lines) {
@@ -92,6 +106,29 @@
 
     const candidate = lines[buyerLineIndex - 1];
     return candidate && candidate.length <= 120 ? candidate : undefined;
+  }
+
+  // Same buyer line as nomeCliente ("... | CNPJ 00522849000125 | Negócio" or
+  // "... | CPF 000.000.000-00 | ..."); pulls just the digits.
+  function extractDocumento(lines) {
+    const buyerLine = findBuyerLine(lines);
+    if (!buyerLine) return undefined;
+
+    const match = buyerLine.match(/(?:CNPJ|CPF)\s*([\d.\/-]{11,18})/i);
+    return match ? match[1].replace(/\D/g, "") : undefined;
+  }
+
+  // Best-effort only: looks for a valid UF code in the text surrounding the
+  // shipping address' "CEP" mention (e.g. "Cidade - UF - CEP 12345-678").
+  // Review this field before saving the ticket — false positives are
+  // possible if another two-letter code appears near "CEP" on the page.
+  function extractUf(fullText) {
+    const cepIndex = fullText.search(/CEP/i);
+    if (cepIndex === -1) return undefined;
+
+    const window = fullText.slice(Math.max(0, cepIndex - 80), cepIndex + 80);
+    const candidates = window.match(/\b[A-Z]{2}\b/g) || [];
+    return candidates.find((code) => UF_CODES.includes(code));
   }
 
   function isOrderPage() {
@@ -115,6 +152,9 @@
       produto: produto || undefined,
       sku: extractSku(fullText) || undefined,
       dataCompra: extractDataCompra(fullText),
+      dataReclamacao: todayIsoDate(),
+      cpf: extractDocumento(lines),
+      uf: extractUf(fullText),
       linkPedido: location.href
     };
   }
