@@ -29,6 +29,24 @@ model Usuario {
   operacionaisAtualizadas OperationalRequest[]           @relation("operacionais_atualizadas")
   anexosOperacionais      OperationalRequestAttachment[] @relation("anexos_operacionais_usuario")
   usuarioEmpresas         UsuarioEmpresa[]
+  personalAccessTokens    PersonalAccessToken[]
+}
+
+// Tokens de acesso para integrações fora do navegador logado (ex.: extensão
+// de importação de pedidos), já que cookies de sessão não atravessam para
+// contextos de extensão. Nunca guarda o token em texto puro — só o hash.
+model PersonalAccessToken {
+  id         String    @id @default(uuid())
+  usuarioId  String    @map("usuario_id")
+  tokenHash  String    @unique @map("token_hash")
+  label      String?
+  createdAt  DateTime  @default(now()) @map("created_at")
+  lastUsedAt DateTime? @map("last_used_at")
+  revokedAt  DateTime? @map("revoked_at")
+  usuario    Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId])
+  @@map("personal_access_tokens")
 }
 
 model UsuarioEmpresa {
