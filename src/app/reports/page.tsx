@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Download, FileSpreadsheet, Layers, Wallet, Banknote, PackageCheck, type LucideIcon } from "lucide-react";
+import { Download, FileSpreadsheet, Layers, Wallet, Banknote, PackageCheck, TrendingUp, type LucideIcon } from "lucide-react";
 import { requireCurrentUser } from "@/lib/auth/require-user";
 import { CANAIS_MARKETPLACE, EMPRESAS } from "@/config/domains";
 import { ReportsResponse } from "@/lib/contracts";
@@ -12,7 +12,8 @@ const totalsConfig: Record<string, { label: string; icon: LucideIcon; money?: bo
   totalTickets: { label: "Total de tickets", icon: Layers },
   totalCustos: { label: "Custo total", icon: Wallet, money: true },
   totalReembolso: { label: "Valor de reembolso", icon: Banknote, money: true },
-  totalColeta: { label: "Total de coleta", icon: PackageCheck, money: true }
+  totalColeta: { label: "Total de coleta, envio ou peças", icon: PackageCheck, money: true },
+  totalRecuperado: { label: "Valor recuperado de marketplaces", icon: TrendingUp, money: true }
 };
 
 function getCurrentMonthRange() {
@@ -25,7 +26,7 @@ function getCurrentMonthRange() {
 async function getReport(query: Record<string, string | undefined>, user: Awaited<ReturnType<typeof requireCurrentUser>>): Promise<{ totals: ReportsResponse["totals"]; items: ReportsResponse["items"]; meta: ReportsResponse["meta"] | null; error: string | null }> {
   const parsed = ticketFiltersSchema.partial().safeParse(query);
   if (!parsed.success) {
-    return { totals: { totalTickets: 0, totalCustos: 0, totalReembolso: 0, totalColeta: 0 }, items: [], meta: null, error: "Filtros inválidos" };
+    return { totals: { totalTickets: 0, totalCustos: 0, totalReembolso: 0, totalColeta: 0, totalRecuperado: 0 }, items: [], meta: null, error: "Filtros inválidos" };
   }
 
   try {
@@ -38,7 +39,7 @@ async function getReport(query: Record<string, string | undefined>, user: Awaite
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Falha ao carregar relatório";
-    return { totals: { totalTickets: 0, totalCustos: 0, totalReembolso: 0, totalColeta: 0 }, items: [], meta: null, error: message };
+    return { totals: { totalTickets: 0, totalCustos: 0, totalReembolso: 0, totalColeta: 0, totalRecuperado: 0 }, items: [], meta: null, error: message };
   }
 }
 

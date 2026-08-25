@@ -13,6 +13,7 @@ export type ReportsResponse = {
     totalCustos: number;
     totalReembolso: number;
     totalColeta: number;
+    totalRecuperado: number;
   };
   meta: {
     limit: number;

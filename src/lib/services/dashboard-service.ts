@@ -59,6 +59,7 @@ export async function getDashboardData(filters: DashboardFilters, user: { id: st
     custoAgregado,
     reembolsoAgregado,
     coletaAgregado,
+    recuperadoAgregado,
     porEmpresa,
     porMotivo,
     porStatus,
@@ -76,7 +77,8 @@ export async function getDashboardData(filters: DashboardFilters, user: { id: st
     prisma.ticket.count({ where: { ...where, statusTicket: { not: "CONCLUIDO" }, prazoConclusao: { lt: new Date() } } }),
     prisma.ticket.aggregate({ _sum: { custosTotais: true }, where: custoWhere }),
     prisma.ticket.aggregate({ _sum: { valorReembolso: true }, where }),
-    prisma.ticket.aggregate({ _sum: { valorColeta: true }, where }),
+    prisma.ticket.aggregate({ _sum: { valorColetaEnvioPecas: true }, where }),
+    prisma.ticket.aggregate({ _sum: { valorRecuperado: true }, where }),
     prisma.ticket.groupBy({ by: ["empresa"], where, _count: true }),
     prisma.ticket.groupBy({ by: ["motivo"], where, _count: true }),
     prisma.ticket.groupBy({ by: ["statusTicket"], where, _count: true }),
@@ -147,7 +149,8 @@ export async function getDashboardData(filters: DashboardFilters, user: { id: st
       ticketsAtrasados: atrasados,
       custoTotal: Number((custoAgregado as any)?._sum?.custosTotais ?? 0),
       reembolsoTotal: Number((reembolsoAgregado as any)?._sum?.valorReembolso ?? 0),
-      coletaTotal: Number((coletaAgregado as any)?._sum?.valorColeta ?? 0)
+      coletaTotal: Number((coletaAgregado as any)?._sum?.valorColetaEnvioPecas ?? 0),
+      recuperadoTotal: Number((recuperadoAgregado as any)?._sum?.valorRecuperado ?? 0)
     },
     charts: {
       porEmpresa: porEmpresa.map((item: any) => ({ name: item.empresa, value: Number(item?._count?._all ?? item?._count ?? 0) })),

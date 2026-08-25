@@ -84,6 +84,7 @@ model Ticket {
   codigoRastreio                String?
   valorAssistencia              Decimal                        @default(0) @db.Decimal(12, 2)
   valorColetaEnvioPecas         Decimal                        @default(0) @db.Decimal(12, 2)
+  valorRecuperado               Decimal                        @default(0) @db.Decimal(12, 2)
   comentarioLoja                String?
   anexoUrl                      String?
   anexoPath                     String?

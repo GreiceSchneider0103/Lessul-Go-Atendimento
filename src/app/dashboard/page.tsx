@@ -4,7 +4,7 @@ import { CANAIS_MARKETPLACE, EMPRESAS } from "@/config/domains";
 import { ticketFiltersSchema } from "@/lib/validation/ticket";
 import { getDashboardData } from "@/lib/services/dashboard-service";
 import { formatCurrencyBR, formatEnumLabel } from "@/lib/formatters/display";
-import { Layers, AlertTriangle, Clock, Wallet, Banknote, PackageCheck, type LucideIcon } from "lucide-react";
+import { Layers, AlertTriangle, Clock, Wallet, Banknote, PackageCheck, TrendingUp, type LucideIcon } from "lucide-react";
 
 function getCurrentMonthRange() {
   const now = new Date();
@@ -29,7 +29,8 @@ const cardConfig: Record<string, { label: string; icon: LucideIcon; danger?: boo
   ticketsAtrasados: { label: "Tickets atrasados", icon: AlertTriangle, danger: true },
   custoTotal: { label: "Custo total", icon: Wallet, money: true },
   reembolsoTotal: { label: "Valor de reembolso", icon: Banknote, money: true },
-  coletaTotal: { label: "Total de coleta, envio ou peças", icon: PackageCheck, money: true }
+  coletaTotal: { label: "Total de coleta, envio ou peças", icon: PackageCheck, money: true },
+  recuperadoTotal: { label: "Valor recuperado de marketplaces", icon: TrendingUp, money: true }
 };
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {

@@ -30,7 +30,11 @@ export async function getReportsData(filters: ReportFilters, user: { id: string;
   const limit = 500;
   const [items, totals] = await Promise.all([
     prisma.ticket.findMany({ where, orderBy: { criadoEm: "desc" }, take: limit }),
-    prisma.ticket.aggregate({ where, _sum: { custosTotais: true, valorColeta: true, valorReembolso: true }, _count: { _all: true } })
+    prisma.ticket.aggregate({
+      where,
+      _sum: { custosTotais: true, valorColetaEnvioPecas: true, valorReembolso: true, valorRecuperado: true },
+      _count: { _all: true }
+    })
   ]);
 
   const totalCount = Number((totals as any)?._count?._all ?? 0);
@@ -40,7 +44,8 @@ export async function getReportsData(filters: ReportFilters, user: { id: string;
       totalTickets: totalCount,
       totalCustos: Number((totals as any)?._sum?.custosTotais ?? 0),
       totalReembolso: Number((totals as any)?._sum?.valorReembolso ?? 0),
-      totalColeta: Number((totals as any)?._sum?.valorColeta ?? 0)
+      totalColeta: Number((totals as any)?._sum?.valorColetaEnvioPecas ?? 0),
+      totalRecuperado: Number((totals as any)?._sum?.valorRecuperado ?? 0)
     },
     meta: {
       limit,

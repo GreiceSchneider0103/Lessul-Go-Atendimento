@@ -145,7 +145,7 @@ export default async function TicketDetail({ params }: { params: Promise<{ id: s
   const ticketComExtras = ticket as typeof ticket & {
     valorAssistencia?: unknown;
     valorColetaEnvioPecas?: unknown;
-    valorColeta?: unknown;
+    valorRecuperado?: unknown;
     codigoRastreio?: string | null;
     statusOperacionalLoja?: string | null;
     comentariosOperacionais?: ComentarioOperacional[];
@@ -201,11 +201,11 @@ export default async function TicketDetail({ params }: { params: Promise<{ id: s
 
               <div className="ticket-info-list">
                 <InfoRow label="Reembolso" value={toCurrency(ticket.valorReembolso)} />
-                <InfoRow label="Valor de assistência" value={toCurrency(ticketComExtras.valorAssistencia)} />
+                <InfoRow label="Envio assistência" value={toCurrency(ticketComExtras.valorAssistencia)} />
                 <InfoRow label="Coleta, envio ou peças" value={toCurrency(ticketComExtras.valorColetaEnvioPecas)} />
-                <InfoRow label="Coleta (uso interno)" value={toCurrency(ticketComExtras.valorColeta)} />
                 <InfoRow label="Código de rastreio" value={ticketComExtras.codigoRastreio || "Sem rastreio"} />
-                <InfoRow label="Custos totais" value={<strong>{toCurrency(ticket.custosTotais)}</strong>} />
+                <InfoRow label="Custo total" value={<strong>{toCurrency(ticket.custosTotais)}</strong>} />
+                <InfoRow label="Recuperado do marketplace" value={<strong className="text-emerald-600">{toCurrency(ticketComExtras.valorRecuperado)}</strong>} />
               </div>
             </section>
           </div>

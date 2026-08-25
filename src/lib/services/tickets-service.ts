@@ -12,7 +12,7 @@ import { sendEmail } from "@/lib/services/email-service";
 
 const RETURNS_NOTIFICATION_EMAIL = "atendimento@lessul.com.br";
 
-const sensitiveFields = ["valorColeta", "prazoConclusao", "resolucao"] as const;
+const sensitiveFields = ["valorRecuperado", "prazoConclusao", "resolucao"] as const;
 
 function normalizeOptionalText(value?: string | null) {
   if (value === undefined || value === null) return null;
@@ -42,6 +42,7 @@ function sanitizePayloadForLoja(user: Usuario, payload: Partial<TicketInput>) {
   const sanitized = { ...payload };
 
   delete sanitized.valorColeta;
+  delete sanitized.valorRecuperado;
   delete sanitized.prazoConclusao;
 
   return sanitized;
@@ -187,10 +188,10 @@ export async function createTicket(input: TicketInput, userId: string) {
   assertSlaConsistency(input.statusTicket, prazoConclusao);
 
   const valorReembolso = Number(input.valorReembolso ?? 0);
-  const valorColeta = Number(input.valorColeta ?? 0);
   const valorAssistencia = Number(input.valorAssistencia ?? 0);
   const valorColetaEnvioPecas = Number(input.valorColetaEnvioPecas ?? 0);
-  const custosTotais = valorReembolso + valorColeta + valorAssistencia + valorColetaEnvioPecas;
+  const valorRecuperado = Number(input.valorRecuperado ?? 0);
+  const custosTotais = valorReembolso + valorAssistencia + valorColetaEnvioPecas;
 
   const ticket = await prisma.ticket.create({
     data: {
@@ -215,9 +216,9 @@ export async function createTicket(input: TicketInput, userId: string) {
       comentarioInterno: normalizeOptionalText(input.comentarioInterno),
       resolucao: input.resolucao ?? null,
       valorReembolso: new Prisma.Decimal(valorReembolso),
-      valorColeta: new Prisma.Decimal(valorColeta),
       valorAssistencia: new Prisma.Decimal(valorAssistencia),
       valorColetaEnvioPecas: new Prisma.Decimal(valorColetaEnvioPecas),
+      valorRecuperado: new Prisma.Decimal(valorRecuperado),
       custosTotais: new Prisma.Decimal(custosTotais),
       statusTicket: input.statusTicket,
       prazoConclusao,
@@ -495,8 +496,6 @@ export async function updateTicket(id: string, rawPayload: Partial<TicketInput>,
   const nextValorReembolso =
     payload.valorReembolso !== undefined ? Number(payload.valorReembolso) : Number(before.valorReembolso);
 
-  const nextValorColeta = payload.valorColeta !== undefined ? Number(payload.valorColeta) : Number(before.valorColeta);
-
   const nextValorAssistencia =
     payload.valorAssistencia !== undefined ? Number(payload.valorAssistencia) : Number(before.valorAssistencia);
 
@@ -505,13 +504,17 @@ export async function updateTicket(id: string, rawPayload: Partial<TicketInput>,
       ? Number(payload.valorColetaEnvioPecas)
       : Number(before.valorColetaEnvioPecas);
 
+  const nextValorRecuperado =
+    payload.valorRecuperado !== undefined ? Number(payload.valorRecuperado) : Number(before.valorRecuperado);
+
   const isMonetaryUpdated =
     payload.valorReembolso !== undefined ||
-    payload.valorColeta !== undefined ||
     payload.valorAssistencia !== undefined ||
     payload.valorColetaEnvioPecas !== undefined;
 
-  const nextCustosTotais = nextValorReembolso + nextValorColeta + nextValorAssistencia + nextValorColetaEnvioPecas;
+  const isValorRecuperadoUpdated = payload.valorRecuperado !== undefined;
+
+  const nextCustosTotais = nextValorReembolso + nextValorAssistencia + nextValorColetaEnvioPecas;
 
   const data: Prisma.TicketUncheckedUpdateInput = {
     atualizadoPorId: user.id,
@@ -557,12 +560,13 @@ export async function updateTicket(id: string, rawPayload: Partial<TicketInput>,
     ...(isMonetaryUpdated
       ? {
           valorReembolso: new Prisma.Decimal(nextValorReembolso),
-          valorColeta: new Prisma.Decimal(nextValorColeta),
           valorAssistencia: new Prisma.Decimal(nextValorAssistencia),
           valorColetaEnvioPecas: new Prisma.Decimal(nextValorColetaEnvioPecas),
           custosTotais: new Prisma.Decimal(nextCustosTotais)
         }
-      : {})
+      : {}),
+
+    ...(isValorRecuperadoUpdated ? { valorRecuperado: new Prisma.Decimal(nextValorRecuperado) } : {})
   };
 
   // Se o ticket foi concluído via statusTicket e o payload não setou statusOperacionalLoja,

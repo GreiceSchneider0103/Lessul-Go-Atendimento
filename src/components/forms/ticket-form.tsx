@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Paperclip, Trash2, ExternalLink } from "lucide-react";
 import { CANAIS_MARKETPLACE, EMPRESAS, MOTIVOS, RESOLUCOES, STATUS_RECLAMACAO, STATUS_TICKET } from "@/config/domains";
-import { formatEnumLabel } from "@/lib/formatters/display";
+import { formatCurrencyBR, formatEnumLabel } from "@/lib/formatters/display";
 import { TicketFormInput, ticketFormSchema } from "@/lib/validation/ticket";
 
 type AssignableUser = { id: string; nome: string };
@@ -174,6 +174,7 @@ export function TicketForm({
       valorColeta: toNumberValue(initialValues?.valorColeta),
       valorAssistencia: toNumberValue(initialValues?.valorAssistencia),
       valorColetaEnvioPecas: toNumberValue(initialValues?.valorColetaEnvioPecas),
+      valorRecuperado: toNumberValue(initialValues?.valorRecuperado),
       codigoRastreio: toText(initialValues?.codigoRastreio),
       statusOperacionalLoja: toText(initialValues?.statusOperacionalLoja) || "EM_ABERTO",
       comentarioLoja: toText(initialValues?.comentarioLoja),
@@ -186,6 +187,15 @@ export function TicketForm({
   });
 
   const empresaSelecionada = watch("empresa");
+
+  const [valorReembolsoAtual, valorAssistenciaAtual, valorColetaEnvioPecasAtual] = watch([
+    "valorReembolso",
+    "valorAssistencia",
+    "valorColetaEnvioPecas"
+  ]);
+
+  const custoTotalPreview =
+    toNumberValue(valorReembolsoAtual) + toNumberValue(valorAssistenciaAtual) + toNumberValue(valorColetaEnvioPecasAtual);
 
   useEffect(() => {
     if (!empresasDisponiveis.length) return;
@@ -234,7 +244,8 @@ export function TicketForm({
       valorReembolso: toNumberValue(values.valorReembolso),
       valorColeta: toNumberValue(values.valorColeta),
       valorAssistencia: toNumberValue(values.valorAssistencia),
-      valorColetaEnvioPecas: toNumberValue(values.valorColetaEnvioPecas)
+      valorColetaEnvioPecas: toNumberValue(values.valorColetaEnvioPecas),
+      valorRecuperado: toNumberValue(values.valorRecuperado)
     };
 
     const url = ticketId ? `/api/tickets/${ticketId}` : "/api/tickets";
@@ -468,7 +479,7 @@ export function TicketForm({
           </label>
 
           <label>
-            Valor de assistência
+            Valor de envio assistência
             <input {...register("valorAssistencia", { valueAsNumber: true })} type="number" step="0.01" placeholder="R$ 0,00" />
           </label>
 
@@ -478,16 +489,21 @@ export function TicketForm({
           </label>
 
           <label>
-            Valor de coleta (uso interno)
+            Valor recuperado do marketplace
             <input
-              {...register("valorColeta", { valueAsNumber: true })}
+              {...register("valorRecuperado", { valueAsNumber: true })}
               type="number"
               step="0.01"
               placeholder="R$ 0,00"
               disabled={!canEditSensitive}
             />
-            <small className="muted">Custo interno de coleta, separado do valor de coleta/envio/peças acima.</small>
+            <small className="muted">Valor efetivamente cobrado/recuperado do marketplace em devoluções.</small>
           </label>
+        </div>
+
+        <div className="ticket-form-total">
+          <span>Custo total (reembolso + assistência + coleta/envio/peças)</span>
+          <strong>{formatCurrencyBR(custoTotalPreview)}</strong>
         </div>
       </section>
 

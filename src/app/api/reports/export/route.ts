@@ -45,7 +45,9 @@ export async function GET(request: NextRequest) {
       status_ticket: ticket.statusTicket,
       custo_total: Number(ticket.custosTotais),
       valor_reembolso: Number(ticket.valorReembolso),
-      valor_coleta: Number(ticket.valorColeta)
+      valor_assistencia: Number(ticket.valorAssistencia),
+      valor_coleta_envio_pecas: Number(ticket.valorColetaEnvioPecas),
+      valor_recuperado: Number(ticket.valorRecuperado)
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(data);

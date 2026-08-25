@@ -53,6 +53,7 @@ export default async function TicketEditPage({ params }: { params: Promise<{ id:
     valorColeta: Number(ticket.valorColeta ?? 0),
     valorAssistencia: Number(ticket.valorAssistencia ?? 0),
     valorColetaEnvioPecas: Number(ticket.valorColetaEnvioPecas ?? 0),
+    valorRecuperado: Number(ticket.valorRecuperado ?? 0),
 
     comentarioLoja: ticket.comentarioLoja ?? "",
     comentarioInterno: ticket.comentarioInterno ?? "",

@@ -41,6 +41,7 @@ export const ticketSchema = z.object({
   codigoRastreio: z.string().optional().or(z.literal("")),
   valorAssistencia: z.coerce.number().min(0).default(0),
   valorColetaEnvioPecas: z.coerce.number().min(0).default(0),
+  valorRecuperado: z.coerce.number().min(0).default(0),
   comentarioLoja: z.string().optional().or(z.literal("")),
 });
 
