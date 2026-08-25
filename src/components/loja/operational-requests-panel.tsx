@@ -268,7 +268,13 @@ export function OperationalRequestsPanel({ data, perfil }: { data: Row[]; perfil
                       </a>
                     ) : row.ticket.numeroVenda}
                   </td>
-                  <td><span className="badge badge-info">{formatEnumLabel(row.tipoAcao)}</span></td>
+                  <td>
+                    {row.ticket.statusOperacionalLoja === "DEVOLUCAO_RECEBIDA" ? (
+                      <span className="badge badge-danger">Cobrança</span>
+                    ) : (
+                      <span className="badge badge-info">{formatEnumLabel(row.tipoAcao)}</span>
+                    )}
+                  </td>
                   <td>{formatEnumLabel(row.status)}</td>
                   <td>
                     {row.prazoOperacional ? (

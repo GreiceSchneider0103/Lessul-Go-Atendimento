@@ -573,6 +573,23 @@ export function TicketForm({
               </label>
             </div>
 
+            {currentAttachment?.fileUrl ? (
+              <div className="flex items-center gap-2.5">
+                {currentAttachment.mimeType?.startsWith("image/") ? (
+                  <img
+                    src={currentAttachment.fileUrl}
+                    alt={currentAttachment.fileName ?? "Anexo do ticket"}
+                    className="h-14 w-14 rounded-[10px] border border-slate-200 object-cover"
+                  />
+                ) : (
+                  <span className="flex h-14 w-14 items-center justify-center rounded-[10px] border border-slate-200 bg-slate-50 text-slate-500">
+                    <Paperclip size={20} strokeWidth={2} aria-hidden />
+                  </span>
+                )}
+                <span className="text-sm text-slate-600">{currentAttachment.fileName ?? "Anexo"}</span>
+              </div>
+            ) : null}
+
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"

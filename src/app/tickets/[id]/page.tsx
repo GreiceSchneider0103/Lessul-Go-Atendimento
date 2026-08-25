@@ -250,7 +250,16 @@ export default async function TicketDetail({ params }: { params: Promise<{ id: s
             <InfoRow label="Status da reclamação" value={<StatusBadge value={ticket.statusReclamacao} context="statusReclamacao" />} />
             <InfoRow label="Motivo" value={<StatusBadge value={ticket.motivo} context="motivo" />} />
             <InfoRow label="Resolução" value={ticket.resolucao ? formatEnumLabel(ticket.resolucao) : "-"} />
-            <InfoRow label="Ação operacional da loja" value={<StatusBadge value={ticket.acaoOperacionalLoja ?? "NENHUMA"} />} />
+            <InfoRow
+              label="Ação operacional da loja"
+              value={
+                ticketComExtras.statusOperacionalLoja === "DEVOLUCAO_RECEBIDA" ? (
+                  <span className="badge badge-danger">Cobrança</span>
+                ) : (
+                  <StatusBadge value={ticket.acaoOperacionalLoja ?? "NENHUMA"} />
+                )
+              }
+            />
             <InfoRow
               label="Status operacional da loja"
               value={ticketComExtras.statusOperacionalLoja ? <StatusBadge value={ticketComExtras.statusOperacionalLoja} /> : "-"}
