@@ -1,6 +1,6 @@
 import { requireCurrentUser } from "@/lib/auth/require-user";
 import Link from "next/link";
-import { ArrowLeft, FileText } from "lucide-react";
+import { ArrowLeft, FileText, User, Package, Clock, Wallet, Paperclip, MessageSquare, type LucideIcon } from "lucide-react";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { getTicketById } from "@/lib/services/tickets-service";
 import { hasPermission } from "@/lib/rbac/permissions";
@@ -46,12 +46,13 @@ function toDateTime(value: Date | string | null | undefined) {
   return value ? formatDateTimeBR(value) : "-";
 }
 
-function getAcaoOperacionalLabel(value: string | null | undefined) {
-  return formatEnumLabel(value ?? "NENHUMA");
-}
-
-function getStatusOperacionalLabel(value: string | null | undefined) {
-  return formatEnumLabel(value ?? "");
+function getInitials(name: string) {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
 }
 
 function getAnexoFromTicket(
@@ -70,6 +71,17 @@ function getAnexoFromTicket(
     nome: ticket.anexoNome ?? "Anexo",
     mimeType: ticket.anexoMimeType ?? null
   };
+}
+
+function SectionTitle({ icon: Icon, children }: { icon: LucideIcon; children: ReactNode }) {
+  return (
+    <h2 className="ticket-section-title">
+      <span className="ticket-section-icon">
+        <Icon size={14} strokeWidth={2.5} aria-hidden />
+      </span>
+      {children}
+    </h2>
+  );
 }
 
 function InfoRow({ label, value }: { label: string; value: ReactNode }) {
@@ -167,10 +179,20 @@ export default async function TicketDetail({ params }: { params: Promise<{ id: s
         Voltar
       </Link>
 
-      <div className="ticket-detail-header">
-        <div>
-          <h1>Detalhe do ticket</h1>
-          <p className="muted">Informações completas e histórico de auditoria.</p>
+      <div className="ticket-hero">
+        <div className="ticket-hero-main">
+          <span className="ticket-hero-avatar">{getInitials(ticket.nomeCliente) || "?"}</span>
+
+          <div className="ticket-hero-title">
+            <h1>{ticket.nomeCliente}</h1>
+            <p className="ticket-hero-meta">
+              Pedido {ticket.numeroVenda} · {formatEnumLabel(ticket.empresa)} · {formatEnumLabel(ticket.canalMarketplace)}
+            </p>
+            <div className="ticket-hero-badges">
+              <StatusBadge value={ticket.statusTicket} />
+              <StatusBadge value={ticket.slaStatus} />
+            </div>
+          </div>
         </div>
 
         <div className="ticket-detail-actions">
@@ -184,35 +206,18 @@ export default async function TicketDetail({ params }: { params: Promise<{ id: s
 
       <div className="ticket-detail-grid">
         <article className="card">
-          <div className="grid gap-6">
-            <section>
-              <h2 className="mt-0">Dados do cliente</h2>
+          <SectionTitle icon={User}>Dados do cliente</SectionTitle>
 
-              <div className="ticket-info-list">
-                <InfoRow label="Nome" value={ticket.nomeCliente} />
-                <InfoRow label="CPF" value={ticket.cpf} />
-                <InfoRow label="UF" value={ticket.uf} />
-                <InfoRow label="Detalhes" value={ticket.detalhesCliente || "-"} />
-              </div>
-            </section>
-
-            <section className="border-t border-slate-100 pt-4">
-              <h2>Valores e rastreabilidade</h2>
-
-              <div className="ticket-info-list">
-                <InfoRow label="Reembolso" value={toCurrency(ticket.valorReembolso)} />
-                <InfoRow label="Envio assistência" value={toCurrency(ticketComExtras.valorAssistencia)} />
-                <InfoRow label="Coleta, envio ou peças" value={toCurrency(ticketComExtras.valorColetaEnvioPecas)} />
-                <InfoRow label="Código de rastreio" value={ticketComExtras.codigoRastreio || "Sem rastreio"} />
-                <InfoRow label="Custo total" value={<strong>{toCurrency(ticket.custosTotais)}</strong>} />
-                <InfoRow label="Recuperado do marketplace" value={<strong className="text-emerald-600">{toCurrency(ticketComExtras.valorRecuperado)}</strong>} />
-              </div>
-            </section>
+          <div className="ticket-info-list">
+            <InfoRow label="Nome" value={ticket.nomeCliente} />
+            <InfoRow label="CPF" value={ticket.cpf} />
+            <InfoRow label="UF" value={ticket.uf} />
+            <InfoRow label="Detalhes" value={ticket.detalhesCliente || "-"} />
           </div>
         </article>
 
         <article className="card">
-          <h2>Dados do pedido</h2>
+          <SectionTitle icon={Package}>Dados do pedido</SectionTitle>
 
           <div className="ticket-info-list">
             <InfoRow label="Número da venda" value={ticket.numeroVenda} />
@@ -239,24 +244,25 @@ export default async function TicketDetail({ params }: { params: Promise<{ id: s
         </article>
 
         <article className="card">
-          <h2>Reclamação e prazo</h2>
+          <SectionTitle icon={Clock}>Reclamação e prazo</SectionTitle>
 
           <div className="ticket-info-list">
-            <InfoRow label="Status do ticket" value={<StatusBadge value={ticket.statusTicket} />} />
             <InfoRow label="Status da reclamação" value={<StatusBadge value={ticket.statusReclamacao} context="statusReclamacao" />} />
             <InfoRow label="Motivo" value={<StatusBadge value={ticket.motivo} context="motivo" />} />
             <InfoRow label="Resolução" value={ticket.resolucao ? formatEnumLabel(ticket.resolucao) : "-"} />
-            <InfoRow label="Ação operacional da loja" value={getAcaoOperacionalLabel(ticket.acaoOperacionalLoja)} />
-            <InfoRow label="Status operacional da loja" value={getStatusOperacionalLabel(ticketComExtras.statusOperacionalLoja)} />
+            <InfoRow label="Ação operacional da loja" value={<StatusBadge value={ticket.acaoOperacionalLoja ?? "NENHUMA"} />} />
+            <InfoRow
+              label="Status operacional da loja"
+              value={ticketComExtras.statusOperacionalLoja ? <StatusBadge value={ticketComExtras.statusOperacionalLoja} /> : "-"}
+            />
             <InfoRow label="Data da reclamação" value={toDate(ticket.dataReclamacao)} />
             <InfoRow label="Prazo de conclusão" value={toDate(ticket.prazoConclusao)} />
             <InfoRow label="Concluído em" value={toDateTime(ticket.concluidoEm)} />
-            <InfoRow label="SLA" value={<StatusBadge value={ticket.slaStatus} />} />
           </div>
         </article>
 
         <article className="card">
-          <h2>Anexo do ticket</h2>
+          <SectionTitle icon={Paperclip}>Anexo do ticket</SectionTitle>
 
           <div className="ticket-info-list">
             <AttachmentPreview anexo={anexo} />
@@ -264,8 +270,44 @@ export default async function TicketDetail({ params }: { params: Promise<{ id: s
         </article>
       </div>
 
+      <article className="card ticket-values-panel">
+        <SectionTitle icon={Wallet}>Valores e rastreabilidade</SectionTitle>
+
+        <div className="ticket-stat-grid">
+          <div className="ticket-stat">
+            <span className="ticket-stat-label">Reembolso</span>
+            <span className="ticket-stat-value">{toCurrency(ticket.valorReembolso)}</span>
+          </div>
+
+          <div className="ticket-stat">
+            <span className="ticket-stat-label">Envio assistência</span>
+            <span className="ticket-stat-value">{toCurrency(ticketComExtras.valorAssistencia)}</span>
+          </div>
+
+          <div className="ticket-stat">
+            <span className="ticket-stat-label">Coleta, envio ou peças</span>
+            <span className="ticket-stat-value">{toCurrency(ticketComExtras.valorColetaEnvioPecas)}</span>
+          </div>
+
+          <div className="ticket-stat">
+            <span className="ticket-stat-label">Custo total</span>
+            <span className="ticket-stat-value brand">{toCurrency(ticket.custosTotais)}</span>
+          </div>
+
+          <div className="ticket-stat">
+            <span className="ticket-stat-label">Recuperado do marketplace</span>
+            <span className="ticket-stat-value positive">{toCurrency(ticketComExtras.valorRecuperado)}</span>
+          </div>
+        </div>
+
+        <div className="ticket-info-row" style={{ marginTop: 18 }}>
+          <span className="ticket-info-label">Código de rastreio</span>
+          <span className="ticket-info-value">{ticketComExtras.codigoRastreio || "Sem rastreio"}</span>
+        </div>
+      </article>
+
       <article className="card">
-        <h2>Comentários</h2>
+        <SectionTitle icon={MessageSquare}>Comentários</SectionTitle>
 
         <div className="mb-5">
           <h3 className="mb-2 text-sm font-semibold text-slate-500">Interno</h3>
