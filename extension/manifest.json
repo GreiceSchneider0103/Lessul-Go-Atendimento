@@ -1,0 +1,32 @@
+{
+  "manifest_version": 3,
+  "name": "Lessul Go — Importar Mercado Livre",
+  "version": "0.1.0",
+  "description": "Importa dados do pedido do Mercado Livre para abrir um ticket pré-preenchido no Lessul Go Atendimento.",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Lessul Go — Importar pedido"
+  },
+  "options_page": "options.html",
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": ["storage", "scripting", "activeTab"],
+  "host_permissions": [
+    "https://www.mercadolivre.com.br/*",
+    "https://myaccount.mercadolivre.com.br/*",
+    "https://lessul-go-atendimento-2p7t.onrender.com/*",
+    "http://localhost:3000/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.mercadolivre.com.br/vendas/*",
+        "https://www.mercadolivre.com.br/noindex/mvp/orders/*",
+        "https://myaccount.mercadolivre.com.br/*"
+      ],
+      "js": ["extractor.js", "content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

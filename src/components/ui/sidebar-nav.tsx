@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { Route } from "next";
-import { LayoutDashboard, Ticket, BarChart3, Settings, Shield, Store, type LucideIcon } from "lucide-react";
+import { LayoutDashboard, Ticket, BarChart3, Settings, Shield, Store, Puzzle, type LucideIcon } from "lucide-react";
 
 type NavItem = { label: string; href: Route; icon: LucideIcon };
 
@@ -16,7 +16,8 @@ const navByPerfil: Record<string, NavItem[]> = {
     { label: "Tickets", href: "/tickets", icon: Ticket },
     { label: "Relatórios", href: "/reports", icon: BarChart3 },
     { label: "Administração", href: "/admin", icon: Settings },
-    { label: "Operacional Loja", href: "/loja/solicitacoes", icon: Store }
+    { label: "Operacional Loja", href: "/loja/solicitacoes", icon: Store },
+    { label: "Extensão", href: "/extensao", icon: Puzzle }
   ],
   MASTER: [
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -24,12 +25,14 @@ const navByPerfil: Record<string, NavItem[]> = {
     { label: "Relatórios", href: "/reports", icon: BarChart3 },
     { label: "Administração", href: "/admin", icon: Settings },
     { label: "Master", href: "/master", icon: Shield },
-    { label: "Operacional Loja", href: "/loja/solicitacoes", icon: Store }
+    { label: "Operacional Loja", href: "/loja/solicitacoes", icon: Store },
+    { label: "Extensão", href: "/extensao", icon: Puzzle }
   ],
   DEFAULT: [
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { label: "Tickets", href: "/tickets", icon: Ticket },
-    { label: "Relatórios", href: "/reports", icon: BarChart3 }
+    { label: "Relatórios", href: "/reports", icon: BarChart3 },
+    { label: "Extensão", href: "/extensao", icon: Puzzle }
   ]
 };
 

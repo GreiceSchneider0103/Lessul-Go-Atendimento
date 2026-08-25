@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <title>Lessul Go</title>
+  <style>
+    body { font-family: system-ui, sans-serif; width: 260px; padding: 14px; color: #1e293b; }
+    h1 { font-size: 14px; margin: 0 0 8px; }
+    .status { display: flex; align-items: center; gap: 6px; font-size: 12px; margin-bottom: 12px; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot.ok { background: #16a34a; }
+    .dot.error { background: #dc2626; }
+    button { width: 100%; background: #2563eb; color: #fff; border: none; border-radius: 6px; padding: 9px; font-size: 13px; font-weight: 700; cursor: pointer; }
+    button:hover { background: #1d4ed8; }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    a { color: #2563eb; font-size: 12px; }
+    #message { font-size: 12px; margin-top: 10px; }
+    #message.error { color: #b91c1c; }
+    #message.ok { color: #166534; }
+  </style>
+</head>
+<body>
+  <h1>Lessul Go — Mercado Livre</h1>
+  <div class="status">
+    <span id="tokenDot" class="dot error"></span>
+    <span id="tokenLabel">Verificando token...</span>
+  </div>
+
+  <button id="importBtn">Importar pedido desta página</button>
+  <div id="message"></div>
+
+  <p><a href="#" id="optionsLink">Configurar token</a></p>
+
+  <script src="popup.js"></script>
+</body>
+</html>
