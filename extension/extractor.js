@@ -1,16 +1,26 @@
-// Extraction logic for Mercado Livre order pages.
+// Extraction logic for Mercado Livre seller order pages
+// (vendedores.mercadolivre.com.br/vendas/<id>/detalhe).
 //
-// NOTE: Mercado Livre's DOM/class names were not verified against a live,
-// logged-in seller session (not reachable from the build environment), so
-// this deliberately avoids brittle CSS-class selectors and instead searches
-// for known Portuguese label text and reads the value next to it. If a label
-// changes, add its variant to the arrays below rather than rewriting the
-// matching logic.
+// Tuned against a real logged-in seller page (screenshot-verified): the sale
+// number lives in the URL, not a labeled field; the buyer name has no
+// "Comprador:" label, it's the line right above the CNPJ/CPF line; the SKU
+// appears inline as "SKU 12345" (no colon); and the sale date is often shown
+// without a year ("25 de agosto"). If Mercado Livre changes this layout,
+// this is the one file that needs adjusting.
 (function (global) {
   const MONTHS_PT = {
-    janeiro: "01", fevereiro: "02", março: "03", marco: "03", abril: "04",
-    maio: "05", junho: "06", julho: "07", agosto: "08", setembro: "09",
-    outubro: "10", novembro: "11", dezembro: "12"
+    janeiro: "01", jan: "01",
+    fevereiro: "02", fev: "02",
+    marco: "03", mar: "03",
+    abril: "04", abr: "04",
+    maio: "05", mai: "05",
+    junho: "06", jun: "06",
+    julho: "07", jul: "07",
+    agosto: "08", ago: "08",
+    setembro: "09", set: "09",
+    outubro: "10", out: "10",
+    novembro: "11", nov: "11",
+    dezembro: "12", dez: "12"
   };
 
   function normalize(text) {
@@ -21,56 +31,67 @@
       .trim();
   }
 
-  // Parses "14 de agosto de 2026" or "14/08/2026" into "2026-08-14".
+  function pad(value) {
+    return String(value).padStart(2, "0");
+  }
+
+  // Mercado Livre often omits the year for recent sales ("25 de agosto").
+  // Assume the current year, unless that would place the sale in the
+  // future, in which case it must have been the previous year.
+  function resolveYear(day, month) {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const candidate = new Date(`${currentYear}-${month}-${pad(day)}T00:00:00`);
+    const oneDayMs = 24 * 60 * 60 * 1000;
+    return candidate.getTime() - now.getTime() > oneDayMs ? currentYear - 1 : currentYear;
+  }
+
   function parseDatePtBR(raw) {
     if (!raw) return undefined;
     const text = raw.trim();
 
-    const longForm = text.match(/(\d{1,2})\s+de\s+([a-zçã]+)\s+de\s+(\d{4})/i);
+    const longForm = text.match(/(\d{1,2})\s+de\s+([a-zçã]+)(?:\s+de\s+(\d{4}))?/i);
     if (longForm) {
       const [, day, monthName, year] = longForm;
       const month = MONTHS_PT[normalize(monthName)];
-      if (month) return `${year}-${month}-${day.padStart(2, "0")}`;
+      if (month) return `${year || resolveYear(day, month)}-${month}-${pad(day)}`;
     }
 
     const shortForm = text.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
     if (shortForm) {
       const [, day, month, year] = shortForm;
-      return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+      return `${year}-${pad(month)}-${pad(day)}`;
     }
 
     return undefined;
   }
 
-  // Walks all text nodes looking for one of `labels`, then returns the text
-  // of the nearest following sibling/element (common "label: value" or
-  // "label" then "value" on the next row layout).
-  function findValueByLabel(labels) {
-    const normalizedLabels = labels.map(normalize);
-    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-    let node;
+  function extractNumeroVenda(fullText) {
+    const fromUrl = location.pathname.match(/\/vendas\/(\d+)/);
+    if (fromUrl) return fromUrl[1];
 
-    while ((node = walker.nextNode())) {
-      const text = normalize(node.textContent);
-      if (!text) continue;
+    const fromText = fullText.match(/venda\s*#\s*(\d+)/i);
+    return fromText ? fromText[1] : undefined;
+  }
 
-      const matchedLabel = normalizedLabels.find((label) => text === label || text.startsWith(`${label}:`));
-      if (!matchedLabel) continue;
+  function extractSku(fullText) {
+    const match = fullText.match(/SKU[:\s]+([A-Za-z0-9._-]{3,})/i);
+    return match ? match[1] : undefined;
+  }
 
-      const container = node.parentElement;
-      if (!container) continue;
+  function extractDataCompra(fullText) {
+    const match = fullText.match(/(\d{1,2}\s+de\s+[a-zçã]+(?:\s+de\s+\d{4})?)/i);
+    return match ? parseDatePtBR(match[1]) : undefined;
+  }
 
-      const inlineValue = node.textContent.split(":").slice(1).join(":").trim();
-      if (inlineValue) return inlineValue;
+  // The buyer card has no "Comprador:" label — it's rendered as the name on
+  // one line, followed by "<cidade> | CPF/CNPJ ... | ..." on the next.
+  function extractNomeCliente(lines) {
+    const buyerLineIndex = lines.findIndex((line) => /\b(CNPJ|CPF)\b/i.test(line));
+    if (buyerLineIndex <= 0) return undefined;
 
-      const nextEl = container.nextElementSibling;
-      if (nextEl?.textContent?.trim()) return nextEl.textContent.trim();
-
-      const parentNextEl = container.parentElement?.nextElementSibling;
-      if (parentNextEl?.textContent?.trim()) return parentNextEl.textContent.trim();
-    }
-
-    return undefined;
+    const candidate = lines[buyerLineIndex - 1];
+    return candidate && candidate.length <= 120 ? candidate : undefined;
   }
 
   function isOrderPage() {
@@ -83,19 +104,17 @@
   }
 
   function extractOrder() {
-    const numeroVenda = findValueByLabel(["numero da venda", "n de venda", "venda", "codigo da venda"]);
-    const nomeCliente = findValueByLabel(["comprador", "cliente", "nome do comprador"]);
-    const sku = findValueByLabel(["sku", "codigo do anuncio", "numero do anuncio"]);
-    const dataCompraRaw = findValueByLabel(["data da venda", "comprado em", "data de compra", "data da compra"]);
+    const fullText = document.body.innerText || "";
+    const lines = fullText.split("\n").map((line) => line.trim()).filter(Boolean);
     const produto = document.querySelector("h1")?.textContent?.trim();
 
     return {
       canalMarketplace: "MERCADO_LIVRE",
-      nomeCliente: nomeCliente || undefined,
-      numeroVenda: numeroVenda || undefined,
+      nomeCliente: extractNomeCliente(lines) || undefined,
+      numeroVenda: extractNumeroVenda(fullText) || undefined,
       produto: produto || undefined,
-      sku: sku || undefined,
-      dataCompra: parseDatePtBR(dataCompraRaw),
+      sku: extractSku(fullText) || undefined,
+      dataCompra: extractDataCompra(fullText),
       linkPedido: location.href
     };
   }

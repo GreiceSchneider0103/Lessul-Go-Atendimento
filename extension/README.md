@@ -30,18 +30,18 @@ digitar tudo manualmente.
    e complete o restante do formulário normalmente antes de salvar — nenhum
    ticket é criado automaticamente, apenas o rascunho é pré-preenchido.
 
-## Limitações conhecidas (v0.1)
+## Limitações conhecidas (v0.2)
 
-- Suporta apenas Mercado Livre por enquanto (outros marketplaces ficam para
-  uma etapa futura).
-- A extração de dados (`extractor.js`) usa correspondência por texto de
-  rótulo (ex.: "Comprador", "Número da venda") em vez de seletores de CSS,
-  para não quebrar a cada mudança de layout do Mercado Livre — mas **não foi
-  validada contra uma página real logada**, já que o ambiente de build não
-  tem acesso a uma sessão de vendedor autenticada. Ao testar pela primeira
-  vez, se algum campo vier vazio ou errado, ajuste as listas de rótulos em
-  `extractor.js` (funções `findValueByLabel`) com o texto exato visto na
-  página — é o único lugar que precisa mudar.
+- Suporta apenas a página de venda do vendedor
+  (`vendedores.mercadolivre.com.br/vendas/<id>/detalhe`) por enquanto — outros
+  marketplaces e a visão de comprador ficam para uma etapa futura.
+- A extração (`extractor.js`) foi ajustada com base em uma página real do
+  vendedor: número da venda vem da própria URL, SKU e data são lidos por
+  busca de padrão no texto da página, e o nome do cliente é a linha logo
+  acima da linha com CNPJ/CPF. Se o Mercado Livre mudar o layout e algum
+  campo parar de vir certo, esse é o único arquivo que precisa de ajuste.
+- Depois de atualizar os arquivos da extensão, clique em **Atualizar** em
+  `chrome://extensions` para recarregar (o Chrome não recarrega sozinho).
 - O token fica salvo em `chrome.storage.local` (por navegador/perfil, não
   sincroniza entre máquinas).
 - Revogar o token na aba **Extensão** do sistema invalida imediatamente o
