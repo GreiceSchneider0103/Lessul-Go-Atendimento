@@ -283,13 +283,23 @@ export function TicketForm({
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="panel ticket-form">
       <section className="ticket-form-section">
-        <h3>Dados principais</h3>
+        <h3>Dados do cliente e pedido</h3>
 
         <div className="ticket-form-grid">
           <label>
             Nome do cliente
             <input {...register("nomeCliente")} placeholder="Nome do cliente" />
             {errorFor("nomeCliente") ? <small className="field-error">{errorFor("nomeCliente")}</small> : null}
+          </label>
+
+          <label>
+            CPF
+            <input {...register("cpf")} placeholder="CPF" />
+          </label>
+
+          <label>
+            UF
+            <input {...register("uf")} placeholder="UF" maxLength={2} />
           </label>
 
           <label>
@@ -304,24 +314,19 @@ export function TicketForm({
           </label>
 
           <label>
-            Data da reclamação
-            <input {...register("dataReclamacao")} type="date" />
-          </label>
-
-          <label>
-            Prazo de conclusão
-            <input {...register("prazoConclusao")} type="date" disabled={!canEditSensitive} />
-          </label>
-
-          <label>
             Link do pedido
             <input {...register("linkPedido")} placeholder="https://..." />
           </label>
         </div>
+
+        <label>
+          Detalhes do cliente
+          <textarea {...register("detalhesCliente")} placeholder="Detalhes do cliente" rows={3} />
+        </label>
       </section>
 
       <section className="ticket-form-section">
-        <h3>Classificação e responsáveis</h3>
+        <h3>Classificação da reclamação</h3>
 
         <div className="ticket-form-grid">
           <label>
@@ -364,14 +369,13 @@ export function TicketForm({
           </label>
 
           <label>
-            Status da reclamação
-            <select {...register("statusReclamacao")}>
-              {STATUS_RECLAMACAO.map((item) => (
-                <option key={item} value={item}>
-                  {formatEnumLabel(item)}
-                </option>
-              ))}
-            </select>
+            Fabricante
+            <input {...register("fabricante")} placeholder="Fabricante" />
+          </label>
+
+          <label>
+            Transportadora
+            <input {...register("transportadora")} placeholder="Transportadora" />
           </label>
 
           <label>
@@ -385,6 +389,28 @@ export function TicketForm({
             </select>
           </label>
 
+          <label>
+            Status da reclamação
+            <select {...register("statusReclamacao")}>
+              {STATUS_RECLAMACAO.map((item) => (
+                <option key={item} value={item}>
+                  {formatEnumLabel(item)}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label>
+            Data da reclamação
+            <input {...register("dataReclamacao")} type="date" />
+          </label>
+        </div>
+      </section>
+
+      <section className="ticket-form-section">
+        <h3>Andamento e responsável</h3>
+
+        <div className="ticket-form-grid">
           <label>
             Status do ticket
             <select {...register("statusTicket")}>
@@ -407,31 +433,10 @@ export function TicketForm({
               ))}
             </select>
           </label>
-        </div>
-      </section>
-
-      <section className="ticket-form-section">
-        <h3>Dados complementares</h3>
-
-        <div className="ticket-form-grid">
-          <label>
-            UF
-            <input {...register("uf")} placeholder="UF" maxLength={2} />
-          </label>
 
           <label>
-            CPF
-            <input {...register("cpf")} placeholder="CPF" />
-          </label>
-
-          <label>
-            Fabricante
-            <input {...register("fabricante")} placeholder="Fabricante" />
-          </label>
-
-          <label>
-            Transportadora
-            <input {...register("transportadora")} placeholder="Transportadora" />
+            Prazo de conclusão
+            <input {...register("prazoConclusao")} type="date" disabled={!canEditSensitive} />
           </label>
 
           <label>
@@ -445,32 +450,21 @@ export function TicketForm({
               ))}
             </select>
           </label>
+        </div>
 
+        <label>
+          Comentário interno
+          <textarea {...register("comentarioInterno")} placeholder="Observações internas para acompanhamento do ticket" rows={3} />
+        </label>
+      </section>
+
+      <section className="ticket-form-section">
+        <h3>Valores</h3>
+
+        <div className="ticket-form-grid">
           <label>
             Valor de reembolso
-            <input {...register("valorReembolso", { valueAsNumber: true })} type="number" step="0.01" placeholder="Valor reembolso" />
-          </label>
-
-          <label>
-            Valor de coleta
-            <input
-              {...register("valorColeta", { valueAsNumber: true })}
-              type="number"
-              step="0.01"
-              placeholder="R$ 0,00"
-              disabled={!canEditSensitive}
-            />
-          </label>
-
-          <label>
-            Ação operacional da loja
-            <select {...register("acaoOperacionalLoja")}>
-              <option value="NENHUMA">Nenhuma</option>
-              <option value="ASSISTENCIA">Enviar assistência</option>
-              <option value="COLETA">Solicitar coleta</option>
-              <option value="DEVOLUCAO">Realizar devolução</option>
-              <option value="REEMBOLSO">Realizar reembolso</option>
-            </select>
+            <input {...register("valorReembolso", { valueAsNumber: true })} type="number" step="0.01" placeholder="R$ 0,00" />
           </label>
 
           <label>
@@ -484,8 +478,32 @@ export function TicketForm({
           </label>
 
           <label>
-            Código de rastreio
-            <input {...register("codigoRastreio")} placeholder="Código de rastreio" />
+            Valor de coleta (uso interno)
+            <input
+              {...register("valorColeta", { valueAsNumber: true })}
+              type="number"
+              step="0.01"
+              placeholder="R$ 0,00"
+              disabled={!canEditSensitive}
+            />
+            <small className="muted">Custo interno de coleta, separado do valor de coleta/envio/peças acima.</small>
+          </label>
+        </div>
+      </section>
+
+      <section className="ticket-form-section">
+        <h3>Operação da loja</h3>
+
+        <div className="ticket-form-grid">
+          <label>
+            Ação operacional da loja
+            <select {...register("acaoOperacionalLoja")}>
+              <option value="NENHUMA">Nenhuma</option>
+              <option value="ASSISTENCIA">Enviar assistência</option>
+              <option value="COLETA">Solicitar coleta</option>
+              <option value="DEVOLUCAO">Realizar devolução</option>
+              <option value="REEMBOLSO">Realizar reembolso</option>
+            </select>
           </label>
 
           <label>
@@ -506,21 +524,16 @@ export function TicketForm({
               </option>
             </select>
           </label>
+
+          <label>
+            Código de rastreio
+            <input {...register("codigoRastreio")} placeholder="Código de rastreio" />
+          </label>
         </div>
 
         <label>
-          Detalhes do cliente
-          <textarea {...register("detalhesCliente")} placeholder="Detalhes do cliente" rows={4} />
-        </label>
-
-        <label>
           Comentário da loja
-          <textarea {...register("comentarioLoja")} placeholder="Descreva a atualização, envio, coleta, assistência ou observação da loja" rows={4} />
-        </label>
-
-        <label>
-          Comentário interno
-          <textarea {...register("comentarioInterno")} placeholder="Observações internas para acompanhamento do ticket" rows={4} />
+          <textarea {...register("comentarioLoja")} placeholder="Descreva a atualização, envio, coleta, assistência ou observação da loja" rows={3} />
         </label>
       </section>
 

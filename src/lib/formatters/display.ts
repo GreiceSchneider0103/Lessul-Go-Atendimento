@@ -70,12 +70,19 @@ const LABEL_MAP: Record<string, string> = {
   comentarioInterno: "Comentário interno",
   resolucao: "Resolução",
   valorReembolso: "Valor de reembolso",
-  valorColeta: "Valor de coleta, envio ou peças",
+  valorColeta: "Valor de coleta (uso interno)",
+  valorColetaEnvioPecas: "Valor de coleta, envio ou peças",
+  valorAssistencia: "Valor de assistência",
   custosTotais: "Custos totais",
   statusTicket: "Status do ticket",
   prazoConclusao: "Prazo de conclusão",
+  concluidoEm: "Concluído em",
   responsavelId: "Responsável",
-  slaStatus: "SLA"
+  slaStatus: "SLA",
+  acaoOperacionalLoja: "Ação operacional da loja",
+  statusOperacionalLoja: "Status operacional da loja",
+  comentarioLoja: "Comentário da loja",
+  codigoRastreio: "Código de rastreio"
 };
 
 export function formatEnumLabel(value?: string | null): string {

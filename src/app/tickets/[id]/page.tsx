@@ -3,7 +3,6 @@ import Link from "next/link";
 import { ArrowLeft, FileText } from "lucide-react";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { getTicketById } from "@/lib/services/tickets-service";
-import { prisma } from "@/lib/db/prisma";
 import { hasPermission } from "@/lib/rbac/permissions";
 import { TicketDeleteButton } from "@/components/tickets/ticket-delete-button";
 import { formatCurrencyBR, formatDateBR, formatDateTimeBR, formatEnumLabel } from "@/lib/formatters/display";
@@ -143,18 +142,12 @@ export default async function TicketDetail({ params }: { params: Promise<{ id: s
     throw new Error(error ?? "Ticket não encontrado");
   }
 
-  const operacionais = await prisma.operationalRequest.findMany({
-    where: { ticketId: ticket.id },
-    include: { anexos: true },
-    orderBy: { createdAt: "desc" }
-  });
-
   const ticketComExtras = ticket as typeof ticket & {
     valorAssistencia?: unknown;
     valorColetaEnvioPecas?: unknown;
+    valorColeta?: unknown;
     codigoRastreio?: string | null;
     statusOperacionalLoja?: string | null;
-    comentarioLoja?: string | null;
     comentariosOperacionais?: ComentarioOperacional[];
     anexoPath?: string | null;
     anexoUrl?: string | null;
@@ -163,19 +156,7 @@ export default async function TicketDetail({ params }: { params: Promise<{ id: s
   };
 
   const comentariosOperacionais = ticketComExtras.comentariosOperacionais ?? [];
-  const comentarioLojaMaisRecente = comentariosOperacionais[0]?.comentario ?? ticketComExtras.comentarioLoja ?? "-";
   const anexo = getAnexoFromTicket(ticket.id, ticketComExtras);
-
-  const latestOperationalRequest = operacionais[0];
-
-  const tipoOperacional =
-    ticket.acaoOperacionalLoja && ticket.acaoOperacionalLoja !== "NENHUMA"
-      ? ticket.acaoOperacionalLoja
-      : latestOperationalRequest?.tipoAcao ?? "NENHUMA";
-
-  const statusOperacional = ticketComExtras.statusOperacionalLoja ?? latestOperationalRequest?.status ?? null;
-
-  const prazoOperacional = ticket.prazoConclusao ?? latestOperationalRequest?.prazoOperacional ?? null;
 
   const backHref = user.perfil === "LOJA" ? "/loja/solicitacoes" : "/tickets";
 
@@ -222,6 +203,7 @@ export default async function TicketDetail({ params }: { params: Promise<{ id: s
                 <InfoRow label="Reembolso" value={toCurrency(ticket.valorReembolso)} />
                 <InfoRow label="Valor de assistência" value={toCurrency(ticketComExtras.valorAssistencia)} />
                 <InfoRow label="Coleta, envio ou peças" value={toCurrency(ticketComExtras.valorColetaEnvioPecas)} />
+                <InfoRow label="Coleta (uso interno)" value={toCurrency(ticketComExtras.valorColeta)} />
                 <InfoRow label="Código de rastreio" value={ticketComExtras.codigoRastreio || "Sem rastreio"} />
                 <InfoRow label="Custos totais" value={<strong>{toCurrency(ticket.custosTotais)}</strong>} />
               </div>
@@ -265,8 +247,10 @@ export default async function TicketDetail({ params }: { params: Promise<{ id: s
             <InfoRow label="Motivo" value={<StatusBadge value={ticket.motivo} context="motivo" />} />
             <InfoRow label="Resolução" value={ticket.resolucao ? formatEnumLabel(ticket.resolucao) : "-"} />
             <InfoRow label="Ação operacional da loja" value={getAcaoOperacionalLabel(ticket.acaoOperacionalLoja)} />
+            <InfoRow label="Status operacional da loja" value={getStatusOperacionalLabel(ticketComExtras.statusOperacionalLoja)} />
             <InfoRow label="Data da reclamação" value={toDate(ticket.dataReclamacao)} />
             <InfoRow label="Prazo de conclusão" value={toDate(ticket.prazoConclusao)} />
+            <InfoRow label="Concluído em" value={toDateTime(ticket.concluidoEm)} />
             <InfoRow label="SLA" value={<StatusBadge value={ticket.slaStatus} />} />
           </div>
         </article>
@@ -304,34 +288,7 @@ export default async function TicketDetail({ params }: { params: Promise<{ id: s
         )}
       </article>
 
-      <article className="card">
-        <h2>Solicitação operacional da loja</h2>
-
-        <div className="rounded-xl border border-slate-200 bg-slate-50 p-3.5">
-          <div className="ticket-info-list">
-            <InfoRow label="Tipo" value={getAcaoOperacionalLabel(tipoOperacional)} />
-            <InfoRow label="Status" value={getStatusOperacionalLabel(statusOperacional)} />
-            <InfoRow label="Empresa" value={formatEnumLabel(ticket.empresa)} />
-            <InfoRow label="Prazo" value={toDate(prazoOperacional)} />
-
-            <InfoRow label="Comentário atendente" value={ticket.comentarioInterno || "-"} />
-            <InfoRow label="Comentário loja" value={comentarioLojaMaisRecente} />
-
-            <InfoRow label="Reembolso" value={toCurrency(ticket.valorReembolso)} />
-            <InfoRow label="Valor de assistência" value={toCurrency(ticketComExtras.valorAssistencia)} />
-            <InfoRow label="Coleta/envio/peças" value={toCurrency(ticketComExtras.valorColetaEnvioPecas)} />
-            <InfoRow label="Código rastreio" value={ticketComExtras.codigoRastreio || "-"} />
-
-            <InfoRow label="Criado em" value={toDateTime(latestOperationalRequest?.createdAt ?? ticket.criadoEm)} />
-            <InfoRow label="Atualizado em" value={toDateTime(latestOperationalRequest?.updatedAt ?? ticket.atualizadoEm)} />
-            <InfoRow label="Concluído em" value={toDateTime(latestOperationalRequest?.completedAt ?? null)} />
-
-            <InfoRow label="Anexo" value={<AttachmentPreview anexo={anexo} />} />
-          </div>
-        </div>
-      </article>
-
-      {user.perfil === "ADMIN" ? (
+      {hasPermission(user.perfil, "audit.read") ? (
         <details className="audit-accordion">
           <summary>
             <span>Histórico de auditoria</span>
