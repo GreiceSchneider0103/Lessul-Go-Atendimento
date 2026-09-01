@@ -7,6 +7,7 @@ import { assertPermission } from "@/lib/rbac/permissions";
 import { ticketFiltersSchema } from "@/lib/validation/ticket";
 import { getReportsData } from "@/lib/services/reports-service";
 import { formatCurrencyBR } from "@/lib/formatters/display";
+import { PeriodPresetSelect } from "@/components/reports/period-preset-select";
 
 const totalsConfig: Record<string, { label: string; icon: LucideIcon; money?: boolean }> = {
   totalTickets: { label: "Total de tickets", icon: Layers },
@@ -100,6 +101,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         method="GET"
         style={{ gridTemplateColumns: "repeat(auto-fit, minmax(148px, 1fr))" }}
       >
+        <PeriodPresetSelect />
         <label>
           Data inicial
           <input name="startDate" type="date" defaultValue={normalizedQuery.startDate} />
