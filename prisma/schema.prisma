@@ -9,27 +9,33 @@ datasource db {
 }
 
 model Usuario {
-  id                      String                         @id @default(uuid())
-  authUserId              String                         @unique
-  nome                    String
-  email                   String                         @unique
-  perfil                  Perfil
-  ativo                   Boolean                        @default(true)
-  criadoEm                DateTime                       @default(now())
-  atualizadoEm            DateTime                       @updatedAt
-  ticketsAtualizados      Ticket[]                       @relation("tickets_atualizados")
-  ticketsCriados          Ticket[]                       @relation("tickets_criados")
-  ticketsResponsavel      Ticket[]                       @relation("tickets_responsavel")
-  auditorias              TicketAuditoria[]
-  auditoriasComoAlvo      UsuarioAuditoria[]             @relation("usuario_auditoria_alvo")
-  auditoriasComoAtor      UsuarioAuditoria[]             @relation("usuario_auditoria_ator")
-  empresaVinculada        Empresa?
-  operacionalLojaVisitadoEm DateTime?                    @map("operacional_loja_visitado_em")
-  operacionaisCriadas     OperationalRequest[]           @relation("operacionais_criadas")
-  operacionaisAtualizadas OperationalRequest[]           @relation("operacionais_atualizadas")
-  anexosOperacionais      OperationalRequestAttachment[] @relation("anexos_operacionais_usuario")
-  usuarioEmpresas         UsuarioEmpresa[]
-  personalAccessTokens    PersonalAccessToken[]
+  id                        String                         @id @default(uuid())
+  authUserId                String                         @unique
+  nome                      String
+  email                     String                         @unique
+  perfil                    Perfil
+  ativo                     Boolean                        @default(true)
+  criadoEm                  DateTime                       @default(now())
+  atualizadoEm              DateTime                       @updatedAt
+  ticketsAtualizados        Ticket[]                       @relation("tickets_atualizados")
+  ticketsCriados            Ticket[]                       @relation("tickets_criados")
+  ticketsResponsavel        Ticket[]                       @relation("tickets_responsavel")
+  auditorias                TicketAuditoria[]
+  auditoriasComoAlvo        UsuarioAuditoria[]             @relation("usuario_auditoria_alvo")
+  auditoriasComoAtor        UsuarioAuditoria[]             @relation("usuario_auditoria_ator")
+  empresaVinculada          Empresa?
+  operacionalLojaVisitadoEm DateTime?                      @map("operacional_loja_visitado_em")
+  operacionaisCriadas       OperationalRequest[]           @relation("operacionais_criadas")
+  operacionaisAtualizadas   OperationalRequest[]           @relation("operacionais_atualizadas")
+  anexosOperacionais        OperationalRequestAttachment[] @relation("anexos_operacionais_usuario")
+  usuarioEmpresas           UsuarioEmpresa[]
+  personalAccessTokens      PersonalAccessToken[]
+  suporteVisitadoEm         DateTime?                      @map("suporte_visitado_em")
+  supportTicketsCriados     SupportTicket[]                @relation("support_tickets_criados")
+  supportTicketsAtualizados SupportTicket[]                @relation("support_tickets_atualizados")
+  supportTicketsResponsavel SupportTicket[]                @relation("support_tickets_responsavel")
+  supportComentarios        SupportComentario[]
+  supportAnexosEnviados     SupportAnexo[]
 }
 
 // Tokens de acesso para integrações fora do navegador logado (ex.: extensão
@@ -299,9 +305,8 @@ model OperationalRequestAttachment {
   uploader             Usuario?             @relation("anexos_operacionais_usuario", fields: [uploadedBy], references: [id])
 }
 
-
 model TicketComentarioOperacional {
-  id         String   @id @default(uuid())
+  id          String   @id @default(uuid())
   ticketId    String
   autorId     String?
   autorNome   String?
@@ -311,6 +316,90 @@ model TicketComentarioOperacional {
   ticket      Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 
   @@index([ticketId, criadoEm], map: "TicketComentarioOperacional_ticketId_criadoEm_idx")
+}
+
+enum SupportCategoria {
+  GERAL
+  ALTERACAO
+  DUVIDA
+  OUTRO
+}
+
+enum SupportStatus {
+  ABERTO
+  EM_ANDAMENTO
+  AGUARDANDO_LOJA
+  CONCLUIDO
+}
+
+enum SupportTipoAnexo {
+  IMAGEM
+  PDF
+  OUTRO
+}
+
+// Chamados de suporte abertos pelas lojas (dúvidas, alterações, pedidos
+// gerais) para o time que administra as contas — separado do fluxo de
+// tickets de reclamação de marketplace, fica só na aba Suporte.
+model SupportTicket {
+  id              String           @id @default(uuid())
+  empresa         Empresa
+  categoria       SupportCategoria
+  titulo          String
+  descricao       String
+  status          SupportStatus    @default(ABERTO)
+  prazoResposta   DateTime         @map("prazo_resposta")
+  slaStatus       String           @default("NO_PRAZO") @map("sla_status")
+  responsavelId   String?          @map("responsavel_id")
+  criadoPorId     String           @map("criado_por_id")
+  atualizadoPorId String           @map("atualizado_por_id")
+  criadoEm        DateTime         @default(now()) @map("criado_em")
+  atualizadoEm    DateTime         @updatedAt @map("atualizado_em")
+  concluidoEm     DateTime?        @map("concluido_em")
+
+  responsavel   Usuario?            @relation("support_tickets_responsavel", fields: [responsavelId], references: [id])
+  criadoPor     Usuario             @relation("support_tickets_criados", fields: [criadoPorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  atualizadoPor Usuario             @relation("support_tickets_atualizados", fields: [atualizadoPorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  comentarios   SupportComentario[]
+  anexos        SupportAnexo[]
+
+  @@index([empresa, status], map: "SupportTicket_empresa_status_idx")
+  @@index([status, prazoResposta], map: "SupportTicket_status_prazo_idx")
+  @@map("support_tickets")
+}
+
+model SupportComentario {
+  id              String   @id @default(uuid())
+  supportTicketId String   @map("support_ticket_id")
+  autorId         String?  @map("autor_id")
+  autorNome       String?  @map("autor_nome")
+  autorPerfil     Perfil?  @map("autor_perfil")
+  comentario      String
+  criadoEm        DateTime @default(now()) @map("criado_em")
+
+  supportTicket SupportTicket @relation(fields: [supportTicketId], references: [id], onDelete: Cascade)
+  autor         Usuario?      @relation(fields: [autorId], references: [id])
+
+  @@index([supportTicketId, criadoEm], map: "SupportComentario_ticket_criado_idx")
+  @@map("support_comentarios")
+}
+
+model SupportAnexo {
+  id              String           @id @default(uuid())
+  supportTicketId String           @map("support_ticket_id")
+  tipoAnexo       SupportTipoAnexo @map("tipo_anexo")
+  storagePath     String           @map("storage_path")
+  fileName        String           @map("file_name")
+  mimeType        String?          @map("mime_type")
+  sizeBytes       BigInt?          @map("size_bytes")
+  uploadedBy      String?          @map("uploaded_by")
+  uploadedAt      DateTime         @default(now()) @map("uploaded_at")
+
+  supportTicket SupportTicket @relation(fields: [supportTicketId], references: [id], onDelete: Cascade)
+  uploader      Usuario?      @relation(fields: [uploadedBy], references: [id])
+
+  @@index([supportTicketId], map: "SupportAnexo_ticket_idx")
+  @@map("support_anexos")
 }
 
 enum AcaoUsuarioAuditoria {

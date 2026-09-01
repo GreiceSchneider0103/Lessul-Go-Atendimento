@@ -83,7 +83,14 @@ const LABEL_MAP: Record<string, string> = {
   acaoOperacionalLoja: "Ação operacional da loja",
   statusOperacionalLoja: "Status operacional da loja",
   comentarioLoja: "Comentário da loja",
-  codigoRastreio: "Código de rastreio"
+  codigoRastreio: "Código de rastreio",
+  GERAL: "Geral",
+  ALTERACAO: "Alteração",
+  DUVIDA: "Dúvida",
+  EM_ANDAMENTO: "Em andamento",
+  AGUARDANDO_LOJA: "Aguardando loja",
+  IMAGEM: "Imagem",
+  PDF: "PDF"
 };
 
 export function formatEnumLabel(value?: string | null): string {

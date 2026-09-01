@@ -2,14 +2,15 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { Route } from "next";
-import { LayoutDashboard, Ticket, BarChart3, Settings, Shield, Store, Puzzle, type LucideIcon } from "lucide-react";
+import { LayoutDashboard, Ticket, BarChart3, Settings, Shield, Store, Puzzle, LifeBuoy, type LucideIcon } from "lucide-react";
 
 type NavItem = { label: string; href: Route; icon: LucideIcon };
 
 const navByPerfil: Record<string, NavItem[]> = {
   LOJA: [
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { label: "Operacional Loja", href: "/loja/solicitacoes", icon: Store }
+    { label: "Operacional Loja", href: "/loja/solicitacoes", icon: Store },
+    { label: "Suporte", href: "/suporte", icon: LifeBuoy }
   ],
   ADMIN: [
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -17,6 +18,7 @@ const navByPerfil: Record<string, NavItem[]> = {
     { label: "Relatórios", href: "/reports", icon: BarChart3 },
     { label: "Administração", href: "/admin", icon: Settings },
     { label: "Operacional Loja", href: "/loja/solicitacoes", icon: Store },
+    { label: "Suporte", href: "/suporte", icon: LifeBuoy },
     { label: "Extensão", href: "/extensao", icon: Puzzle }
   ],
   MASTER: [
@@ -26,17 +28,25 @@ const navByPerfil: Record<string, NavItem[]> = {
     { label: "Administração", href: "/admin", icon: Settings },
     { label: "Master", href: "/master", icon: Shield },
     { label: "Operacional Loja", href: "/loja/solicitacoes", icon: Store },
+    { label: "Suporte", href: "/suporte", icon: LifeBuoy },
     { label: "Extensão", href: "/extensao", icon: Puzzle }
   ],
   DEFAULT: [
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { label: "Tickets", href: "/tickets", icon: Ticket },
     { label: "Relatórios", href: "/reports", icon: BarChart3 },
+    { label: "Suporte", href: "/suporte", icon: LifeBuoy },
     { label: "Extensão", href: "/extensao", icon: Puzzle }
   ]
 };
 
-export function SidebarNav({ perfil, hasUnreadOperacional = false }: { perfil: string; hasUnreadOperacional?: boolean }) {
+type SidebarNavProps = {
+  perfil: string;
+  hasUnreadOperacional?: boolean;
+  hasUnreadSuporte?: boolean;
+};
+
+export function SidebarNav({ perfil, hasUnreadOperacional = false, hasUnreadSuporte = false }: SidebarNavProps) {
   const pathname = usePathname();
   const navItems = navByPerfil[perfil] ?? navByPerfil.DEFAULT;
 
@@ -45,7 +55,9 @@ export function SidebarNav({ perfil, hasUnreadOperacional = false }: { perfil: s
       {navItems.map((item) => {
         const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
         const Icon = item.icon;
-        const showUnreadDot = hasUnreadOperacional && item.href === "/loja/solicitacoes";
+        const showUnreadDot =
+          (hasUnreadOperacional && item.href === "/loja/solicitacoes") ||
+          (hasUnreadSuporte && item.href === "/suporte");
 
         return (
           <Link key={item.href} href={item.href} className={`nav-item ${isActive ? "active" : ""}`}>

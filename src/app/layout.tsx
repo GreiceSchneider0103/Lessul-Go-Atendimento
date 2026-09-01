@@ -10,6 +10,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { ServiceUnavailableError, UnauthorizedError } from "@/lib/errors";
 import { hasSupabaseClientEnv } from "@/lib/supabase/config";
 import { hasUnreadOperacionalLoja } from "@/lib/services/operational-requests-service";
+import { hasUnreadSuporte } from "@/lib/services/support-service";
 
 async function resolveHasUnreadOperacional(currentUser: NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>) {
   if (currentUser.perfil !== "LOJA" && currentUser.perfil !== "ADMIN" && currentUser.perfil !== "MASTER") {
@@ -21,6 +22,18 @@ async function resolveHasUnreadOperacional(currentUser: NonNullable<Awaited<Retu
       perfil: currentUser.perfil,
       empresasVinculadas: currentUser.perfil === "LOJA" ? currentUser.empresasVinculadas : [],
       visitadoEm: currentUser.operacionalLojaVisitadoEm
+    });
+  } catch {
+    return false;
+  }
+}
+
+async function resolveHasUnreadSuporte(currentUser: NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>) {
+  try {
+    return await hasUnreadSuporte({
+      perfil: currentUser.perfil,
+      empresasVinculadas: currentUser.perfil === "LOJA" ? currentUser.empresasVinculadas : [],
+      visitadoEm: currentUser.suporteVisitadoEm
     });
   } catch {
     return false;
@@ -73,6 +86,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   }
 
   const hasUnreadOperacional = currentUser ? await resolveHasUnreadOperacional(currentUser) : false;
+  const hasUnreadSuporteValue = currentUser ? await resolveHasUnreadSuporte(currentUser) : false;
 
   if (!currentUser) {
     return (
@@ -106,7 +120,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
                 </div>
                 <span className="brand">GO Atendimento</span>
               </div>
-              <SidebarNav perfil={currentUser.perfil} hasUnreadOperacional={hasUnreadOperacional} />
+              <SidebarNav perfil={currentUser.perfil} hasUnreadOperacional={hasUnreadOperacional} hasUnreadSuporte={hasUnreadSuporteValue} />
             </div>
             <div className="header-right">
               <div className="user-chip">

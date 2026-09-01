@@ -4,14 +4,15 @@ import { ForbiddenError } from "@/lib/errors";
 export type Permission =
   | "ticket.create" | "ticket.update" | "ticket.update_sensitive" | "ticket.soft_delete"
   | "user.manage" | "reports.full" | "reports.export" | "audit.read"
-  | "operational.view" | "operational.update" | "master.manage";
+  | "operational.view" | "operational.update" | "master.manage"
+  | "support.view" | "support.update";
 
 const matrix: Record<Perfil, Permission[]> = {
-  ATENDENTE: ["ticket.create", "ticket.update", "operational.view"],
-  SUPERVISOR: ["ticket.create", "ticket.update", "ticket.update_sensitive", "reports.full", "reports.export", "operational.view"],
-  ADMIN: ["ticket.create", "ticket.update", "ticket.update_sensitive", "ticket.soft_delete", "user.manage", "reports.full", "reports.export", "audit.read", "operational.view", "operational.update"],
-  LOJA: ["operational.view", "operational.update", "ticket.update"],
-  MASTER: ["ticket.create", "ticket.update", "ticket.update_sensitive", "ticket.soft_delete", "user.manage", "reports.full", "reports.export", "audit.read", "operational.view", "operational.update", "master.manage"]
+  ATENDENTE: ["ticket.create", "ticket.update", "operational.view", "support.view", "support.update"],
+  SUPERVISOR: ["ticket.create", "ticket.update", "ticket.update_sensitive", "reports.full", "reports.export", "operational.view", "support.view", "support.update"],
+  ADMIN: ["ticket.create", "ticket.update", "ticket.update_sensitive", "ticket.soft_delete", "user.manage", "reports.full", "reports.export", "audit.read", "operational.view", "operational.update", "support.view", "support.update"],
+  LOJA: ["operational.view", "operational.update", "ticket.update", "support.view", "support.update"],
+  MASTER: ["ticket.create", "ticket.update", "ticket.update_sensitive", "ticket.soft_delete", "user.manage", "reports.full", "reports.export", "audit.read", "operational.view", "operational.update", "master.manage", "support.view", "support.update"]
 };
 
 export const hasPermission = (perfil: Perfil, permission: Permission) => matrix[perfil].includes(permission);
