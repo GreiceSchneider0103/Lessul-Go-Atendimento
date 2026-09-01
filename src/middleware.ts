@@ -3,13 +3,22 @@ import { createServerClient } from "@supabase/ssr";
 import { getSupabasePublicKey, getSupabaseUrl, hasSupabaseClientEnv } from "@/lib/supabase/config";
 
 const publicRoutes = ["/", "/login", "/auth/callback", "/api/health", "/indisponivel", "/reset-password"];
+
+// Authenticated via their own Bearer personal-access-token check instead of
+// the Supabase session cookie — used by contexts (the browser extension)
+// that never carry that cookie. Must bypass the session gate below, or
+// every request gets a 401 here before the route's own token check runs.
+const tokenAuthRoutes = ["/api/extension/tickets/prefill"];
+
 const AUTH_TIMEOUT_MS = Number(process.env.AUTH_TIMEOUT_MS ?? 8000);
 
+function matchesRoute(pathname: string, route: string) {
+  if (route === "/") return pathname === "/";
+  return pathname === route || pathname.startsWith(`${route}/`);
+}
+
 function isPublicRoute(pathname: string) {
-  return publicRoutes.some((route) => {
-    if (route === "/") return pathname === "/";
-    return pathname === route || pathname.startsWith(`${route}/`);
-  });
+  return publicRoutes.some((route) => matchesRoute(pathname, route)) || tokenAuthRoutes.some((route) => matchesRoute(pathname, route));
 }
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {

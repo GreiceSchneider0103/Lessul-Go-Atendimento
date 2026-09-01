@@ -6,6 +6,7 @@ import { sendEmail } from "@/lib/services/email-service";
 import { createSupabaseAdmin } from "@/lib/supabase/service-role";
 import { logError } from "@/lib/logger";
 import { getAppBaseUrl } from "@/lib/supabase/config";
+import { getTicketScopeWhere } from "@/lib/rbac/permissions";
 
 type AppUser = {
   id: string;
@@ -102,7 +103,12 @@ export async function listOperationalRequests(user: AppUser) {
 }
 
 export async function createFromTicket(ticketId: string, tipoAcao: TipoAcaoOperacional, actor: AppUser) {
-  const ticket = await prisma.ticket.findUnique({ where: { id: ticketId } });
+  // Scoped the same way every other ticket lookup is: without this, any user
+  // holding "ticket.update" (including LOJA) could create an operational
+  // request against an arbitrary ticket ID outside their own scope — an
+  // ATENDENTE's own-tickets-only restriction, or a LOJA user's own-empresa
+  // restriction — just by knowing/guessing its id.
+  const ticket = await prisma.ticket.findFirst({ where: { id: ticketId, ativo: true, ...getTicketScopeWhere(actor) } });
   if (!ticket) throw new AppError("Ticket não encontrado", 404, "NOT_FOUND");
   const existing = await prisma.operationalRequest.findFirst({ where: { ticketId, tipoAcao, status: { not: "CONCLUIDA" } } });
   if (existing) return existing;
