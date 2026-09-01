@@ -10,6 +10,14 @@ digitar tudo manualmente.
 2. Ative "Modo do desenvolvedor" (canto superior direito).
 3. Clique em "Carregar sem compactação" e selecione esta pasta (`extension/`).
 
+O mesmo passo a passo, com um arquivo .zip pronto para baixar, também está
+disponível na aba **Extensão** dentro do sistema.
+
+> **Ao editar qualquer arquivo aqui**, regenere o zip publicado em
+> `public/downloads/lessul-go-extensao-mercado-livre.zip` (não é feito
+> automaticamente no build):
+> `cd extension && zip -r -X ../public/downloads/lessul-go-extensao-mercado-livre.zip . -x "*.DS_Store"`
+
 ## Como configurar
 
 1. No sistema, acesse **Extensão** no menu lateral e clique em **Gerar
