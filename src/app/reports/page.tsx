@@ -23,34 +23,47 @@ function getCurrentMonthRange() {
   return { startDate: start.toISOString().slice(0, 10), endDate: end.toISOString().slice(0, 10) };
 }
 
-async function getReport(query: Record<string, string | undefined>, user: Awaited<ReturnType<typeof requireCurrentUser>>): Promise<{ totals: ReportsResponse["totals"]; items: ReportsResponse["items"]; meta: ReportsResponse["meta"] | null; error: string | null }> {
+const emptyTotals = { totalTickets: 0, totalCustos: 0, totalReembolso: 0, totalColeta: 0, totalRecuperado: 0 };
+const emptyBreakdowns = { porMarketplace: [], porEmpresa: [], porMotivo: [], porSku: [] };
+
+async function getReport(query: Record<string, string | undefined>, user: Awaited<ReturnType<typeof requireCurrentUser>>): Promise<{ totals: ReportsResponse["totals"]; breakdowns: ReportsResponse["breakdowns"]; items: ReportsResponse["items"]; meta: ReportsResponse["meta"] | null; error: string | null }> {
   const parsed = ticketFiltersSchema.partial().safeParse(query);
   if (!parsed.success) {
-    return { totals: { totalTickets: 0, totalCustos: 0, totalReembolso: 0, totalColeta: 0, totalRecuperado: 0 }, items: [], meta: null, error: "Filtros inválidos" };
+    return { totals: emptyTotals, breakdowns: emptyBreakdowns, items: [], meta: null, error: "Filtros inválidos" };
   }
 
   try {
     const payload = await getReportsData(parsed.data, user);
     return {
       totals: payload.totals,
+      breakdowns: payload.breakdowns,
       items: payload.items,
       meta: payload.meta,
       error: null
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Falha ao carregar relatório";
-    return { totals: { totalTickets: 0, totalCustos: 0, totalReembolso: 0, totalColeta: 0, totalRecuperado: 0 }, items: [], meta: null, error: message };
+    return { totals: emptyTotals, breakdowns: emptyBreakdowns, items: [], meta: null, error: message };
   }
 }
 
-function groupBy(items: ReportsResponse["items"], field: keyof ReportsResponse["items"][number]) {
+// Ticket counts come from `items` (filtered by dataReclamacao, same as the
+// dashboard's ticket counts); cost sums come from `breakdowns`, computed
+// server-side using the dashboard's "closed tickets count toward the month
+// they were closed in" rule — so a group can have a cost entry even if none
+// of its tickets are in `items` (closed this month but reported earlier).
+function groupBy(items: ReportsResponse["items"], field: keyof ReportsResponse["items"][number], custoBreakdown: Array<{ name: string; custo: number }>) {
   const map = new Map<string, { tickets: number; custo: number }>();
   items.forEach((item) => {
     const key = String(item[field] ?? "N/D");
     const value = map.get(key) ?? { tickets: 0, custo: 0 };
     value.tickets += 1;
-    value.custo += Number(item.custosTotais ?? 0);
     map.set(key, value);
+  });
+  custoBreakdown.forEach(({ name, custo }) => {
+    const value = map.get(name) ?? { tickets: 0, custo: 0 };
+    value.custo = custo;
+    map.set(name, value);
   });
   return Array.from(map.entries()).map(([name, value]) => ({ name, ...value }));
 }
@@ -70,10 +83,10 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   const params = new URLSearchParams();
   Object.entries(normalizedQuery).forEach(([k, v]) => v && params.set(k, v));
 
-  const byMarketplace = groupBy(data.items, "canalMarketplace");
-  const byEmpresa = groupBy(data.items, "empresa");
-  const byMotivo = groupBy(data.items, "motivo");
-  const bySku = groupBy(data.items, "sku");
+  const byMarketplace = groupBy(data.items, "canalMarketplace", data.breakdowns.porMarketplace);
+  const byEmpresa = groupBy(data.items, "empresa", data.breakdowns.porEmpresa);
+  const byMotivo = groupBy(data.items, "motivo", data.breakdowns.porMotivo);
+  const bySku = groupBy(data.items, "sku", data.breakdowns.porSku);
 
   return (
     <section className="page">

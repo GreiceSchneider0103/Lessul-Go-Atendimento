@@ -15,6 +15,12 @@ export type ReportsResponse = {
     totalColeta: number;
     totalRecuperado: number;
   };
+  breakdowns: {
+    porMarketplace: Array<{ name: string; custo: number }>;
+    porEmpresa: Array<{ name: string; custo: number }>;
+    porMotivo: Array<{ name: string; custo: number }>;
+    porSku: Array<{ name: string; custo: number }>;
+  };
   meta: {
     limit: number;
     returned: number;
