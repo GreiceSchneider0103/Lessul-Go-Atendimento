@@ -256,6 +256,9 @@ button { border: 0; border-radius: 10px; padding: 10px 14px; cursor: pointer; }
   .header-right { flex-wrap: wrap; justify-content: flex-start; }
   .grid-3, .grid-4, .cols-4 { grid-template-columns: 1fr; }
   .ticket-form-grid { grid-template-columns: 1fr; }
+  /* Nav items wrap instead of scrolling off-screen with no visual cue —
+     every tab stays visible and reachable on narrow screens. */
+  .nav-list { flex-wrap: wrap; overflow-x: visible; }
 }
 
 /* ---------- Pagination ---------- */

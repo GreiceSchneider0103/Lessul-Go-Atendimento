@@ -274,11 +274,26 @@ export function TicketForm({
     const activeTicketId = ticketId || result.data?.id;
 
     if (payload.acaoOperacionalLoja !== "NENHUMA" && activeTicketId) {
-      await fetch("/api/operational-requests", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ticketId: activeTicketId, tipoAcao: payload.acaoOperacionalLoja })
-      });
+      try {
+        const operationalResponse = await fetch("/api/operational-requests", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ticketId: activeTicketId, tipoAcao: payload.acaoOperacionalLoja })
+        });
+
+        if (!operationalResponse.ok) {
+          const operationalBody = await operationalResponse.json().catch(() => ({}));
+          setRequestError(
+            `Ticket salvo, mas a tarefa operacional da loja não foi criada: ${operationalBody.message ?? "erro desconhecido"}. Abra este ticket para editar e clique em Salvar novamente para tentar de novo.`
+          );
+          return;
+        }
+      } catch {
+        setRequestError(
+          "Ticket salvo, mas a tarefa operacional da loja não foi criada (falha de conexão). Abra este ticket para editar e clique em Salvar novamente para tentar de novo."
+        );
+        return;
+      }
     }
 
     router.push(userPerfil === "LOJA" ? "/loja/solicitacoes" : cancelHref ?? "/tickets");
@@ -306,11 +321,13 @@ export function TicketForm({
           <label>
             CPF
             <input {...register("cpf")} placeholder="CPF" />
+            {errorFor("cpf") ? <small className="field-error">{errorFor("cpf")}</small> : null}
           </label>
 
           <label>
             UF
             <input {...register("uf")} placeholder="UF" maxLength={2} />
+            {errorFor("uf") ? <small className="field-error">{errorFor("uf")}</small> : null}
           </label>
 
           <label>
@@ -322,6 +339,7 @@ export function TicketForm({
           <label>
             Data da compra
             <input {...register("dataCompra")} type="date" />
+            {errorFor("dataCompra") ? <small className="field-error">{errorFor("dataCompra")}</small> : null}
           </label>
 
           <label>
@@ -349,6 +367,7 @@ export function TicketForm({
                 </option>
               ))}
             </select>
+            {errorFor("canalMarketplace") ? <small className="field-error">{errorFor("canalMarketplace")}</small> : null}
           </label>
 
           <label>
@@ -367,16 +386,19 @@ export function TicketForm({
             {perfilAtual === "LOJA" && empresasDisponiveis.length === 1 ? (
               <small className="muted">Empresa selecionada automaticamente pelo vínculo do usuário.</small>
             ) : null}
+            {errorFor("empresa") ? <small className="field-error">{errorFor("empresa")}</small> : null}
           </label>
 
           <label>
             Produto
             <input {...register("produto")} placeholder="Produto" />
+            {errorFor("produto") ? <small className="field-error">{errorFor("produto")}</small> : null}
           </label>
 
           <label>
             SKU
             <input {...register("sku")} placeholder="SKU" />
+            {errorFor("sku") ? <small className="field-error">{errorFor("sku")}</small> : null}
           </label>
 
           <label>
@@ -398,6 +420,7 @@ export function TicketForm({
                 </option>
               ))}
             </select>
+            {errorFor("motivo") ? <small className="field-error">{errorFor("motivo")}</small> : null}
           </label>
 
           <label>
@@ -409,11 +432,13 @@ export function TicketForm({
                 </option>
               ))}
             </select>
+            {errorFor("statusReclamacao") ? <small className="field-error">{errorFor("statusReclamacao")}</small> : null}
           </label>
 
           <label>
             Data da reclamação
             <input {...register("dataReclamacao")} type="date" />
+            {errorFor("dataReclamacao") ? <small className="field-error">{errorFor("dataReclamacao")}</small> : null}
           </label>
         </div>
       </section>
@@ -431,6 +456,7 @@ export function TicketForm({
                 </option>
               ))}
             </select>
+            {errorFor("statusTicket") ? <small className="field-error">{errorFor("statusTicket")}</small> : null}
           </label>
 
           <label>
@@ -711,6 +737,11 @@ export function TicketForm({
       {!canEditSensitive ? <p className="muted">Seu perfil não pode editar campos administrativos.</p> : null}
       {semEmpresaDisponivel ? <p className="field-error">Nenhuma empresa vinculada ao usuário atual.</p> : null}
       {requestError ? <p className="field-error">{requestError}</p> : null}
+      {Object.keys(errors).length > 0 ? (
+        <p className="field-error">
+          Há {Object.keys(errors).length} {Object.keys(errors).length === 1 ? "campo" : "campos"} com erro acima — corrija antes de salvar.
+        </p>
+      ) : null}
 
       <div className="ticket-form-actions">
         {cancelHref ? (
