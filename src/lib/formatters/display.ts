@@ -90,7 +90,16 @@ const LABEL_MAP: Record<string, string> = {
   EM_ANDAMENTO: "Em andamento",
   AGUARDANDO_LOJA: "Aguardando loja",
   IMAGEM: "Imagem",
-  PDF: "PDF"
+  PDF: "PDF",
+  NENHUM: "Nenhum",
+  EMBALAGEM_DANIFICADA: "Embalagem danificada",
+  PECAS_DANIFICADAS: "Peças danificadas",
+  PRODUTO_PARCIALMENTE_DANIFICADO: "Produto parcialmente danificado",
+  DEVOLVIDO_ERRADO: "Devolvido errado",
+  SOLICITADO_ASSISTENCIA: "Solicitado assistência",
+  ENCAMINHADO_OUTRO_DESTINO: "Encaminhado para outro destino",
+  TROCA_EMBALAGEM_ESTOQUE: "Troca de embalagem e volta ao estoque",
+  VOLTOU_ESTOQUE: "Voltou ao estoque"
 };
 
 export function formatEnumLabel(value?: string | null): string {

@@ -1,7 +1,9 @@
-import { Perfil, Prisma } from "@prisma/client";
+import { Empresa, Perfil, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { getTicketScopeWhere } from "@/lib/rbac/permissions";
 import { type TicketFiltersInput } from "@/lib/validation/ticket";
+import { getDevolucoesInternasRecuperadoTotal } from "@/lib/services/devolucoes-internas-service";
+import { shouldIncludeDevolucoesInternas } from "@/lib/services/dashboard-service";
 
 type ReportFilters = Partial<Pick<TicketFiltersInput, "empresa" | "canalMarketplace" | "statusTicket" | "statusReclamacao" | "motivo" | "responsavelId" | "sku" | "startDate" | "endDate">>;
 
@@ -17,7 +19,7 @@ function sumBy(rows: Array<{ _sum?: { custosTotais?: unknown } | null }>, key: (
   return rows.map((row: any) => ({ name: key(row), custo: Number(row?._sum?.custosTotais ?? 0) }));
 }
 
-export async function getReportsData(filters: ReportFilters, user: { id: string; perfil: Perfil }) {
+export async function getReportsData(filters: ReportFilters, user: { id: string; perfil: Perfil; empresasVinculadas?: Empresa[] }) {
   const dateRange = getDateRange(filters.startDate, filters.endDate);
 
   const baseWhere: Prisma.TicketWhereInput = {
@@ -62,7 +64,7 @@ export async function getReportsData(filters: ReportFilters, user: { id: string;
   };
 
   const limit = 500;
-  const [items, totals, custoAgregado, custosPorMarketplace, custosPorEmpresa, custosPorMotivo, custosPorSku] = await Promise.all([
+  const [items, totals, custoAgregado, custosPorMarketplace, custosPorEmpresa, custosPorMotivo, custosPorSku, devolucoesInternasRecuperado] = await Promise.all([
     prisma.ticket.findMany({ where, orderBy: { criadoEm: "desc" }, take: limit }),
     prisma.ticket.aggregate({
       where,
@@ -73,7 +75,10 @@ export async function getReportsData(filters: ReportFilters, user: { id: string;
     prisma.ticket.groupBy({ by: ["canalMarketplace"], where: custoWhere, _sum: { custosTotais: true } }),
     prisma.ticket.groupBy({ by: ["empresa"], where: custoWhere, _sum: { custosTotais: true } }),
     prisma.ticket.groupBy({ by: ["motivo"], where: custoWhere, _sum: { custosTotais: true } }),
-    prisma.ticket.groupBy({ by: ["sku"], where: custoWhere, _sum: { custosTotais: true } })
+    prisma.ticket.groupBy({ by: ["sku"], where: custoWhere, _sum: { custosTotais: true } }),
+    shouldIncludeDevolucoesInternas(filters, user)
+      ? getDevolucoesInternasRecuperadoTotal(filters.startDate, filters.endDate)
+      : Promise.resolve(0)
   ]);
 
   const totalCount = Number((totals as any)?._count?._all ?? 0);
@@ -84,7 +89,7 @@ export async function getReportsData(filters: ReportFilters, user: { id: string;
       totalCustos: Number((custoAgregado as any)?._sum?.custosTotais ?? 0),
       totalReembolso: Number((totals as any)?._sum?.valorReembolso ?? 0),
       totalColeta: Number((totals as any)?._sum?.valorColetaEnvioPecas ?? 0),
-      totalRecuperado: Number((totals as any)?._sum?.valorRecuperado ?? 0)
+      totalRecuperado: Number((totals as any)?._sum?.valorRecuperado ?? 0) + devolucoesInternasRecuperado
     },
     breakdowns: {
       porMarketplace: sumBy(custosPorMarketplace, (row) => row.canalMarketplace),

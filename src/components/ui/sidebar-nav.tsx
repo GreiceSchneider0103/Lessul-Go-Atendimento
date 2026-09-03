@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { Route } from "next";
-import { LayoutDashboard, Ticket, BarChart3, Settings, Shield, Store, Puzzle, LifeBuoy, type LucideIcon } from "lucide-react";
+import { LayoutDashboard, Ticket, BarChart3, Settings, Shield, Store, Puzzle, LifeBuoy, Undo2, type LucideIcon } from "lucide-react";
 
 type NavItem = { label: string; href: Route; icon: LucideIcon };
 
@@ -19,6 +19,7 @@ const navByPerfil: Record<string, NavItem[]> = {
     { label: "Administração", href: "/admin", icon: Settings },
     { label: "Operacional Loja", href: "/loja/solicitacoes", icon: Store },
     { label: "Suporte", href: "/suporte", icon: LifeBuoy },
+    { label: "Devoluções Internas", href: "/devolucoes-internas", icon: Undo2 },
     { label: "Extensão", href: "/extensao", icon: Puzzle }
   ],
   MASTER: [
@@ -29,6 +30,7 @@ const navByPerfil: Record<string, NavItem[]> = {
     { label: "Master", href: "/master", icon: Shield },
     { label: "Operacional Loja", href: "/loja/solicitacoes", icon: Store },
     { label: "Suporte", href: "/suporte", icon: LifeBuoy },
+    { label: "Devoluções Internas", href: "/devolucoes-internas", icon: Undo2 },
     { label: "Extensão", href: "/extensao", icon: Puzzle }
   ],
   DEFAULT: [
@@ -36,6 +38,7 @@ const navByPerfil: Record<string, NavItem[]> = {
     { label: "Tickets", href: "/tickets", icon: Ticket },
     { label: "Relatórios", href: "/reports", icon: BarChart3 },
     { label: "Suporte", href: "/suporte", icon: LifeBuoy },
+    { label: "Devoluções Internas", href: "/devolucoes-internas", icon: Undo2 },
     { label: "Extensão", href: "/extensao", icon: Puzzle }
   ]
 };

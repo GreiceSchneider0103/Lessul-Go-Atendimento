@@ -1,9 +1,27 @@
-import { Perfil, Prisma } from "@prisma/client";
+import { Empresa, Perfil, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { getTicketScopeWhere } from "@/lib/rbac/permissions";
 import { type TicketFiltersInput } from "@/lib/validation/ticket";
+import { getDevolucoesInternasRecuperadoTotal } from "@/lib/services/devolucoes-internas-service";
 
 type DashboardFilters = Partial<Pick<TicketFiltersInput, "empresa" | "canalMarketplace" | "statusTicket" | "statusReclamacao" | "motivo" | "sku" | "startDate" | "endDate">>;
+
+/**
+ * DevolucaoInterna is Lessul-only and isn't attributed to any particular
+ * attendant's tickets, so it only makes sense to fold its recovered total
+ * into the dashboard/reports "Valor recuperado" card for views that already
+ * show a company-wide (or Lessul-scoped) picture — not an ATENDENTE's
+ * own-tickets-only view, and not when a company filter excludes Lessul.
+ */
+export function shouldIncludeDevolucoesInternas(
+  filters: { empresa?: Empresa },
+  user: { perfil: Perfil; empresasVinculadas?: Empresa[] }
+) {
+  if (user.perfil === "ATENDENTE") return false;
+  if (filters.empresa && filters.empresa !== "LESSUL") return false;
+  if (user.perfil === "LOJA") return Boolean(user.empresasVinculadas?.includes("LESSUL"));
+  return true;
+}
 
 function getDateRange(startDate?: string, endDate?: string) {
   if (!startDate && !endDate) return undefined;
@@ -13,7 +31,7 @@ function getDateRange(startDate?: string, endDate?: string) {
   };
 }
 
-export async function getDashboardData(filters: DashboardFilters, user: { id: string; perfil: Perfil }) {
+export async function getDashboardData(filters: DashboardFilters, user: { id: string; perfil: Perfil; empresasVinculadas?: Empresa[] }) {
   const dateRange = getDateRange(filters.startDate, filters.endDate);
 
   const baseWhere: Prisma.TicketWhereInput = {
@@ -70,7 +88,8 @@ export async function getDashboardData(filters: DashboardFilters, user: { id: st
     ticketsPorMes,
     ticketsPorSkuRaw,
     custosBySkuRaw,
-    motivosPorSkuRaw
+    motivosPorSkuRaw,
+    devolucoesInternasRecuperado
   ] = await Promise.all([
     prisma.ticket.count({ where }),
     prisma.ticket.count({ where: { ...where, statusTicket: { not: "CONCLUIDO" } } }),
@@ -89,7 +108,10 @@ export async function getDashboardData(filters: DashboardFilters, user: { id: st
     prisma.ticket.groupBy({ by: ["anoReclamacao", "mesReclamacao"], where, _count: true }),
     prisma.ticket.groupBy({ by: ["sku"], where, _count: true }),
     prisma.ticket.groupBy({ by: ["sku"], where: custoWhere, _sum: { custosTotais: true } }),
-    prisma.ticket.groupBy({ by: ["sku", "motivo"], where, _count: true })
+    prisma.ticket.groupBy({ by: ["sku", "motivo"], where, _count: true }),
+    shouldIncludeDevolucoesInternas(filters, user)
+      ? getDevolucoesInternasRecuperadoTotal(filters.startDate, filters.endDate)
+      : Promise.resolve(0)
   ]);
 
   const custosBySkuMap = (custosBySkuRaw as any[]).reduce<Record<string, number>>((acc, row) => {
@@ -150,7 +172,7 @@ export async function getDashboardData(filters: DashboardFilters, user: { id: st
       custoTotal: Number((custoAgregado as any)?._sum?.custosTotais ?? 0),
       reembolsoTotal: Number((reembolsoAgregado as any)?._sum?.valorReembolso ?? 0),
       coletaTotal: Number((coletaAgregado as any)?._sum?.valorColetaEnvioPecas ?? 0),
-      recuperadoTotal: Number((recuperadoAgregado as any)?._sum?.valorRecuperado ?? 0)
+      recuperadoTotal: Number((recuperadoAgregado as any)?._sum?.valorRecuperado ?? 0) + devolucoesInternasRecuperado
     },
     charts: {
       porEmpresa: porEmpresa.map((item: any) => ({ name: item.empresa, value: Number(item?._count?._all ?? item?._count ?? 0) })),

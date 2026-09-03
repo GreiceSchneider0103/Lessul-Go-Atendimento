@@ -9,33 +9,35 @@ datasource db {
 }
 
 model Usuario {
-  id                        String                         @id @default(uuid())
-  authUserId                String                         @unique
-  nome                      String
-  email                     String                         @unique
-  perfil                    Perfil
-  ativo                     Boolean                        @default(true)
-  criadoEm                  DateTime                       @default(now())
-  atualizadoEm              DateTime                       @updatedAt
-  ticketsAtualizados        Ticket[]                       @relation("tickets_atualizados")
-  ticketsCriados            Ticket[]                       @relation("tickets_criados")
-  ticketsResponsavel        Ticket[]                       @relation("tickets_responsavel")
-  auditorias                TicketAuditoria[]
-  auditoriasComoAlvo        UsuarioAuditoria[]             @relation("usuario_auditoria_alvo")
-  auditoriasComoAtor        UsuarioAuditoria[]             @relation("usuario_auditoria_ator")
-  empresaVinculada          Empresa?
-  operacionalLojaVisitadoEm DateTime?                      @map("operacional_loja_visitado_em")
-  operacionaisCriadas       OperationalRequest[]           @relation("operacionais_criadas")
-  operacionaisAtualizadas   OperationalRequest[]           @relation("operacionais_atualizadas")
-  anexosOperacionais        OperationalRequestAttachment[] @relation("anexos_operacionais_usuario")
-  usuarioEmpresas           UsuarioEmpresa[]
-  personalAccessTokens      PersonalAccessToken[]
-  suporteVisitadoEm         DateTime?                      @map("suporte_visitado_em")
-  supportTicketsCriados     SupportTicket[]                @relation("support_tickets_criados")
-  supportTicketsAtualizados SupportTicket[]                @relation("support_tickets_atualizados")
-  supportTicketsResponsavel SupportTicket[]                @relation("support_tickets_responsavel")
-  supportComentarios        SupportComentario[]
-  supportAnexosEnviados     SupportAnexo[]
+  id                            String                         @id @default(uuid())
+  authUserId                    String                         @unique
+  nome                          String
+  email                         String                         @unique
+  perfil                        Perfil
+  ativo                         Boolean                        @default(true)
+  criadoEm                      DateTime                       @default(now())
+  atualizadoEm                  DateTime                       @updatedAt
+  ticketsAtualizados            Ticket[]                       @relation("tickets_atualizados")
+  ticketsCriados                Ticket[]                       @relation("tickets_criados")
+  ticketsResponsavel            Ticket[]                       @relation("tickets_responsavel")
+  auditorias                    TicketAuditoria[]
+  auditoriasComoAlvo            UsuarioAuditoria[]             @relation("usuario_auditoria_alvo")
+  auditoriasComoAtor            UsuarioAuditoria[]             @relation("usuario_auditoria_ator")
+  empresaVinculada              Empresa?
+  operacionalLojaVisitadoEm     DateTime?                      @map("operacional_loja_visitado_em")
+  operacionaisCriadas           OperationalRequest[]           @relation("operacionais_criadas")
+  operacionaisAtualizadas       OperationalRequest[]           @relation("operacionais_atualizadas")
+  anexosOperacionais            OperationalRequestAttachment[] @relation("anexos_operacionais_usuario")
+  usuarioEmpresas               UsuarioEmpresa[]
+  personalAccessTokens          PersonalAccessToken[]
+  suporteVisitadoEm             DateTime?                      @map("suporte_visitado_em")
+  supportTicketsCriados         SupportTicket[]                @relation("support_tickets_criados")
+  supportTicketsAtualizados     SupportTicket[]                @relation("support_tickets_atualizados")
+  supportTicketsResponsavel     SupportTicket[]                @relation("support_tickets_responsavel")
+  supportComentarios            SupportComentario[]
+  supportAnexosEnviados         SupportAnexo[]
+  devolucoesInternasCriadas     DevolucaoInterna[]             @relation("devolucoes_internas_criadas")
+  devolucoesInternasAtualizadas DevolucaoInterna[]             @relation("devolucoes_internas_atualizadas")
 }
 
 // Tokens de acesso para integrações fora do navegador logado (ex.: extensão
@@ -400,6 +402,60 @@ model SupportAnexo {
 
   @@index([supportTicketId], map: "SupportAnexo_ticket_idx")
   @@map("support_anexos")
+}
+
+enum DevolucaoDefeito {
+  NENHUM
+  EMBALAGEM_DANIFICADA
+  PECAS_DANIFICADAS
+  PRODUTO_DANIFICADO
+  PRODUTO_PARCIALMENTE_DANIFICADO
+  DEVOLVIDO_ERRADO
+  OUTRO
+}
+
+enum DevolucaoSolucao {
+  SOLICITADO_ASSISTENCIA
+  ENCAMINHADO_OUTRO_DESTINO
+  TROCA_EMBALAGEM_ESTOQUE
+  VOLTOU_ESTOQUE
+  OUTRO
+}
+
+// Controle interno de devoluções recebidas pela própria Lessul (loja
+// principal) — substitui a planilha manual de "recebimento de devolução".
+// Fica fora do fluxo de Ticket/OperationalRequest de propósito: não é uma
+// reclamação de cliente nem uma tarefa para outra loja, é o registro do
+// time de atendimento sobre o que fizeram com o produto devolvido e quanto
+// conseguiram cobrar do marketplace. empresa é sempre LESSUL — as outras
+// empresas usam o fluxo normal de ticket (campo valorRecuperado do Ticket).
+model DevolucaoInterna {
+  id                  String            @id @default(uuid())
+  numero              Int               @default(autoincrement())
+  empresa             Empresa           @default(LESSUL)
+  codigoVenda         String            @map("codigo_venda")
+  cliente             String
+  canalMarketplace    String            @map("canal_marketplace")
+  produto             String
+  sku                 String?
+  defeito             DevolucaoDefeito
+  dataRecebimento     DateTime?         @map("data_recebimento")
+  dataRevisao         DateTime?         @map("data_revisao")
+  solucao             DevolucaoSolucao?
+  solicitadoReembolso Boolean           @default(false) @map("solicitado_reembolso")
+  valorRecuperado     Decimal           @default(0) @map("valor_recuperado") @db.Decimal(12, 2)
+  observacao          String?
+  criadoPorId         String            @map("criado_por_id")
+  atualizadoPorId     String            @map("atualizado_por_id")
+  criadoEm            DateTime          @default(now()) @map("criado_em")
+  atualizadoEm        DateTime          @updatedAt @map("atualizado_em")
+
+  criadoPor     Usuario @relation("devolucoes_internas_criadas", fields: [criadoPorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  atualizadoPor Usuario @relation("devolucoes_internas_atualizadas", fields: [atualizadoPorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([numero])
+  @@index([dataRecebimento], map: "DevolucaoInterna_data_recebimento_idx")
+  @@map("devolucoes_internas")
 }
 
 enum AcaoUsuarioAuditoria {
