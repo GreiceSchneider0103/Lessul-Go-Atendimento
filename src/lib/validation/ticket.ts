@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { AcaoOperacionalLoja, StatusOperacionalLoja } from "@prisma/client";
 import { CANAIS_MARKETPLACE, EMPRESAS, MOTIVOS, normalizeCanalMarketplace, RESOLUCOES, STATUS_RECLAMACAO, STATUS_TICKET } from "@/config/domains";
+import { isValidCpfOrCnpj } from "@/lib/validation/cpf-cnpj";
 
 const isoDateOrDateString = z.string().refine((value) => !Number.isNaN(Date.parse(value)), {
   message: "Data inválida"
@@ -18,7 +19,7 @@ export const ticketSchema = z.object({
   numeroVenda: z.string().min(3),
   linkPedido: z.string().url().optional().or(z.literal("")),
   uf: z.string().length(2),
-  cpf: z.string().min(11).max(14),
+  cpf: z.string().min(11).max(14).refine(isValidCpfOrCnpj, { message: "CPF ou CNPJ inválido" }),
   canalMarketplace: z.preprocess((value) => normalizeCanalMarketplace(typeof value === "string" ? value : undefined), z.enum(CANAIS_MARKETPLACE, { message: "Marketplace inválido" })),
   empresa: z.enum(EMPRESAS),
   produto: z.string().min(2),

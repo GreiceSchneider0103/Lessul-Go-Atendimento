@@ -202,11 +202,16 @@ button { border: 0; border-radius: 10px; padding: 10px 14px; cursor: pointer; }
 .kanban-scroll-top { padding-bottom: 0; margin-bottom: -4px; }
 .kanban-scroll-spacer { height: 10px; width: max(2400px, 100%); }
 .kanban-columns { display: flex; gap: 16px; align-items: flex-start; min-height: 70vh; min-width: max-content; }
-.kanban-column { width: 380px; max-width: 85vw; background: #f8fafc; border-radius: 12px; border: 1px solid var(--color-border); }
-.kanban-column-head { color: #fff; padding: 12px; border-top-left-radius: 12px; border-top-right-radius: 12px; position: sticky; top: 0; }
+.kanban-column { width: 380px; max-width: 85vw; background: #f8fafc; border-radius: 12px; border: 2px solid var(--color-border); transition: border-color 0.1s ease, background 0.1s ease; }
+.kanban-column-drag-over { border-color: var(--color-brand); background: var(--color-brand-soft); }
+.kanban-column-head { color: #fff; padding: 12px; border-top-left-radius: 10px; border-top-right-radius: 10px; position: sticky; top: 0; }
 .kanban-column-body { padding: 12px; min-height: calc(70vh - 80px); display: grid; gap: 10px; align-content: start; }
-.kanban-card { margin: 0; cursor: grab; }
+/* touch-action: none lets a touch-drag started on a card (see KanbanBoard's
+   onTouchMove) suppress the browser's own scroll gesture, since native
+   HTML5 drag-and-drop (draggable/onDragStart) never fires from touch. */
+.kanban-card { margin: 0; cursor: grab; touch-action: none; }
 .kanban-card:active { cursor: grabbing; }
+.kanban-card-touch-dragging { opacity: 0.6; box-shadow: 0 8px 20px rgba(15, 23, 42, 0.18); }
 
 /* ---------- Table ---------- */
 .table-wrap { overflow-x: auto; }

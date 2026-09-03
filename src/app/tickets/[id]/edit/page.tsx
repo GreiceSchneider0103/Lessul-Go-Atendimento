@@ -1,13 +1,14 @@
 import { requireCurrentUser } from "@/lib/auth/require-user";
-import { getTicketById, softDeleteTicket } from "@/lib/services/tickets-service";
-import { notFound, redirect } from "next/navigation";
+import { getTicketById } from "@/lib/services/tickets-service";
+import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Trash2 } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { TicketForm } from "@/components/forms/ticket-form";
+import { TicketDeleteButton } from "@/components/tickets/ticket-delete-button";
 import { prisma } from "@/lib/db/prisma";
 import { Perfil } from "@prisma/client";
 import { TicketFormInput } from "@/lib/validation/ticket";
-import { assertPermission, hasPermission } from "@/lib/rbac/permissions";
+import { hasPermission } from "@/lib/rbac/permissions";
 
 type BackHref = "/loja/solicitacoes" | `/tickets/${string}`;
 
@@ -83,23 +84,7 @@ export default async function TicketEditPage({ params }: { params: Promise<{ id:
               Cancelar
             </Link>
 
-            {hasPermission(user.perfil, "ticket.soft_delete") ? (
-              <form
-                action={async () => {
-                  "use server";
-
-                  const actor = await requireCurrentUser();
-                  assertPermission(actor.perfil, "ticket.soft_delete");
-                  await softDeleteTicket(id, actor);
-                  redirect("/tickets");
-                }}
-              >
-                <button type="submit" className="btn btn-danger">
-                  <Trash2 size={15} strokeWidth={2.25} aria-hidden />
-                  Excluir ticket
-                </button>
-              </form>
-            ) : null}
+            {hasPermission(user.perfil, "ticket.soft_delete") ? <TicketDeleteButton ticketId={id} /> : null}
           </div>
         </div>
 

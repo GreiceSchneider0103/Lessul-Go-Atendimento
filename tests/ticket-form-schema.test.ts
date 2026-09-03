@@ -7,7 +7,7 @@ const basePayload = {
   numeroVenda: "VENDA-123",
   linkPedido: "",
   uf: "RS",
-  cpf: "12345678901",
+  cpf: "11144477735",
   canalMarketplace: "MERCADO_LIVRE",
   empresa: "LESSUL",
   produto: "Produto",

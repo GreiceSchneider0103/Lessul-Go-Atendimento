@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
+import type { TouchEvent as ReactTouchEvent } from "react";
 import { STATUS_TICKET } from "@/config/domains";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Ticket } from "@prisma/client";
@@ -30,6 +31,17 @@ export function KanbanBoard({ initialItems }: { initialItems: Ticket[] }) {
   const topScrollRef = useRef<HTMLDivElement | null>(null);
   const bottomScrollRef = useRef<HTMLDivElement | null>(null);
   const syncingRef = useRef(false);
+
+  // Native HTML5 drag-and-drop (draggable/onDragStart/onDrop above) never
+  // fires from touch input at all — there's no touch equivalent in that
+  // spec — so phones/tablets fall back silently to the status <select>.
+  // This adds a parallel touch-drag path alongside it: touchstart doesn't
+  // engage immediately (a plain tap must still reach links/selects inside
+  // the card), only once the finger has moved past a small threshold.
+  const [touchDragId, setTouchDragId] = useState<string | null>(null);
+  const [touchOverStatus, setTouchOverStatus] = useState<string | null>(null);
+  const touchStartRef = useRef<{ id: string; x: number; y: number } | null>(null);
+  const TOUCH_DRAG_THRESHOLD = 10;
 
   const statuses = useMemo(() => getKanbanStatuses(), []);
 
@@ -64,6 +76,45 @@ export function KanbanBoard({ initialItems }: { initialItems: Ticket[] }) {
     setActiveDragId(null);
     if (!dragged || dragged.statusTicket === status) return;
     await move(dragged.id, status);
+  }
+
+  function onCardTouchStart(ticketId: string, event: ReactTouchEvent) {
+    const touch = event.touches[0];
+    touchStartRef.current = { id: ticketId, x: touch.clientX, y: touch.clientY };
+  }
+
+  function onCardTouchMove(event: ReactTouchEvent) {
+    const pending = touchStartRef.current;
+    if (!pending) return;
+
+    const touch = event.touches[0];
+    const distance = Math.hypot(touch.clientX - pending.x, touch.clientY - pending.y);
+
+    if (touchDragId !== pending.id) {
+      if (distance < TOUCH_DRAG_THRESHOLD) return;
+      setTouchDragId(pending.id);
+    }
+
+    const target = document.elementFromPoint(touch.clientX, touch.clientY);
+    const column = target instanceof Element ? target.closest<HTMLElement>("[data-kanban-status]") : null;
+    setTouchOverStatus(column?.dataset.kanbanStatus ?? null);
+  }
+
+  async function onCardTouchEnd() {
+    const pending = touchStartRef.current;
+    touchStartRef.current = null;
+
+    const draggedId = touchDragId;
+    const targetStatus = touchOverStatus;
+    setTouchDragId(null);
+    setTouchOverStatus(null);
+
+    if (!pending || !draggedId || !targetStatus) return;
+
+    const dragged = items.find((item) => item.id === draggedId);
+    if (!dragged || dragged.statusTicket === targetStatus) return;
+
+    await move(dragged.id, targetStatus);
   }
 
   function syncScroll(source: "top" | "bottom") {
@@ -101,7 +152,8 @@ export function KanbanBoard({ initialItems }: { initialItems: Ticket[] }) {
             return (
               <div
                 key={status}
-                className="kanban-column"
+                data-kanban-status={status}
+                className={`kanban-column${touchOverStatus === status ? " kanban-column-drag-over" : ""}`}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={() => onDropColumn(status)}
               >
@@ -115,10 +167,13 @@ export function KanbanBoard({ initialItems }: { initialItems: Ticket[] }) {
                   {visibleItems.map((ticket) => (
                     <article
                       key={ticket.id}
-                      className="card kanban-card"
+                      className={`card kanban-card${touchDragId === ticket.id ? " kanban-card-touch-dragging" : ""}`}
                       draggable
                       onDragStart={() => setActiveDragId(ticket.id)}
                       onDragEnd={() => setActiveDragId(null)}
+                      onTouchStart={(e) => onCardTouchStart(ticket.id, e)}
+                      onTouchMove={onCardTouchMove}
+                      onTouchEnd={onCardTouchEnd}
                     >
                       <div className="flex items-center justify-between gap-2">
                         <strong className="text-sm">{ticket.nomeCliente}</strong>

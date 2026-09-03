@@ -686,7 +686,7 @@ export function TicketForm({
                 </a>
               ) : null}
 
-              {userPerfil === "ADMIN" && currentAttachment?.fileUrl ? (
+              {userPerfil && userPerfil !== "LOJA" && currentAttachment?.fileUrl ? (
                 <button
                   type="button"
                   className="btn btn-danger"

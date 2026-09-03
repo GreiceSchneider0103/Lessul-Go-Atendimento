@@ -1,4 +1,5 @@
 import { requireCurrentUser } from "@/lib/auth/require-user";
+import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, FileText, User, Package, Clock, Wallet, Paperclip, MessageSquare, type LucideIcon } from "lucide-react";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -26,11 +27,13 @@ type AnexoTicket = {
 
 async function getTicket(id: string, user: CurrentUser) {
   try {
-    const ticket = await getTicketById(id, user);
-    return { ticket, error: null };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Falha ao carregar ticket";
-    return { ticket: null, error: message };
+    return await getTicketById(id, user);
+  } catch {
+    // getTicketById throws whenever the ticket doesn't exist or falls
+    // outside this user's RBAC scope — from the user's perspective both
+    // cases read the same ("not found"), so route through the friendly
+    // not-found page instead of the generic error boundary.
+    return null;
   }
 }
 
@@ -148,11 +151,9 @@ function ComentarioBubble({ comentario }: { comentario: ComentarioOperacional })
 export default async function TicketDetail({ params }: { params: Promise<{ id: string }> }) {
   const user = await requireCurrentUser();
   const { id } = await params;
-  const { ticket, error } = await getTicket(id, user);
+  const ticket = await getTicket(id, user);
 
-  if (error || !ticket) {
-    throw new Error(error ?? "Ticket não encontrado");
-  }
+  if (!ticket) notFound();
 
   const ticketComExtras = ticket as typeof ticket & {
     valorAssistencia?: unknown;
